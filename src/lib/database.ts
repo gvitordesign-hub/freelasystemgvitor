@@ -155,7 +155,15 @@ export const db = {
     // User Settings (Stats)
     settings: {
         async get() {
-            const { data, error } = await supabase.from('user_settings').select('*').limit(1).maybeSingle();
+            // Get current user to ensure we only get THEIR settings
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+
+            const { data, error } = await supabase.from('user_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
             if (error) throw error;
             if (!data) return null;
             return {
@@ -178,6 +186,9 @@ export const db = {
             } as UserStats;
         },
         async update(stats: Partial<UserStats>) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+
             const transformed: any = { ...stats };
             // Map camelCase to snake_case for Supabase
             const mapping: Record<string, string> = {
@@ -205,7 +216,11 @@ export const db = {
                 }
             });
 
-            const { data, error } = await supabase.from('user_settings').update(transformed).eq('id', (await supabase.from('user_settings').select('id').limit(1).single()).data?.id).select().single();
+            const { data, error } = await supabase.from('user_settings')
+                .upsert({ ...transformed, user_id: user.id }, { onConflict: 'user_id' })
+                .select()
+                .single();
+
             if (error) throw error;
             return data;
         }
