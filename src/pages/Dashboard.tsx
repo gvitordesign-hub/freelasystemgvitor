@@ -50,40 +50,60 @@ const Dashboard: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Sync from Supabase on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-      setIsInitialLoading(true);
-      try {
-        const [clients, tasks, transactions, services, invoices, reminders, stats] = await Promise.all([
-          db.clients.list(),
-          db.tasks.list(),
-          db.transactions.list(),
-          db.services.list(),
-          db.invoices.list(),
-          db.reminders.list(),
-          db.settings.get()
-        ]);
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [clients, tasks, transactions, services, invoices, reminders, stats] = await Promise.all([
+        db.clients.list(),
+        db.tasks.list(),
+        db.transactions.list(),
+        db.services.list(),
+        db.invoices.list(),
+        db.reminders.list(),
+        db.settings.get()
+      ]);
 
-        setState({
-          clients,
-          tasks,
-          transactions,
-          services,
-          invoices,
-          reminders,
-          stats: stats || INITIAL_STATE.stats
-        });
-      } catch (error) {
-        console.error('Error fetching data from Supabase:', error);
-      } finally {
-        setIsInitialLoading(false);
-      }
-    };
-
-    fetchData();
+      setState({
+        clients,
+        tasks,
+        transactions,
+        services,
+        invoices,
+        reminders,
+        stats: stats || INITIAL_STATE.stats
+      });
+    } catch (error) {
+      console.error('Error fetching data from Supabase:', error);
+    } finally {
+      setIsInitialLoading(false);
+    }
   }, [user]);
+
+  // Initial fetch
+  useEffect(() => {
+    setIsInitialLoading(true);
+    fetchData();
+  }, [fetchData]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchData]);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);

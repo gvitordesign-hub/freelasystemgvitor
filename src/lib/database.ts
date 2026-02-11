@@ -30,7 +30,12 @@ export const db = {
         async list() {
             const { data, error } = await supabase.from('tasks').select('*').order('created_at');
             if (error) throw error;
-            return data as Task[];
+            return data.map(t => ({
+                ...t,
+                clientId: t.client_id,
+                invoiceId: t.invoice_id,
+                addToPortfolio: t.add_to_portfolio
+            })) as Task[];
         },
         async create(task: Omit<Task, 'id'>) {
             const { data, error } = await supabase.from('tasks').insert({
