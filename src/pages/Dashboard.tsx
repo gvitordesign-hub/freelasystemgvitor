@@ -53,13 +53,15 @@ const Dashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
-      const [clients, tasks, transactions, services, invoices, reminders, stats] = await Promise.all([
+      const [clients, tasks, transactions, services, invoices, reminders, budgets, albums, stats] = await Promise.all([
         db.clients.list(),
         db.tasks.list(),
         db.transactions.list(),
         db.services.list(),
         db.invoices.list(),
         db.reminders.list(),
+        db.budgets.list(),
+        db.albums.list(),
         db.settings.get()
       ]);
 
@@ -70,6 +72,8 @@ const Dashboard: React.FC = () => {
         services,
         invoices,
         reminders,
+        budgets,
+        albums,
         stats: stats || INITIAL_STATE.stats
       });
     } catch (error) {
@@ -927,7 +931,14 @@ const Dashboard: React.FC = () => {
           <NavItem icon={<Settings size={20} />} label="Protocolos" active={activeTab === 'settings'} collapsed={!isSidebarOpen} onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} />
         </nav>
 
-
+        {isSidebarOpen && user && (
+          <div className="p-4 border-t border-slate-800">
+            <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800/50">
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Acesso Verificado</p>
+              <p className="text-[10px] font-bold text-purple-400 truncate tracking-tight">{user.email}</p>
+            </div>
+          </div>
+        )}
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden w-full">
@@ -944,80 +955,90 @@ const Dashboard: React.FC = () => {
       </main>
 
       {/* Modals & Overlays */}
-      {showBriefing && (
-        <BriefingModal
-          userName={state.stats.name || 'Agente'}
-          criticalTasks={criticalTasks}
-          pendingTransactions={pendingPayments}
-          onStart={handleStartDay}
-          onQuickAddDemand={() => {
-            setIsTaskModalOpen(true);
-            setEditingTask(null);
-            setShowBriefing(false);
-          }}
-          onQuickAddExpense={() => {
-            setIsTransactionModalOpen(true);
-            setShowBriefing(false);
-          }}
-          onSkip={() => setShowBriefing(false)}
+      {
+        showBriefing && (
+          <BriefingModal
+            userName={state.stats.name || 'Agente'}
+            criticalTasks={criticalTasks}
+            pendingTransactions={pendingPayments}
+            onStart={handleStartDay}
+            onQuickAddDemand={() => {
+              setIsTaskModalOpen(true);
+              setEditingTask(null);
+              setShowBriefing(false);
+            }}
+            onQuickAddExpense={() => {
+              setIsTransactionModalOpen(true);
+              setShowBriefing(false);
+            }}
+            onSkip={() => setShowBriefing(false)}
+          />
+        )
+      }
+      {
+        isTaskModalOpen && <TaskModal
+          clients={state.clients}
+          invoices={state.invoices}
+          editingTask={editingTask}
+          onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
+          onSubmit={addTask}
+          onUpdate={updateTask}
+          onQuickAddClient={addClient}
+          onQuickAddInvoice={addInvoice}
         />
-      )}
-      {isTaskModalOpen && <TaskModal
-        clients={state.clients}
-        invoices={state.invoices}
-        editingTask={editingTask}
-        onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
-        onSubmit={addTask}
-        onUpdate={updateTask}
-        onQuickAddClient={addClient}
-        onQuickAddInvoice={addInvoice}
-      />}
+      }
       {pendingPaymentTask && <PaymentModal task={pendingPaymentTask} onConfirm={handleConfirmPayment} onClose={() => setPendingPaymentTask(null)} />}
-      {selectedClientForInvoice && <ProjectNoteModal
-        client={selectedClientForInvoice}
-        tasks={state.tasks.filter(t => t.clientId === selectedClientForInvoice.id)}
-        invoices={state.invoices}
-        pixKey={state.stats.pixKey || ''}
-        onUpdateInvoice={updateInvoice}
-        onDeleteInvoice={deleteInvoice}
-        onUpdatePix={(pix) => updateStats({ pixKey: pix })}
-        onClose={() => setSelectedClientForInvoice(null)}
-      />}
-      {isTransactionModalOpen && (
-        <TransactionModal
-          onClose={() => setIsTransactionModalOpen(false)}
-          onSubmit={addTransaction}
+      {
+        selectedClientForInvoice && <ProjectNoteModal
+          client={selectedClientForInvoice}
+          tasks={state.tasks.filter(t => t.clientId === selectedClientForInvoice.id)}
+          invoices={state.invoices}
+          pixKey={state.stats.pixKey || ''}
+          onUpdateInvoice={updateInvoice}
+          onDeleteInvoice={deleteInvoice}
+          onUpdatePix={(pix) => updateStats({ pixKey: pix })}
+          onClose={() => setSelectedClientForInvoice(null)}
         />
-      )}
+      }
+      {
+        isTransactionModalOpen && (
+          <TransactionModal
+            onClose={() => setIsTransactionModalOpen(false)}
+            onSubmit={addTransaction}
+          />
+        )
+      }
       {/* Alert Popup */}
-      {activeAlert && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4">
-          <div className="bg-slate-900 border border-[var(--primary-color)] p-8 rounded-[2rem] w-full max-w-sm relative shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-scale-up">
-            <div className="absolute -top-6 -left-6 bg-[var(--primary-color)] text-slate-950 p-4 rounded-2xl shadow-xl rotate-[-10deg]">
-              <Clock size={32} />
-            </div>
-
-            <div className="mt-4 text-center space-y-4">
-              <h3 className="text-sm font-black text-[var(--primary-color)] uppercase tracking-widest">Lembrete Programado</h3>
-              <p className="text-xl font-bold text-white leading-tight">"{activeAlert.text}"</p>
-
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
-                <span className="bg-slate-800 px-2 py-1 rounded-lg">{new Date(activeAlert.date!).toLocaleDateString('pt-BR')}</span>
-                <span>às</span>
-                <span className="bg-slate-800 px-2 py-1 rounded-lg">{activeAlert.time}</span>
+      {
+        activeAlert && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-4">
+            <div className="bg-slate-900 border border-[var(--primary-color)] p-8 rounded-[2rem] w-full max-w-sm relative shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-scale-up">
+              <div className="absolute -top-6 -left-6 bg-[var(--primary-color)] text-slate-950 p-4 rounded-2xl shadow-xl rotate-[-10deg]">
+                <Clock size={32} />
               </div>
 
-              <button
-                onClick={() => setActiveAlert(null)}
-                className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-color)]/90 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg shadow-[var(--primary-color)]/20 transition-all active:scale-95"
-              >
-                Recebido
-              </button>
+              <div className="mt-4 text-center space-y-4">
+                <h3 className="text-sm font-black text-[var(--primary-color)] uppercase tracking-widest">Lembrete Programado</h3>
+                <p className="text-xl font-bold text-white leading-tight">"{activeAlert.text}"</p>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
+                  <span className="bg-slate-800 px-2 py-1 rounded-lg">{new Date(activeAlert.date!).toLocaleDateString('pt-BR')}</span>
+                  <span>às</span>
+                  <span className="bg-slate-800 px-2 py-1 rounded-lg">{activeAlert.time}</span>
+                </div>
+
+                <button
+                  onClick={() => setActiveAlert(null)}
+                  className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-color)]/90 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg shadow-[var(--primary-color)]/20 transition-all active:scale-95"
+                >
+                  Recebido
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

@@ -55,9 +55,9 @@ export const db = {
         },
         async update(id: string, task: Partial<Task>) {
             const transformed: any = { ...task };
-            if (task.clientId) transformed.client_id = task.clientId;
-            if (task.invoiceId) transformed.invoice_id = task.invoiceId;
-            if (task.addToPortfolio !== undefined) transformed.add_to_portfolio = task.addToPortfolio;
+            if (task.clientId) { transformed.client_id = task.clientId; delete transformed.clientId; }
+            if (task.invoiceId) { transformed.invoice_id = task.invoiceId; delete transformed.invoiceId; }
+            if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
 
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).select().single();
             if (error) throw error;
@@ -91,7 +91,7 @@ export const db = {
         },
         async update(id: string, tx: Partial<Transaction>) {
             const transformed: any = { ...tx };
-            if (tx.taskId) transformed.task_id = tx.taskId;
+            if (tx.taskId) { transformed.task_id = tx.taskId; delete transformed.taskId; }
             const { data, error } = await supabase.from('transactions').update(transformed).eq('id', id).select().single();
             if (error) throw error;
             return { ...data, taskId: data.task_id } as Transaction;
@@ -146,7 +146,7 @@ export const db = {
         },
         async update(id: string, invoice: Partial<Invoice>) {
             const transformed: any = { ...invoice };
-            if (invoice.clientId) transformed.client_id = invoice.clientId;
+            if (invoice.clientId) { transformed.client_id = invoice.clientId; delete transformed.clientId; }
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).select().single();
             if (error) throw error;
             return { ...data, clientId: data.client_id } as Invoice;
@@ -232,6 +232,7 @@ export const db = {
     },
 
     // Reminders
+    // Reminders
     reminders: {
         async list() {
             const { data, error } = await supabase.from('reminders').select('*').order('created_at', { ascending: false });
@@ -253,8 +254,8 @@ export const db = {
         },
         async update(id: string, reminder: Partial<Reminder>) {
             const transformed: any = { ...reminder };
-            if (reminder.linkedTaskId) transformed.linked_task_id = reminder.linkedTaskId;
-            if (reminder.alertBefore !== undefined) transformed.alert_before = reminder.alertBefore;
+            if (reminder.linkedTaskId) { transformed.linked_task_id = reminder.linkedTaskId; delete transformed.linkedTaskId; }
+            if (reminder.alertBefore !== undefined) { transformed.alert_before = reminder.alertBefore; delete transformed.alertBefore; }
             const { data, error } = await supabase.from('reminders').update(transformed).eq('id', id).select().single();
             if (error) throw error;
             return { ...data, linkedTaskId: data.linked_task_id, alertBefore: data.alert_before } as Reminder;
@@ -262,6 +263,48 @@ export const db = {
         async delete(id: string) {
             const { error } = await supabase.from('reminders').delete().eq('id', id);
             if (error) throw error;
+        }
+    },
+
+    // Budgets
+    budgets: {
+        async list() {
+            const { data, error } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            return data.map(b => ({ ...b, clientId: b.client_id, discountType: b.discount_type, downPayment: b.down_payment, validityDays: b.validity_days })) as Budget[];
+        },
+        async create(budget: Omit<Budget, 'id'>) {
+            const { data, error } = await supabase.from('budgets').insert({
+                client_id: budget.clientId,
+                items: budget.items,
+                discount: budget.discount,
+                discount_type: budget.discountType,
+                down_payment: budget.downPayment,
+                validity_days: budget.validityDays,
+                terms: budget.terms,
+                status: budget.status
+            }).select().single();
+            if (error) throw error;
+            return { ...data, clientId: data.client_id, discountType: data.discount_type, downPayment: data.down_payment, validityDays: data.validity_days } as Budget;
+        }
+    },
+
+    // Albums/Portfolio
+    albums: {
+        async list() {
+            const { data, error } = await supabase.from('albums').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            return data.map(a => ({ ...a, coverImage: a.cover_image })) as Album[];
+        },
+        async create(album: Omit<Album, 'id'>) {
+            const { data, error } = await supabase.from('albums').insert({
+                title: album.title,
+                category: album.category,
+                cover_image: album.coverImage,
+                assets: album.assets
+            }).select().single();
+            if (error) throw error;
+            return { ...data, coverImage: data.cover_image } as Album;
         }
     }
 };
