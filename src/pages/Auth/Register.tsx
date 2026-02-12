@@ -40,7 +40,7 @@ const Register: React.FC = () => {
         }
 
         try {
-            await register(name, email);
+            await register(name, email, password);
             navigate('/dashboard');
         } catch (err) {
             setError('Falha no cadastro. Tente novamente.');

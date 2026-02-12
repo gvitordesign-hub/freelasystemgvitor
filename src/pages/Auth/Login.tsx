@@ -24,7 +24,7 @@ const Login: React.FC = () => {
         }
 
         try {
-            await login(email);
+            await login(email, password);
             navigate('/dashboard');
         } catch (err) {
             setError('Falha na autenticação. Verifique suas credenciais.');

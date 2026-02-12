@@ -11,8 +11,8 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    login: (email: string, password?: string) => Promise<void>;
-    register: (name: string, email: string, password?: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+    register: (name: string, email: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
 }
@@ -56,24 +56,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => subscription.unsubscribe();
     }, []);
 
-    const login = async (email: string, password?: string) => {
+    const login = async (email: string, password: string) => {
         setIsLoading(true);
-        // If password is not provided, we'll use a default one for now to maintain the current "email-only" vibe
-        // though Supabase usually requires passwords
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
             email,
-            password: password || '123456'
+            password
         });
 
         if (error) throw error;
         setIsLoading(false);
     };
 
-    const register = async (name: string, email: string, password?: string) => {
+    const register = async (name: string, email: string, password: string) => {
         setIsLoading(true);
         const { error } = await supabase.auth.signUp({
             email,
-            password: password || '123456',
+            password,
             options: {
                 data: {
                     name,
