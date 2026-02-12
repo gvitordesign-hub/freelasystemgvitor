@@ -280,11 +280,15 @@ export const db = {
     // Reminders
     reminders: {
         async list() {
-            const { data, error } = await supabase.from('reminders').select('*').order('created_at', { ascending: false });
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+            const { data, error } = await supabase.from('reminders').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
             if (error) throw error;
             return data.map(r => ({ ...r, linkedTaskId: r.linked_task_id, alertBefore: r.alert_before })) as Reminder[];
         },
         async create(reminder: Omit<Reminder, 'id'>) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
             const { data, error } = await supabase.from('reminders').insert({
                 text: reminder.text,
                 type: reminder.type,
@@ -292,16 +296,19 @@ export const db = {
                 linked_task_id: reminder.linkedTaskId,
                 date: reminder.date,
                 time: reminder.time,
-                alert_before: reminder.alertBefore
+                alert_before: reminder.alertBefore,
+                user_id: user.id
             }).select().single();
             if (error) throw error;
             return { ...data, linkedTaskId: data.linked_task_id, alertBefore: data.alert_before } as Reminder;
         },
         async update(id: string, reminder: Partial<Reminder>) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
             const transformed: any = { ...reminder };
             if (reminder.linkedTaskId) { transformed.linked_task_id = reminder.linkedTaskId; delete transformed.linkedTaskId; }
             if (reminder.alertBefore !== undefined) { transformed.alert_before = reminder.alertBefore; delete transformed.alertBefore; }
-            const { data, error } = await supabase.from('reminders').update(transformed).eq('id', id).select().single();
+            const { data, error } = await supabase.from('reminders').update(transformed).eq('id', id).eq('user_id', user.id).select().single();
             if (error) throw error;
             return { ...data, linkedTaskId: data.linked_task_id, alertBefore: data.alert_before } as Reminder;
         },
@@ -314,11 +321,15 @@ export const db = {
     // Budgets
     budgets: {
         async list() {
-            const { data, error } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+            const { data, error } = await supabase.from('budgets').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
             if (error) throw error;
             return data.map(b => ({ ...b, clientId: b.client_id, discountType: b.discount_type, downPayment: b.down_payment, validityDays: b.validity_days })) as Budget[];
         },
         async create(budget: Omit<Budget, 'id'>) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
             const { data, error } = await supabase.from('budgets').insert({
                 client_id: budget.clientId,
                 items: budget.items,
@@ -327,7 +338,8 @@ export const db = {
                 down_payment: budget.downPayment,
                 validity_days: budget.validityDays,
                 terms: budget.terms,
-                status: budget.status
+                status: budget.status,
+                user_id: user.id
             }).select().single();
             if (error) throw error;
             return { ...data, clientId: data.client_id, discountType: data.discount_type, downPayment: data.down_payment, validityDays: data.validity_days } as Budget;
@@ -337,16 +349,21 @@ export const db = {
     // Albums/Portfolio
     albums: {
         async list() {
-            const { data, error } = await supabase.from('albums').select('*').order('created_at', { ascending: false });
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
+            const { data, error } = await supabase.from('albums').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
             if (error) throw error;
             return data.map(a => ({ ...a, coverImage: a.cover_image })) as Album[];
         },
         async create(album: Omit<Album, 'id'>) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('User not authenticated');
             const { data, error } = await supabase.from('albums').insert({
                 title: album.title,
                 category: album.category,
                 cover_image: album.coverImage,
-                assets: album.assets
+                assets: album.assets,
+                user_id: user.id
             }).select().single();
             if (error) throw error;
             return { ...data, coverImage: data.cover_image } as Album;
