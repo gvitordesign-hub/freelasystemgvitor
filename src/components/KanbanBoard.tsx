@@ -18,7 +18,7 @@ interface KanbanBoardProps {
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
-  onMoveTask: (taskId: string, day: DayOfWeek, date?: string) => void;
+  onMoveTask: (taskId: string, day: DayOfWeek, date?: string, position?: number) => void;
 }
 
 type ViewMode = 'kanban' | 'diario' | 'mensal';
@@ -30,6 +30,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{ id: string, position: 'top' | 'bottom' } | null>(null);
 
   // Helper to get start of week (Sunday)
   const getStartOfWeek = (d: Date) => {
@@ -86,21 +87,53 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
     setDraggedTaskId(null);
   };
 
-  const onDrop = (e: React.DragEvent, date: Date) => {
+  const onDrop = (e: React.DragEvent, date: Date, targetTaskId?: string) => {
     e.preventDefault();
     setDraggedTaskId(null);
+    setDropIndicator(null);
+
     const taskId = e.dataTransfer.getData('taskId');
     const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' });
     const formattedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1).split('-')[0]; // "Segunda"
 
-    // Convert to YYYY-MM-DD local
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
 
     if (taskId) {
-      onMoveTask(taskId, formattedDay as DayOfWeek, dateStr);
+      let newPos: number | undefined = undefined;
+
+      if (targetTaskId) {
+        const colTasks = tasks
+          .filter(t => (t.date?.split('T')[0] === dateStr) || (!t.date && t.day === formattedDay))
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+        const targetIndex = colTasks.findIndex(t => t.id === targetTaskId);
+        if (targetIndex !== -1) {
+          newPos = dropIndicator?.position === 'top' ? targetIndex : targetIndex + 1;
+
+          // If we are moving within the same column and down, adjust the index
+          const sourceTask = tasks.find(t => t.id === taskId);
+          const sameCol = sourceTask && (sourceTask.date?.split('T')[0] === dateStr || (!sourceTask.date && sourceTask.day === formattedDay));
+          if (sameCol && sourceTask.position < targetIndex && dropIndicator?.position === 'bottom') {
+            // newPos is already targetIndex + 1, which works
+          }
+        }
+      }
+
+      onMoveTask(taskId, formattedDay as DayOfWeek, dateStr, newPos);
     }
+  };
+
+  const handleDragOverCard = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (taskId === draggedTaskId) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const isTop = y < rect.height / 2;
+    setDropIndicator({ id: taskId, position: isTop ? 'top' : 'bottom' });
   };
 
   // ... (getDeadlineStyles kept same) ...
@@ -358,7 +391,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                     return true;
                   }
                   return false;
-                });
+                }).sort((a, b) => (a.position || 0) - (b.position || 0));
 
                 return (
                   <div
@@ -382,84 +415,93 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                         const styles = getDeadlineStyles(task.status);
                         const isDragged = draggedTaskId === task.id;
                         return (
-                          <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(e) => onDragStart(e, task.id)}
-                            onDragEnd={onDragEnd}
-                            onClick={() => setSelectedTask(task)}
-                            className={`group border p-4 rounded-2xl transition-all cursor-pointer hover:border-[var(--primary-color)]/50 
-                              ${isDragged ? 'opacity-20 border-dashed border-[var(--primary-color)] scale-95 shadow-none' : ''} 
-                              ${styles.card}`}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 bg-slate-950 px-2 py-1 rounded-md border border-slate-800 max-w-[150px] truncate">
-                                  {getClientName(task.clientId)}
-                                </span>
-                                <div className={`flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${styles.badge}`}>
-                                  {styles.icon} {styles.label}
-                                </div>
-                              </div>
-                              <div className={`text-slate-700 group-hover:text-[var(--primary-color)] transition-colors`}>
-                                <GripVertical size={14} />
-                              </div>
-                            </div>
-
-                            <h4 className={`font-bold text-sm mb-4 leading-snug transition-all ${styles.text}`}>
-                              {task.title}
-                            </h4>
-
-                            <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-800/50">
-                              <div className="flex flex-col">
-                                <div className={`flex items-center gap-1 font-black text-xs ${task.status === 'Concluído' ? 'text-slate-600' : 'text-emerald-400'}`}>
-                                  <DollarSign size={12} />
-                                  {task.value.toLocaleString('pt-BR')}
-                                </div>
-                                {task.status === 'Concluído' && (
-                                  <div className="flex items-center gap-1 text-purple-400 text-[8px] font-bold uppercase mt-1">
-                                    <Briefcase size={8} /> Portfólio
+                          <div key={task.id} className="relative">
+                            {dropIndicator?.id === task.id && dropIndicator?.position === 'top' && (
+                              <div className="h-1 bg-[var(--primary-color)] rounded-full mb-1 animate-pulse" />
+                            )}
+                            <div
+                              draggable
+                              onDragStart={(e) => onDragStart(e, task.id)}
+                              onDragEnd={onDragEnd}
+                              onDragOver={(e) => handleDragOverCard(e, task.id)}
+                              onDrop={(e) => onDrop(e, date, task.id)}
+                              onClick={() => setSelectedTask(task)}
+                              className={`group border p-4 rounded-2xl transition-all cursor-pointer hover:border-[var(--primary-color)]/50 
+                                ${isDragged ? 'opacity-20 border-dashed border-[var(--primary-color)] scale-95 shadow-none' : ''} 
+                                ${styles.card}`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 bg-slate-950 px-2 py-1 rounded-md border border-slate-800 max-w-[150px] truncate">
+                                    {getClientName(task.clientId)}
+                                  </span>
+                                  <div className={`flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${styles.badge}`}>
+                                    {styles.icon} {styles.label}
                                   </div>
-                                )}
+                                </div>
+                                <div className={`text-slate-700 group-hover:text-[var(--primary-color)] transition-colors`}>
+                                  <GripVertical size={14} />
+                                </div>
                               </div>
 
-                              <div className="flex gap-1 items-center">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                                  className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10"
-                                  title="Expandir"
-                                >
-                                  <Maximize2 size={14} />
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
-                                  className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-blue-400 hover:bg-blue-500/10"
-                                  title="Editar"
-                                >
-                                  <Pencil size={14} />
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setTaskToDelete(task); }}
-                                  className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-red-400 hover:bg-red-500/10"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                                <div className="w-px h-4 bg-slate-800 mx-1"></div>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Em Andamento'); }}
-                                  className={`p-1.5 rounded-lg transition-colors ${task.status === 'Em Andamento' ? 'bg-blue-500/20 text-blue-400' : 'text-slate-600 hover:text-slate-400'}`}
-                                >
-                                  <Circle size={14} />
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Concluído'); }}
-                                  className={`p-1.5 rounded-lg transition-colors ${task.status === 'Concluído' ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-slate-600 hover:text-slate-400'}`}
-                                >
-                                  <CheckCircle2 size={14} />
-                                </button>
+                              <h4 className={`font-bold text-sm mb-4 leading-snug transition-all ${styles.text}`}>
+                                {task.title}
+                              </h4>
+
+                              <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-800/50">
+                                <div className="flex flex-col">
+                                  <div className={`flex items-center gap-1 font-black text-xs ${task.status === 'Concluído' ? 'text-slate-600' : 'text-emerald-400'}`}>
+                                    <DollarSign size={12} />
+                                    {task.value.toLocaleString('pt-BR')}
+                                  </div>
+                                  {task.status === 'Concluído' && (
+                                    <div className="flex items-center gap-1 text-purple-400 text-[8px] font-bold uppercase mt-1">
+                                      <Briefcase size={8} /> Portfólio
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-1 items-center">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                                    className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10"
+                                    title="Expandir"
+                                  >
+                                    <Maximize2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+                                    className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-blue-400 hover:bg-blue-500/10"
+                                    title="Editar"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setTaskToDelete(task); }}
+                                    className="p-1.5 rounded-lg transition-colors text-slate-600 hover:text-red-400 hover:bg-red-500/10"
+                                    title="Excluir"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                  <div className="w-px h-4 bg-slate-800 mx-1"></div>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Em Andamento'); }}
+                                    className={`p-1.5 rounded-lg transition-colors ${task.status === 'Em Andamento' ? 'bg-blue-500/20 text-blue-400' : 'text-slate-600 hover:text-slate-400'}`}
+                                  >
+                                    <Circle size={14} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Concluído'); }}
+                                    className={`p-1.5 rounded-lg transition-colors ${task.status === 'Concluído' ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-slate-600 hover:text-slate-400'}`}
+                                  >
+                                    <CheckCircle2 size={14} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
+                            {dropIndicator?.id === task.id && dropIndicator?.position === 'bottom' && (
+                              <div className="h-1 bg-[var(--primary-color)] rounded-full mt-1 animate-pulse" />
+                            )}
                           </div>
                         );
                       })}

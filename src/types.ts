@@ -90,6 +90,7 @@ export interface Task {
   category: string;
   briefing?: string;
   addToPortfolio?: boolean;
+  position: number;
 }
 
 export interface Transaction {

@@ -458,17 +458,48 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
-  const moveTask = useCallback(async (taskId: string, day: DayOfWeek, date?: string) => {
+  const moveTask = useCallback(async (taskId: string, day: DayOfWeek, date?: string, newPosition?: number) => {
     try {
-      const result = await db.tasks.update(taskId, { day, date: date || undefined });
-      setState(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t => t.id === taskId ? result : t)
-      }));
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const targetDate = date || task.date;
+      const sameColumn = task.day === day && task.date === targetDate;
+
+      let updatedTasks = [...state.tasks];
+      const tasksInCol = updatedTasks
+        .filter(t => t.day === day && (date ? t.date === date : true))
+        .sort((a, b) => a.position - b.position);
+
+      if (newPosition !== undefined) {
+        // Remove task from its current position
+        const filteredTasks = tasksInCol.filter(t => t.id !== taskId);
+        // Insert at new position
+        filteredTasks.splice(newPosition, 0, { ...task, day, date: targetDate, position: newPosition });
+
+        // Update positions for all tasks in this column
+        const updates = filteredTasks.map((t, idx) => {
+          const newPos = idx;
+          if (t.id === taskId) {
+            return db.tasks.update(t.id, { day, date: targetDate, position: newPos });
+          } else if (t.position !== newPos) {
+            return db.tasks.update(t.id, { position: newPos });
+          }
+          return null;
+        }).filter(Boolean);
+
+        await Promise.all(updates);
+      } else {
+        const result = await db.tasks.update(taskId, { day, date: date || undefined });
+        updatedTasks = updatedTasks.map(t => t.id === taskId ? result : t);
+      }
+
+      // Refresh data to ensure state is in sync with DB positions
+      fetchData();
     } catch (e) {
       console.error('Error moving task:', e);
     }
-  }, []);
+  }, [state.tasks, fetchData]);
 
   const updateTaskStatus = useCallback(async (taskId: string, status: Status) => {
     const task = state.tasks.find(t => t.id === taskId);

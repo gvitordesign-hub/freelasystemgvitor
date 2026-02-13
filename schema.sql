@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   category TEXT,
   briefing TEXT,
   add_to_portfolio BOOLEAN DEFAULT FALSE,
+  position INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

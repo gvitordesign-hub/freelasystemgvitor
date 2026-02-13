@@ -38,13 +38,14 @@ export const db = {
         async list() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
-            const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at');
+            const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user.id).order('position', { ascending: true });
             if (error) throw error;
             return data.map(t => ({
                 ...t,
                 clientId: t.client_id,
                 invoiceId: t.invoice_id,
-                addToPortfolio: t.add_to_portfolio
+                addToPortfolio: t.add_to_portfolio,
+                position: t.position || 0
             })) as Task[];
         },
         async create(task: Omit<Task, 'id'>) {
@@ -61,10 +62,11 @@ export const db = {
                 category: task.category,
                 briefing: task.briefing,
                 add_to_portfolio: task.addToPortfolio,
+                position: task.position || 0,
                 user_id: user.id
             }).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio } as Task;
+            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio, position: data.position } as Task;
         },
         async update(id: string, task: Partial<Task>) {
             const { data: { user } } = await supabase.auth.getUser();
@@ -76,7 +78,7 @@ export const db = {
 
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', user.id).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio } as Task;
+            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio, position: data.position } as Task;
         },
         async delete(id: string) {
             const { data: { user } } = await supabase.auth.getUser();
