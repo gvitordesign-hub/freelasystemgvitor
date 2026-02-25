@@ -14,6 +14,16 @@ const Login: React.FC = () => {
     const { login, isLoading } = useAuth();
     const navigate = useNavigate();
 
+    const getErrorMessage = (err: any) => {
+        if (typeof err === 'string') return err;
+        if (err?.message) {
+            if (err.message.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+            if (err.message.includes('Email not confirmed')) return 'Por favor, confirme seu e-mail para entrar.';
+            return err.message;
+        }
+        return 'Falha na autenticação. Tente novamente.';
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -27,7 +37,7 @@ const Login: React.FC = () => {
             await login(email, password);
             navigate('/dashboard');
         } catch (err) {
-            setError('Falha na autenticação. Verifique suas credenciais.');
+            setError(getErrorMessage(err));
         }
     };
 

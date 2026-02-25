@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AuthLayout from '../../layouts/AuthLayout';
-import { User, Mail, Lock, Info, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Lock, Info, ArrowRight, Loader2, CheckCircle2, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { calculatePasswordStrength, StrengthResult } from '../../utils/passwordStrength';
 
 const Register: React.FC = () => {
     const [name, setName] = useState('');
@@ -12,8 +13,28 @@ const Register: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [passwordStrength, setPasswordStrength] = useState<StrengthResult | null>(null);
     const { register, isLoading } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (password) {
+            setPasswordStrength(calculatePasswordStrength(password));
+        } else {
+            setPasswordStrength(null);
+        }
+    }, [password]);
+
+    const getErrorMessage = (err: any) => {
+        if (typeof err === 'string') return err;
+        if (err?.message) {
+            if (err.message.includes('User already registered')) return 'Este e-mail já está cadastrado.';
+            if (err.message.includes('Password should be')) return 'A senha não atende aos requisitos de segurança.';
+            if (err.message.includes('invalid format')) return 'Formato de e-mail inválido.';
+            return err.message;
+        }
+        return 'Falha no cadastro. Tente novamente.';
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,7 +64,7 @@ const Register: React.FC = () => {
             await register(name, email, password);
             navigate('/dashboard');
         } catch (err) {
-            setError('Falha no cadastro. Tente novamente.');
+            setError(getErrorMessage(err));
         }
     };
 
@@ -55,7 +76,7 @@ const Register: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
                     <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-xs flex items-center gap-2 animate-shake">
-                        <Info size={16} />
+                        <ShieldAlert size={16} />
                         {error}
                     </div>
                 )}
@@ -118,6 +139,27 @@ const Register: React.FC = () => {
                             required
                         />
                     </div>
+
+                    {/* Password Strength Indicator */}
+                    {password && passwordStrength && (
+                        <div className="mt-2 space-y-1.5 px-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                                <span className="text-slate-500 flex items-center gap-1">
+                                    {passwordStrength.label === 'Forte' ? <ShieldCheck size={12} className="text-green-500" /> : <Shield size={12} />}
+                                    Segurança: <span className={passwordStrength.label === 'Forte' ? 'text-green-500' : passwordStrength.label === 'Média' ? 'text-yellow-500' : 'text-red-500'}>{passwordStrength.label}</span>
+                                </span>
+                                <span className="text-slate-600">{Math.round((passwordStrength.score / 4) * 100)}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden flex gap-0.5">
+                                {[1, 2, 3, 4].map((step) => (
+                                    <div
+                                        key={step}
+                                        className={`h-full flex-1 transition-all duration-500 ${step <= passwordStrength.score ? passwordStrength.color : 'bg-slate-800'}`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-1">
@@ -133,6 +175,11 @@ const Register: React.FC = () => {
                             required
                         />
                     </div>
+                    {password !== confirmPassword && confirmPassword.length > 0 && (
+                        <p className="text-[9px] text-red-500 mt-1 ml-1 flex items-center gap-1">
+                            <ShieldAlert size={10} /> As senhas não coincidem
+                        </p>
+                    )}
                     <p className="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1"><Info size={10} /> Mínimo de 8 caracteres com letras e números</p>
                 </div>
 

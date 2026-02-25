@@ -71,7 +71,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
       date: new Date(formData.date).toISOString(),
       status: formData.status as any,
       category: formData.category,
-      briefing: formData.briefing || undefined
+      briefing: formData.briefing || undefined,
+      position: editingTask?.position || 0
     };
 
     if (isEditMode && onUpdate && editingTask) {
@@ -155,13 +156,26 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Categoria</label>
+              <select
+                value={formData.category}
+                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white text-xs outline-none focus:border-[var(--primary-color)]"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Data Alvo</label>
               <input required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white text-xs [color-scheme:dark]" />
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Valor (R$)</label>
-              <input required type="number" value={formData.value} onChange={e => setFormData({ ...formData, value: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white text-xs" />
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Valor (R$)</label>
+            <input required type="number" value={formData.value} onChange={e => setFormData({ ...formData, value: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white text-xs" />
           </div>
 
           <div>

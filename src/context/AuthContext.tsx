@@ -65,6 +65,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             if (error) throw error;
+        } catch (error: any) {
+            console.error('Login error:', error);
+            throw error;
         } finally {
             setIsLoading(false);
         }
@@ -85,6 +88,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             if (error) throw error;
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            throw error;
         } finally {
             setIsLoading(false);
         }
@@ -93,6 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = async () => {
         await supabase.auth.signOut();
     };
+
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
