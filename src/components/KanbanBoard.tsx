@@ -35,15 +35,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
   // Helper to get start of week (Sunday)
   const getStartOfWeek = (d: Date) => {
     const date = new Date(d);
+    date.setHours(0, 0, 0, 0);
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-    // Actually, let's stick to simple Sunday start or adjust per user pref. 
-    // User requested "Carousel", usually implies sequential days.
-    // Let's standard on current date's Monday? Or just Sunday?
-    // Let's use Monday as start of week.
-    const monday = new Date(date.setDate(date.getDate() - date.getDay() + 1));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
+    const diff = (day === 0 ? -6 : 1) - day;
+    date.setDate(date.getDate() + diff);
+    return date;
   };
 
   const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
@@ -207,7 +203,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
               <div key={d} className="text-center text-[10px] font-black text-slate-600 uppercase py-2">{d}</div>
             ))}
             {days.map((date, idx) => {
-              const dateStr = date?.toISOString().split('T')[0];
+              const dateStr = date?.toLocaleDateString('en-CA');
               const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
               const isToday = date?.toDateString() === new Date().toDateString();
 
@@ -245,7 +241,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
   };
 
   const renderDailyView = () => {
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = currentDate.toLocaleDateString('en-CA');
     const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
     const dayName = currentDate.toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -375,7 +371,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                 const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' });
                 const formattedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1).split('-')[0];
                 const dateNum = date.getDate();
-                const dateStr = date.toISOString().split('T')[0]; // Current column date YYYY-MM-DD
+                const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD local safe
 
                 const isToday = new Date().toDateString() === date.toDateString();
 

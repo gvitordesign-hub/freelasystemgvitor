@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, DollarSign, UserPlus, ChevronLeft, FileText, PlusCircle } from 'lucide-react';
 import { Client, DayOfWeek, Task, Invoice } from '../../types';
 
@@ -26,11 +26,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
     clientId: editingTask?.clientId || clients[0]?.id || '',
     invoiceId: editingTask?.invoiceId || '',
     value: editingTask?.value?.toString() || '',
-    date: editingTask?.date ? new Date(editingTask.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    date: editingTask?.date ? (editingTask.date.includes('T') ? editingTask.date.split('T')[0] : editingTask.date) : new Date().toLocaleDateString('en-CA'),
     category: editingTask?.category || 'Design',
     briefing: editingTask?.briefing || '',
     status: editingTask?.status || 'Pendente'
   });
+
+  // Clear invoice area when toggling to add new client
+  useEffect(() => {
+    if (isAddingNewClient) {
+      setFormData(prev => ({ ...prev, invoiceId: '' }));
+      setIsAddingNewInvoice(false);
+      setNewInvoiceTitle('');
+    }
+  }, [isAddingNewClient]);
 
   const categories = ['Design', 'Desenvolvimento', 'Marketing', 'Redação', 'Consultoria', 'Social Media', 'Edição Video'];
 
@@ -38,19 +47,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
     return invoices.filter(inv => inv.clientId === formData.clientId);
   }, [invoices, formData.clientId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let finalClientId = formData.clientId;
     let finalInvoiceId = formData.invoiceId;
 
     if (isAddingNewClient) {
-      if (!newClientData.name || !newClientData.company) return alert('Preencha os dados do cliente.');
-      finalClientId = onQuickAddClient(newClientData);
+      if (!newClientData.name) return alert('Preencha ao menos o nome do cliente.');
+      finalClientId = await onQuickAddClient(newClientData);
     }
 
     if (isAddingNewInvoice && newInvoiceTitle) {
-      finalInvoiceId = onQuickAddInvoice({
+      finalInvoiceId = await onQuickAddInvoice({
         clientId: finalClientId,
         title: newInvoiceTitle,
         createdAt: new Date().toISOString(),
@@ -68,7 +77,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
       invoiceId: finalInvoiceId || undefined,
       value: parseFloat(formData.value) || 0,
       day: derivedDay,
-      date: new Date(formData.date).toISOString(),
+      date: formData.date, // Save raw YYYY-MM-DD string
       status: formData.status as any,
       category: formData.category,
       briefing: formData.briefing || undefined,
@@ -110,20 +119,30 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
             <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-800">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase">Cliente</label>
-                <button type="button" onClick={() => setIsAddingNewClient(!isAddingNewClient)} className="text-[9px] font-bold text-[var(--primary-color)]">
+                <button type="button" onClick={() => {
+                  setIsAddingNewClient(!isAddingNewClient);
+                  // Reset new client form when toggling
+                  if (!isAddingNewClient) {
+                    setNewClientData({ name: '', company: '' });
+                  }
+                }} className="text-[9px] font-bold text-[var(--primary-color)]">
                   {isAddingNewClient ? 'Lista' : 'Novo'}
                 </button>
               </div>
               {isAddingNewClient ? (
                 <div className="space-y-2">
                   <input required={isAddingNewClient} placeholder="Nome" value={newClientData.name} onChange={e => setNewClientData({ ...newClientData, name: e.target.value })} className="w-full bg-slate-900 text-xs p-2 rounded-lg border border-slate-700" />
-                  <input required={isAddingNewClient} placeholder="Empresa" value={newClientData.company} onChange={e => setNewClientData({ ...newClientData, company: e.target.value })} className="w-full bg-slate-900 text-xs p-2 rounded-lg border border-slate-700" />
+                  <input placeholder="Empresa (opcional)" value={newClientData.company} onChange={e => setNewClientData({ ...newClientData, company: e.target.value })} className="w-full bg-slate-900 text-xs p-2 rounded-lg border border-slate-700" />
                 </div>
               ) : (
                 <select
                   required
                   value={formData.clientId}
-                  onChange={e => setFormData({ ...formData, clientId: e.target.value, invoiceId: '' })}
+                  onChange={e => {
+                    setFormData({ ...formData, clientId: e.target.value, invoiceId: '' });
+                    setIsAddingNewInvoice(false);
+                    setNewInvoiceTitle('');
+                  }}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
                 >
                   <option value="" disabled>Selecionar...</option>

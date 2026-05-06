@@ -76,6 +76,8 @@ export interface Client {
   company: string;
   contact?: string;
   notes?: string;
+  xp?: number;
+  status?: string;
 }
 
 export interface Task {
@@ -133,6 +135,7 @@ export interface UserStats {
   instagramLink?: string;
   portfolioCategories?: string[];
   socialLinks?: SocialLink[];
+  overdueAlertDays?: number; // dias para alertar inadimplência (padrão 30)
 }
 
 export interface AppState {

@@ -1,6 +1,5 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 
 interface User {
     id: string;
@@ -19,87 +18,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock user for development
+const MOCK_USER: User = {
+    id: '00000000-0000-0000-0000-000000000000',
+    name: 'Desenvolvedor',
+    email: 'dev@gvitor.com',
+    status: 'active'
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                const metadata = session.user.user_metadata;
-                setUser({
-                    id: session.user.id,
-                    name: metadata.name || session.user.email?.split('@')[0],
-                    email: session.user.email || '',
-                    status: metadata.status || 'active'
-                });
-            }
-            setIsLoading(false);
-        });
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) {
-                const metadata = session.user.user_metadata;
-                setUser({
-                    id: session.user.id,
-                    name: metadata.name || session.user.email?.split('@')[0],
-                    email: session.user.email || '',
-                    status: metadata.status || 'active'
-                });
-            } else {
-                setUser(null);
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
+    // Start with the mock user and not loading
+    const [user, setUser] = useState<User | null>(MOCK_USER);
+    const [isLoading, setIsLoading] = useState(false);
 
     const login = async (email: string, password: string) => {
-        setIsLoading(true);
-        try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            });
-
-            if (error) throw error;
-        } catch (error: any) {
-            console.error('Login error:', error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
+        console.log('Mock login:', { email, password });
+        setUser(MOCK_USER);
     };
 
     const register = async (name: string, email: string, password: string) => {
-        setIsLoading(true);
-        try {
-            const { error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        name,
-                        status: 'active'
-                    }
-                }
-            });
-
-            if (error) throw error;
-        } catch (error: any) {
-            console.error('Registration error:', error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
+        console.log('Mock register:', { name, email, password });
+        setUser(MOCK_USER);
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
+        console.log('Mock logout');
+        setUser(null);
     };
-
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>

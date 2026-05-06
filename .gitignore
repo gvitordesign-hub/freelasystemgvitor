@@ -29,3 +29,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Local exclusions
+tmp/
+.agents/
+skills-lock.json

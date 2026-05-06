@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Target, Palette, Bookmark, Save, Trash2, Sliders } from 'lucide-react';
+import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell } from 'lucide-react';
 import { UserStats, ThemeColor } from '../types';
 
 interface SettingsViewProps {
@@ -138,6 +138,36 @@ const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats }) => 
             placeholder="Escreva seus focos, prazos críticos ou grandes metas para o período aqui..."
             className="w-full h-48 bg-slate-800/40 border border-slate-700 rounded-2xl p-6 text-slate-300 focus:border-[var(--primary-color)] outline-none transition-all resize-none"
           />
+        </section>
+
+        {/* Alerta de Inadimplência */}
+        <section className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6 lg:col-span-2">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-3">
+              <Bell className="text-rose-400" size={20} />
+              Alerta de Inadimplência
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Receba avisos no dashboard quando um cliente tiver notas não pagas há mais de X dias.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {[15, 20, 30, 60].map(days => (
+              <button
+                key={days}
+                onClick={() => onUpdateStats({ overdueAlertDays: days })}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
+                  (stats.overdueAlertDays ?? 30) === days
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
+                    : 'border-slate-700 bg-slate-800/30 text-slate-500 hover:border-slate-600 hover:text-slate-300'
+                }`}
+              >
+                <span className={`text-lg font-black ${ (stats.overdueAlertDays ?? 30) === days ? 'text-rose-300' : 'text-slate-400'}`}>{days}</span>
+                dias
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+            Configuração atual: alertar após <span className="text-rose-500">{stats.overdueAlertDays ?? 30} dias</span> sem pagamento
+          </p>
         </section>
 
         {/* Perigo */}

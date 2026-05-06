@@ -42,6 +42,7 @@ import ProjectNoteModal from '../components/Modals/ProjectNoteModal';
 import BriefingModal from '../components/Modals/BriefingModal';
 import FocusWidget from '../components/Dashboard/FocusWidget';
 import TransactionModal from '../components/Modals/TransactionModal';
+import OverdueAlert from '../components/OverdueAlert';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -375,6 +376,30 @@ const Dashboard: React.FC = () => {
     }
   }, [addXP]);
 
+  const updateClient = useCallback(async (id: string, updated: Partial<Client>) => {
+    try {
+      const result = await db.clients.update(id, updated);
+      setState(prev => ({
+        ...prev,
+        clients: prev.clients.map(c => c.id === id ? { ...c, ...result } : c)
+      }));
+    } catch (e) {
+      console.error('Error updating client:', e);
+    }
+  }, []);
+
+  const deleteClient = useCallback(async (id: string) => {
+    try {
+      await db.clients.delete(id);
+      setState(prev => ({
+        ...prev,
+        clients: prev.clients.filter(c => c.id !== id)
+      }));
+    } catch (e) {
+      console.error('Error deleting client:', e);
+    }
+  }, []);
+
   const addInvoice = useCallback(async (invoice: Omit<Invoice, 'id'>) => {
     try {
       const newInvoice = await db.invoices.create(invoice);
@@ -389,7 +414,34 @@ const Dashboard: React.FC = () => {
   const updateInvoice = useCallback(async (updated: Invoice) => {
     try {
       const result = await db.invoices.update(updated.id, updated);
-      setState(prev => ({ ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) }));
+      
+      setState(prev => {
+        const nextState = { ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) };
+        
+        // Se a nota foi marcada como Paga, sincroniza as transações vinculadas
+        if (updated.status === 'Pago') {
+          const invoiceTasks = prev.tasks.filter(t => t.invoiceId === result.id);
+          const taskIds = new Set(invoiceTasks.map(t => t.id));
+          
+          let txUpdated = false;
+          const newTransactions = prev.transactions.map(tx => {
+            if (tx.taskId && taskIds.has(tx.taskId) && tx.status !== 'Pago') {
+              txUpdated = true;
+              const newTx = { ...tx, status: 'Pago' as const };
+              // Atualiza no banco de dados em background
+              db.transactions.update(newTx.id, { status: 'Pago' }).catch(console.error);
+              return newTx;
+            }
+            return tx;
+          });
+          
+          if (txUpdated) {
+            nextState.transactions = newTransactions;
+          }
+        }
+        
+        return nextState;
+      });
     } catch (e) {
       console.error('Error updating invoice:', e);
     }
@@ -416,10 +468,11 @@ const Dashboard: React.FC = () => {
         });
         setState(prev => ({ ...prev, transactions: [...prev.transactions, newTx] }));
       }
+      fetchData();
     } catch (e) {
       console.error('Error adding task:', e);
     }
-  }, []);
+  }, [fetchData]);
 
   const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
     try {
@@ -436,14 +489,57 @@ const Dashboard: React.FC = () => {
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'>) => {
     try {
       const result = await db.tasks.update(taskId, updatedTask);
-      setState(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t => t.id === taskId ? result : t)
-      }));
+
+      // Sync linked transaction: update value+description whenever task is edited
+      setState(prev => {
+        const linkedTx = prev.transactions.find(tx => tx.taskId === taskId && tx.type === 'Entrada');
+        if (linkedTx) {
+          const needsSync = linkedTx.value !== updatedTask.value || 
+            linkedTx.description !== `Previsto: ${updatedTask.title}`;
+          
+          if (needsSync) {
+            // Fire async update without blocking UI
+            db.transactions.update(linkedTx.id, {
+              value: updatedTask.value,
+              description: `Previsto: ${updatedTask.title}`,
+              category: updatedTask.category || linkedTx.category
+            }).catch(e => console.error('Error syncing transaction:', e));
+
+            return {
+              ...prev,
+              tasks: prev.tasks.map(t => t.id === taskId ? result : t),
+              transactions: prev.transactions.map(tx =>
+                tx.id === linkedTx.id
+                  ? { ...tx, value: updatedTask.value, description: `Previsto: ${updatedTask.title}`, category: updatedTask.category || tx.category }
+                  : tx
+              )
+            };
+          }
+        } else if (updatedTask.value > 0) {
+          // No linked transaction exists yet but task now has a value — create one
+          db.transactions.create({
+            description: `Previsto: ${updatedTask.title}`,
+            value: updatedTask.value,
+            type: 'Entrada',
+            date: new Date().toISOString(),
+            status: 'Pendente',
+            category: 'Serviço',
+            taskId: taskId
+          }).then(newTx => {
+            setState(p => ({ ...p, transactions: [...p.transactions, newTx] }));
+          }).catch(e => console.error('Error creating transaction for task:', e));
+        }
+        return {
+          ...prev,
+          tasks: prev.tasks.map(t => t.id === taskId ? result : t)
+        };
+      });
+      fetchData();
     } catch (e) {
       console.error('Error updating task:', e);
     }
-  }, []);
+  }, [fetchData]);
+
 
   const deleteTask = useCallback(async (taskId: string) => {
     try {
@@ -668,7 +764,18 @@ const Dashboard: React.FC = () => {
           onEditTask={(task) => { setEditingTask(task); setIsTaskModalOpen(true); }}
         />;
       case 'clients':
-        return <ClientManagement clients={state.clients} onAddClient={addClient} onViewInvoice={setSelectedClientForInvoice} />;
+        return (
+          <ClientManagement
+            clients={state.clients}
+            transactions={state.transactions}
+            tasks={state.tasks}
+            invoices={state.invoices}
+            onAddClient={addClient}
+            onUpdateClient={updateClient}
+            onDeleteClient={deleteClient}
+            onViewInvoice={setSelectedClientForInvoice}
+          />
+        );
       case 'budgets':
         return <BudgetBuilder
           clients={state.clients}
@@ -690,6 +797,13 @@ const Dashboard: React.FC = () => {
 
         return (
           <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+            {/* Overdue Client Alert */}
+            <OverdueAlert
+              clients={state.clients}
+              invoices={state.invoices}
+              overdueAlertDays={state.stats.overdueAlertDays ?? 30}
+              onNavigateToClient={(_client) => setActiveTab('clients')}
+            />
             {/* Quick Actions Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-reveal">
               {/* Quick Demand Addition Card */}
