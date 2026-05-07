@@ -2,8 +2,7 @@
     "rewrites": [
         {
             "source": "/(.*)",
-            "destination": "/"
+            "destination": "/?force_deploy=1"
         }
     ]
 }
-// deploy trigger
