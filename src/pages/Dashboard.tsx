@@ -449,25 +449,17 @@ const Dashboard: React.FC = () => {
 
   const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
     try {
-      const newTask = await db.tasks.create(task);
-      setState(prev => {
-        const newState = { ...prev, tasks: [...prev.tasks, newTask] };
-        return newState;
-      });
+      const initialStatus = task.status;
+      // If task is created as Concluído, we'll create it as Pendente first and trigger the payment confirmation modal to set it correctly
+      const taskToCreate = { ...task, status: initialStatus === 'Concluído' ? 'Pendente' : initialStatus };
+      const newTask = await db.tasks.create(taskToCreate);
+      
+      setState(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
 
-      if (task.value > 0) {
-        // Create transaction for task
-        const newTx = await db.transactions.create({
-          description: `Previsto: ${task.title}`,
-          value: task.value,
-          type: 'Entrada',
-          date: new Date().toISOString(),
-          status: 'Pendente',
-          category: 'Serviço',
-          taskId: newTask.id
-        });
-        setState(prev => ({ ...prev, transactions: [...prev.transactions, newTx] }));
+      if (initialStatus === 'Concluído') {
+        setPendingPaymentTask(newTask);
       }
+      
       fetchData();
     } catch (e) {
       console.error('Error adding task:', e);
@@ -488,57 +480,55 @@ const Dashboard: React.FC = () => {
 
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'>) => {
     try {
-      const result = await db.tasks.update(taskId, updatedTask);
+      const taskBefore = state.tasks.find(t => t.id === taskId);
+      const isConcluding = taskBefore && taskBefore.status !== 'Concluído' && updatedTask.status === 'Concluído';
+      
+      const taskToSave = { ...updatedTask };
+      if (isConcluding) {
+        taskToSave.status = taskBefore.status;
+      }
+      
+      const result = await db.tasks.update(taskId, taskToSave);
 
-      // Sync linked transaction: update value+description whenever task is edited
       setState(prev => {
+        const nextTasks = prev.tasks.map(t => t.id === taskId ? result : t);
+        
+        // Sync linked transaction if it exists
         const linkedTx = prev.transactions.find(tx => tx.taskId === taskId && tx.type === 'Entrada');
         if (linkedTx) {
           const needsSync = linkedTx.value !== updatedTask.value || 
-            linkedTx.description !== `Previsto: ${updatedTask.title}`;
+            linkedTx.description !== `Serviço: ${updatedTask.title}`;
           
           if (needsSync) {
-            // Fire async update without blocking UI
             db.transactions.update(linkedTx.id, {
               value: updatedTask.value,
-              description: `Previsto: ${updatedTask.title}`,
+              description: `Serviço: ${updatedTask.title}`,
               category: updatedTask.category || linkedTx.category
             }).catch(e => console.error('Error syncing transaction:', e));
 
             return {
               ...prev,
-              tasks: prev.tasks.map(t => t.id === taskId ? result : t),
+              tasks: nextTasks,
               transactions: prev.transactions.map(tx =>
                 tx.id === linkedTx.id
-                  ? { ...tx, value: updatedTask.value, description: `Previsto: ${updatedTask.title}`, category: updatedTask.category || tx.category }
+                  ? { ...tx, value: updatedTask.value, description: `Serviço: ${updatedTask.title}`, category: updatedTask.category || tx.category }
                   : tx
               )
             };
           }
-        } else if (updatedTask.value > 0) {
-          // No linked transaction exists yet but task now has a value — create one
-          db.transactions.create({
-            description: `Previsto: ${updatedTask.title}`,
-            value: updatedTask.value,
-            type: 'Entrada',
-            date: new Date().toISOString(),
-            status: 'Pendente',
-            category: 'Serviço',
-            taskId: taskId
-          }).then(newTx => {
-            setState(p => ({ ...p, transactions: [...p.transactions, newTx] }));
-          }).catch(e => console.error('Error creating transaction for task:', e));
         }
-        return {
-          ...prev,
-          tasks: prev.tasks.map(t => t.id === taskId ? result : t)
-        };
+        return { ...prev, tasks: nextTasks };
       });
+
+      if (isConcluding) {
+        setPendingPaymentTask(result);
+      }
+      
       fetchData();
     } catch (e) {
       console.error('Error updating task:', e);
     }
-  }, [fetchData]);
+  }, [state.tasks, fetchData]);
 
 
   const deleteTask = useCallback(async (taskId: string) => {
@@ -606,15 +596,23 @@ const Dashboard: React.FC = () => {
     } else {
       try {
         const result = await db.tasks.update(taskId, { status });
+        
+        // Find and delete any linked transactions since the task is no longer Concluído
+        const relatedTxs = state.transactions.filter(tx => tx.taskId === taskId);
+        if (relatedTxs.length > 0) {
+          await Promise.all(relatedTxs.map(tx => db.transactions.delete(tx.id)));
+        }
+
         setState(prev => ({
           ...prev,
-          tasks: prev.tasks.map(t => t.id === taskId ? result : t)
+          tasks: prev.tasks.map(t => t.id === taskId ? result : t),
+          transactions: prev.transactions.filter(tx => tx.taskId !== taskId)
         }));
       } catch (e) {
         console.error('Error updating task status:', e);
       }
     }
-  }, [state.tasks]);
+  }, [state.tasks, state.transactions]);
 
   const handleConfirmPayment = async (received: boolean) => {
     if (!pendingPaymentTask) return;
@@ -623,21 +621,35 @@ const Dashboard: React.FC = () => {
       // 1. Update task status in Supabase
       const updatedTask = await db.tasks.update(pendingPaymentTask.id, { status: 'Concluído' });
 
-      // 2. Find and update related transactions in Supabase
+      // 2. Find and update or create related transactions in Supabase
       const relatedTxs = state.transactions.filter(tx => tx.taskId === pendingPaymentTask.id);
-      const updatedTxs = await Promise.all(relatedTxs.map(tx =>
-        db.transactions.update(tx.id, {
+      
+      let updatedTxs: Transaction[] = [];
+      if (relatedTxs.length > 0) {
+        updatedTxs = await Promise.all(relatedTxs.map(tx =>
+          db.transactions.update(tx.id, {
+            status: received ? 'Pago' : 'Pendente',
+            date: received ? new Date().toISOString() : tx.date
+          })
+        ));
+      } else if (pendingPaymentTask.value > 0) {
+        const newTx = await db.transactions.create({
+          description: `Serviço: ${pendingPaymentTask.title}`,
+          value: pendingPaymentTask.value,
+          type: 'Entrada',
+          date: new Date().toISOString(),
           status: received ? 'Pago' : 'Pendente',
-          date: received ? new Date().toISOString() : tx.date
-        })
-      ));
+          category: 'Serviço',
+          taskId: pendingPaymentTask.id
+        });
+        updatedTxs = [newTx];
+      }
 
       setState(prev => {
         const updatedTasks = prev.tasks.map(t => t.id === pendingPaymentTask.id ? updatedTask : t);
-        const updatedTransactions = prev.transactions.map(tx => {
-          const updated = updatedTxs.find(u => u.id === tx.id);
-          return updated || tx;
-        });
+        const otherTransactions = prev.transactions.filter(tx => tx.taskId !== pendingPaymentTask.id);
+        const updatedTransactions = [...otherTransactions, ...updatedTxs];
+        
         return { ...prev, tasks: updatedTasks, transactions: updatedTransactions };
       });
 
@@ -789,7 +801,7 @@ const Dashboard: React.FC = () => {
           onUpdateStats={updateStats}
         />;
       case 'settings':
-        return <SettingsView stats={state.stats} onUpdateStats={updateStats} />;
+        return <SettingsView stats={state.stats} onUpdateStats={updateStats} clients={state.clients} onAddTask={addTask} />;
       case 'dashboard':
       default:
         const monthlyProgress = Math.min((monthlyIncome / (state.stats.monthlyGoal || 1)) * 100, 100);

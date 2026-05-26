@@ -1,14 +1,17 @@
 
 import React from 'react';
 import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell } from 'lucide-react';
-import { UserStats, ThemeColor } from '../types';
+import { UserStats, ThemeColor, Client, Task } from '../types';
+import FreelancerCalculator from './FreelancerCalculator';
 
 interface SettingsViewProps {
   stats: UserStats;
   onUpdateStats: (stats: Partial<UserStats>) => void;
+  clients?: Client[];
+  onAddTask?: (task: Omit<Task, 'id'>) => Promise<void>;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats, clients, onAddTask }) => {
   const colors: ThemeColor[] = ['purple', 'emerald', 'cyan', 'rose'];
 
   const clearData = () => {
@@ -168,6 +171,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats }) => 
           <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
             Configuração atual: alertar após <span className="text-rose-500">{stats.overdueAlertDays ?? 30} dias</span> sem pagamento
           </p>
+        </section>
+
+        {/* Financial Engine (Calculadora) */}
+        <section className="lg:col-span-2">
+          <FreelancerCalculator stats={stats} onUpdateStats={onUpdateStats} clients={clients} onAddTask={onAddTask} />
         </section>
 
         {/* Perigo */}
