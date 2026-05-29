@@ -1,12 +1,20 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
+import Login from './pages/Auth/Login';
 
-// Bypassing PrivateRoute for development
+// Private Route to enforce authentication
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// Route for Login page that redirects to dashboard if already authenticated
+const LoginRoute: React.FC = () => {
+  const { user } = useAuth();
+  return user ? <Navigate to="/dashboard" replace /> : <Login />;
 };
 
 const App: React.FC = () => {
@@ -14,10 +22,11 @@ const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Redirect auth routes to dashboard since we're bypassing login */}
-          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+          {/* Authentication Routes */}
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           
+          {/* Private Core Application Routes */}
           <Route
             path="/dashboard"
             element={
