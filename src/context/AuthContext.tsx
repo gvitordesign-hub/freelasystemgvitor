@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface User {
     id: string;
@@ -18,35 +18,75 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Production User Session keys
-const SESSION_KEY = 'gvitor_system_session';
-
-const PROD_USER: User = {
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'Gvitor Design',
-    email: 'gvitordesign@gmail.com',
-    status: 'active'
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // Initialize user from localStorage to persist session on reload
-    const [user, setUser] = useState<User | null>(() => {
-        const savedSession = localStorage.getItem(SESSION_KEY);
-        return savedSession ? JSON.parse(savedSession) : null;
-    });
-    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // 1. Check for active sessions in Supabase on application load
+        const checkUserSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    setUser({
+                        id: session.user.id,
+                        name: session.user.user_metadata?.name || 'Administrador',
+                        email: session.user.email || '',
+                        status: 'active'
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching Supabase session:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        checkUserSession();
+
+        // 2. Listen to real-time authentication state changes from Supabase
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata?.name || 'Administrador',
+                    email: session.user.email || '',
+                    status: 'active'
+                });
+            } else {
+                setUser(null);
+            }
+            setIsLoading(false);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
-        // Simulate a sleek 1-second server authorization delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
         try {
-            if (email.trim().toLowerCase() === 'gvitordesign@gmail.com' && password === 'gvitor2026!') {
-                setUser(PROD_USER);
-                localStorage.setItem(SESSION_KEY, JSON.stringify(PROD_USER));
-            } else {
-                throw new Error('E-mail ou senha incorretos. Por favor, verifique suas credenciais.');
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email.trim().toLowerCase(),
+                password: password
+            });
+
+            if (error) {
+                // Return a friendly error message
+                if (error.message.includes('Invalid login credentials')) {
+                    throw new Error('E-mail ou senha incorretos. Por favor, verifique suas credenciais.');
+                }
+                throw new Error(error.message);
+            }
+
+            if (data?.user) {
+                setUser({
+                    id: data.user.id,
+                    name: data.user.user_metadata?.name || 'Administrador',
+                    email: data.user.email || '',
+                    status: 'active'
+                });
             }
         } finally {
             setIsLoading(false);
@@ -55,14 +95,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const register = async (name: string, email: string, password: string) => {
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setIsLoading(false);
-        throw new Error('O cadastro de novos usuários está temporariamente desativado para segurança.');
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email: email.trim().toLowerCase(),
+                password: password,
+                options: {
+                    data: {
+                        name: name
+                    }
+                }
+            });
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
+            if (data?.user) {
+                setUser({
+                    id: data.user.id,
+                    name: name,
+                    email: data.user.email || '',
+                    status: 'active'
+                });
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const logout = async () => {
-        localStorage.removeItem(SESSION_KEY);
-        setUser(null);
+        setIsLoading(true);
+        try {
+            await supabase.auth.signOut();
+            setUser(null);
+        } catch (err) {
+            console.error('Error logging out:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
