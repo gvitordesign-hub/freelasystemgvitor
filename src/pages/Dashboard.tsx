@@ -26,7 +26,7 @@ import {
   Plus,
   TrendingDown
 } from 'lucide-react';
-import { Client, Task, AppState, Status, UserStats, Transaction, DayOfWeek, Album, Budget, Service, Invoice, Reminder } from '../types';
+import { Client, Task, AppState, Status, UserStats, Transaction, DayOfWeek, Album, Budget, Service, Invoice, Reminder, Holiday } from '../types';
 import { INITIAL_STATE, XP_PER_TASK, XP_PER_CLIENT, XP_PER_LEVEL, XP_DAILY_BRIEFING } from '../constants';
 import { db } from '../lib/database';
 import { supabase } from '../lib/supabase';
@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
-      const [clients, tasks, transactions, services, invoices, reminders, budgets, albums, stats] = await Promise.all([
+      const [clients, tasks, transactions, services, invoices, reminders, budgets, albums, stats, holidays] = await Promise.all([
         db.clients.list(),
         db.tasks.list(),
         db.transactions.list(),
@@ -63,7 +63,8 @@ const Dashboard: React.FC = () => {
         db.reminders.list(),
         db.budgets.list(),
         db.albums.list(),
-        db.settings.get()
+        db.settings.get(),
+        db.holidays.list().catch(() => [])
       ]);
 
       setState({
@@ -75,7 +76,8 @@ const Dashboard: React.FC = () => {
         reminders,
         budgets,
         albums,
-        stats: stats || INITIAL_STATE.stats
+        stats: stats || INITIAL_STATE.stats,
+        holidays: holidays || []
       });
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
@@ -738,6 +740,33 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
+  const addHoliday = useCallback(async (holiday: Omit<Holiday, 'id'>) => {
+    try {
+      const newHoliday = await db.holidays.create(holiday);
+      setState(prev => ({ ...prev, holidays: [...prev.holidays, newHoliday] }));
+    } catch (e) {
+      console.error('Error adding holiday:', e);
+    }
+  }, []);
+
+  const deleteHoliday = useCallback(async (id: string) => {
+    try {
+      await db.holidays.delete(id);
+      setState(prev => ({ ...prev, holidays: prev.holidays.filter(h => h.id !== id) }));
+    } catch (e) {
+      console.error('Error deleting holiday:', e);
+    }
+  }, []);
+
+  const syncHolidays = useCallback(async (holidaysList: Omit<Holiday, 'id'>[]) => {
+    try {
+      const newHolidays = await db.holidays.bulkCreate(holidaysList);
+      setState(prev => ({ ...prev, holidays: [...prev.holidays, ...newHolidays] }));
+    } catch (e) {
+      console.error('Error syncing holidays:', e);
+    }
+  }, []);
+
   const getClientName = (clientId: string) => state.clients.find(c => c.id === clientId)?.name || 'Cliente Externo';
 
   if (isInitialLoading) {
@@ -757,6 +786,7 @@ const Dashboard: React.FC = () => {
         return <KanbanBoard
           tasks={state.tasks}
           clients={state.clients}
+          holidays={state.holidays}
           onUpdateStatus={updateTaskStatus}
           onAddTask={() => setIsTaskModalOpen(true)}
           onEditTask={(task) => { setEditingTask(task); setIsTaskModalOpen(true); }}
@@ -801,7 +831,18 @@ const Dashboard: React.FC = () => {
           onUpdateStats={updateStats}
         />;
       case 'settings':
-        return <SettingsView stats={state.stats} onUpdateStats={updateStats} clients={state.clients} onAddTask={addTask} />;
+        return (
+          <SettingsView
+            stats={state.stats}
+            onUpdateStats={updateStats}
+            clients={state.clients}
+            onAddTask={addTask}
+            holidays={state.holidays}
+            onAddHoliday={addHoliday}
+            onDeleteHoliday={deleteHoliday}
+            onSyncHolidays={syncHolidays}
+          />
+        );
       case 'dashboard':
       default:
         const monthlyProgress = Math.min((monthlyIncome / (state.stats.monthlyGoal || 1)) * 100, 100);
@@ -1137,6 +1178,7 @@ const Dashboard: React.FC = () => {
           clients={state.clients}
           invoices={state.invoices}
           editingTask={editingTask}
+          holidays={state.holidays}
           onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
           onSubmit={addTask}
           onUpdate={updateTask}

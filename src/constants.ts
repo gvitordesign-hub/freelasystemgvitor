@@ -26,6 +26,7 @@ export const INITIAL_STATE = {
   budgets: [],
   invoices: [],
   reminders: [],
+  holidays: [],
   stats: {
     xp: 0,
     level: 1,

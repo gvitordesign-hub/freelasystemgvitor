@@ -5,6 +5,12 @@ export type TransactionType = 'Entrada' | 'Saída';
 export type ThemeColor = 'purple' | 'emerald' | 'cyan' | 'rose';
 export type AssetType = 'image' | 'video';
 
+export interface Holiday {
+  id: string;
+  date: string; // 'YYYY-MM-DD'
+  description: string;
+}
+
 export interface Reminder {
   id: string;
   text: string;
@@ -148,4 +154,5 @@ export interface AppState {
   budgets: Budget[];
   invoices: Invoice[];
   reminders: Reminder[];
+  holidays: Holiday[];
 }

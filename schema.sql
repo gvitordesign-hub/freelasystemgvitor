@@ -135,6 +135,16 @@ CREATE TABLE IF NOT EXISTS user_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. Holidays
+CREATE TABLE IF NOT EXISTS holidays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL,
+  description TEXT,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT holidays_date_user_unique UNIQUE (date, user_id)
+);
+
 -- Seed initial record for user_settings if not exists
 INSERT INTO user_settings (name, bio, whatsapp) 
 VALUES ('G-Vitor Admin', 'Desenvolvedor & Designer Freelancer', '5511999999999')

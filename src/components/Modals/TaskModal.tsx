@@ -1,12 +1,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, DollarSign, UserPlus, ChevronLeft, FileText, PlusCircle } from 'lucide-react';
-import { Client, DayOfWeek, Task, Invoice } from '../../types';
+import { Client, DayOfWeek, Task, Invoice, Holiday } from '../../types';
 
 interface TaskModalProps {
   clients: Client[];
   invoices: Invoice[];
   editingTask?: Task | null;
+  holidays?: Holiday[];
   onClose: () => void;
   onSubmit: (task: Omit<Task, 'id'>) => void;
   onUpdate?: (taskId: string, task: Omit<Task, 'id'>) => void;
@@ -14,7 +15,7 @@ interface TaskModalProps {
   onQuickAddInvoice: (invoice: Omit<Invoice, 'id'>) => string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, onClose, onSubmit, onUpdate, onQuickAddClient, onQuickAddInvoice }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, holidays, onClose, onSubmit, onUpdate, onQuickAddClient, onQuickAddInvoice }) => {
   const isEditMode = !!editingTask;
   const [isAddingNewClient, setIsAddingNewClient] = useState(false);
   const [isAddingNewInvoice, setIsAddingNewInvoice] = useState(false);
@@ -49,6 +50,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check for holiday
+    const isHoliday = holidays?.some(h => h.date === formData.date);
+    if (isHoliday) {
+      const holidayName = holidays?.find(h => h.date === formData.date)?.description || 'Feriado';
+      alert(`Impossível agendar: "${formData.date}" foi configurado como feriado/folga (${holidayName}).`);
+      return;
+    }
 
     let finalClientId = formData.clientId;
     let finalInvoiceId = formData.invoiceId;

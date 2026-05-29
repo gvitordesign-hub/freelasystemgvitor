@@ -6,7 +6,7 @@ import {
   LayoutDashboard, List, ChevronLeft, ChevronRight,
   Briefcase, AlertTriangle, Calendar, Pencil, Trash2, Maximize2
 } from 'lucide-react';
-import { Task, Client, DayOfWeek, Status } from '../types';
+import { Task, Client, DayOfWeek, Status, Holiday } from '../types';
 import { DAYS_OF_WEEK } from '../constants';
 import TaskDetailModal from './Modals/TaskDetailModal';
 import ConfirmModal from './Modals/ConfirmModal';
@@ -14,6 +14,7 @@ import ConfirmModal from './Modals/ConfirmModal';
 interface KanbanBoardProps {
   tasks: Task[];
   clients: Client[];
+  holidays?: Holiday[];
   onUpdateStatus: (taskId: string, status: Status) => void;
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
@@ -24,7 +25,7 @@ interface KanbanBoardProps {
 type ViewMode = 'kanban' | 'diario' | 'mensal';
 type DeadlineLevel = 'critical' | 'moderate' | 'light';
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatus, onAddTask, onEditTask, onDeleteTask, onMoveTask }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, holidays, onUpdateStatus, onAddTask, onEditTask, onDeleteTask, onMoveTask }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -95,6 +96,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
+
+    // Check if destination date is a holiday
+    const isHoliday = holidays?.some(h => h.date === dateStr);
+    if (isHoliday) {
+      const holidayName = holidays?.find(h => h.date === dateStr)?.description || 'Feriado';
+      alert(`Impossível reagendar: o dia "${dateStr}" foi configurado como feriado/folga (${holidayName}).`);
+      return;
+    }
 
     if (taskId) {
       let newPos: number | undefined = undefined;
@@ -206,16 +215,32 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
               const dateStr = date?.toLocaleDateString('en-CA');
               const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
               const isToday = date?.toDateString() === new Date().toDateString();
+              const holiday = dateStr ? holidays?.find(h => h.date === dateStr) : null;
 
               return (
                 <div
                   key={idx}
-                  className={`min-h-[80px] md:min-h-[120px] p-2 rounded-xl border border-slate-800/50 flex flex-col gap-1 transition-all ${date ? 'bg-slate-900/20 hover:bg-slate-900/40' : 'opacity-0'} ${isToday ? 'border-[var(--primary-color)]/50 bg-[var(--primary-color)]/5' : ''}`}
+                  className={`min-h-[80px] md:min-h-[120px] p-2 rounded-xl border flex flex-col gap-1 transition-all 
+                    ${date ? 'bg-slate-900/20 hover:bg-slate-900/40' : 'opacity-0'} 
+                    ${isToday ? 'border-[var(--primary-color)]/50 bg-[var(--primary-color)]/5' : 'border-slate-800/50'}
+                    ${holiday ? 'border-rose-500/30 bg-rose-500/5' : ''}`}
                 >
                   {date && (
                     <>
-                      <span className={`text-[10px] font-bold ${isToday ? 'text-[var(--primary-color)]' : 'text-slate-500'}`}>{date.getDate()}</span>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-[10px] font-bold ${isToday ? 'text-[var(--primary-color)]' : holiday ? 'text-rose-400' : 'text-slate-500'}`}>{date.getDate()}</span>
+                        {holiday && (
+                          <span className="text-[6px] md:text-[7px] bg-rose-500/10 border border-rose-500/30 text-rose-400 px-1 rounded font-black uppercase tracking-wider scale-90 origin-right truncate max-w-[45px] sm:max-w-[65px]" title={holiday.description}>
+                            FOLGA
+                          </span>
+                        )}
+                      </div>
                       <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                        {holiday && (
+                          <div className="text-[7px] text-rose-400/80 font-bold uppercase tracking-tight text-center mt-1 py-0.5 px-1 bg-rose-500/5 border border-rose-500/10 rounded truncate" title={holiday.description}>
+                            {holiday.description}
+                          </div>
+                        )}
                         {dayTasks.map(t => {
                           const styles = getDeadlineStyles(t.status);
                           return (
@@ -244,6 +269,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
     const dateStr = currentDate.toLocaleDateString('en-CA');
     const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
     const dayName = currentDate.toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const holiday = holidays?.find(h => h.date === dateStr);
 
     return (
       <div className="flex flex-col h-full max-w-2xl mx-auto w-full animate-in slide-in-from-bottom-4 duration-500">
@@ -254,6 +280,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
           </div>
           <button onClick={nextDay} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><ChevronRight size={20} /></button>
         </div>
+
+        {holiday && (
+          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center gap-3">
+            <AlertTriangle className="animate-pulse shrink-0 text-rose-400" size={18} />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider">Feriado / Dia de Folga</p>
+              <p className="text-[10px] text-rose-400/80 font-bold mt-0.5">{holiday.description}</p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 flex-1">
           {dayTasks.length > 0 ? dayTasks.map(task => {
@@ -374,6 +410,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                 const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD local safe
 
                 const isToday = new Date().toDateString() === date.toDateString();
+                const holiday = holidays?.find(h => h.date === dateStr);
 
                 // Filter tasks for this date
                 // Fallback: If task has NO date, show it on its matching 'day' string IF we are in the current week
@@ -392,18 +429,31 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                 return (
                   <div
                     key={dateStr}
-                    className={`flex-shrink-0 w-[85vw] sm:w-80 border rounded-3xl flex flex-col snap-center transition-all ${isToday ? 'bg-[var(--primary-color)]/5 border-[var(--primary-color)]/30' : 'bg-slate-900/40 border-slate-800'}`}
+                    className={`flex-shrink-0 w-[85vw] sm:w-80 border rounded-3xl flex flex-col snap-center transition-all 
+                      ${isToday ? 'bg-[var(--primary-color)]/5 border-[var(--primary-color)]/30' : holiday ? 'bg-rose-500/[0.02] border-rose-500/10' : 'bg-slate-900/40 border-slate-800'}`}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => onDrop(e, date)}
                   >
-                    <div className={`p-5 border-b flex items-center justify-between rounded-t-3xl ${isToday ? 'bg-[var(--primary-color)]/10 border-[var(--primary-color)]/20' : 'bg-slate-900/60 border-slate-800'}`}>
+                    <div className={`p-5 border-b flex items-center justify-between rounded-t-3xl 
+                      ${isToday ? 'bg-[var(--primary-color)]/10 border-[var(--primary-color)]/20' : holiday ? 'bg-rose-950/20 border-rose-500/10' : 'bg-slate-900/60 border-slate-800'}`}>
                       <div className="flex flex-col">
-                        <h3 className={`font-bold cyber-font uppercase tracking-widest text-[10px] ${isToday ? 'text-[var(--primary-color)]' : 'text-slate-300'}`}>{formattedDayName}</h3>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className={`font-bold cyber-font uppercase tracking-widest text-[10px] ${isToday ? 'text-[var(--primary-color)]' : holiday ? 'text-rose-400' : 'text-slate-300'}`}>{formattedDayName}</h3>
+                          {holiday && (
+                            <span className="text-[7px] font-black tracking-widest bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 rounded">FOLGA</span>
+                          )}
+                        </div>
                         <span className="text-[9px] font-bold text-slate-500">{date.toLocaleDateString('pt-BR')}</span>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold ${isToday ? 'bg-[var(--primary-color)] text-slate-950 border-[var(--primary-color)]' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
-                        {colTasks.length}
-                      </span>
+                      {holiday ? (
+                        <span className="text-[8px] font-black text-rose-400 px-2 py-0.5 rounded-lg border bg-rose-950/40 border-rose-500/20 truncate max-w-[120px]" title={holiday.description.toUpperCase()}>
+                          {holiday.description.toUpperCase()}
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold ${isToday ? 'bg-[var(--primary-color)] text-slate-950 border-[var(--primary-color)]' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+                          {colTasks.length}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex-1 p-3 space-y-3 overflow-y-auto min-h-[400px] md:min-h-[500px] custom-scrollbar">
@@ -503,8 +553,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, onUpdateStatu
                       })}
 
                       {colTasks.length === 0 && (
-                        <div className="h-32 border-2 border-dashed border-slate-800/50 rounded-2xl flex items-center justify-center text-slate-700 text-[10px] font-bold uppercase tracking-widest italic opacity-40">
-                          Sem Missões
+                        <div className={`h-32 border-2 border-dashed rounded-2xl flex items-center justify-center text-[10px] font-bold uppercase tracking-widest italic opacity-40
+                          ${holiday ? 'border-rose-500/20 text-rose-400' : 'border-slate-800/50 text-slate-700'}`}>
+                          {holiday ? 'Dia de Folga' : 'Sem Missões'}
                         </div>
                       )}
                     </div>

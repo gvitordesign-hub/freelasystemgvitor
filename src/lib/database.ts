@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { Client, Task, Transaction, Album, Service, Budget, Invoice, Reminder, UserStats, AppState } from '../types';
+import { Client, Task, Transaction, Album, Service, Budget, Invoice, Reminder, UserStats, AppState, Holiday } from '../types';
 
 // Fallback for development/bypassing login
 const getUserId = async () => {
@@ -345,6 +345,42 @@ export const db = {
             }).select().single();
             if (error) throw error;
             return { ...data, coverImage: data.cover_image, createdAt: data.created_at } as Album;
+        }
+    },
+
+    // Holidays
+    holidays: {
+        async list() {
+            const userId = await getUserId();
+            const { data, error } = await supabase.from('holidays').select('*').eq('user_id', userId).order('date', { ascending: true });
+            if (error) throw error;
+            return data as Holiday[];
+        },
+        async create(holiday: Omit<Holiday, 'id'>) {
+            const userId = await getUserId();
+            const { data, error } = await supabase.from('holidays').insert({
+                date: holiday.date,
+                description: holiday.description,
+                user_id: userId
+            }).select().single();
+            if (error) throw error;
+            return data as Holiday;
+        },
+        async bulkCreate(holidaysList: Omit<Holiday, 'id'>[]) {
+            const userId = await getUserId();
+            const rows = holidaysList.map(h => ({
+                date: h.date,
+                description: h.description,
+                user_id: userId
+            }));
+            const { data, error } = await supabase.from('holidays').insert(rows).select();
+            if (error) throw error;
+            return data as Holiday[];
+        },
+        async delete(id: string) {
+            const userId = await getUserId();
+            const { error } = await supabase.from('holidays').delete().eq('id', id).eq('user_id', userId);
+            if (error) throw error;
         }
     }
 };
