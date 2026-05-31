@@ -103,15 +103,15 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, h
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
           <h2 className="text-xl font-bold cyber-font text-white uppercase tracking-tighter">{isEditMode ? 'Editar Demanda' : 'Nova Demanda Frella'}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
           <div>
             <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">O que precisa ser feito?</label>
             <input
