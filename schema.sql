@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   title TEXT NOT NULL,
   status TEXT DEFAULT 'Pendente', -- 'Pago', 'Pendente'
   notes TEXT,
+  custom_value DECIMAL(12, 2) DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

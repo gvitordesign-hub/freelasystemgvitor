@@ -420,26 +420,43 @@ const Dashboard: React.FC = () => {
       setState(prev => {
         const nextState = { ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) };
         
-        // Se a nota foi marcada como Paga, sincroniza as transações vinculadas
-        if (updated.status === 'Pago') {
-          const invoiceTasks = prev.tasks.filter(t => t.invoiceId === result.id);
-          const taskIds = new Set(invoiceTasks.map(t => t.id));
-          
-          let txUpdated = false;
-          const newTransactions = prev.transactions.map(tx => {
-            if (tx.taskId && taskIds.has(tx.taskId) && tx.status !== 'Pago') {
-              txUpdated = true;
-              const newTx = { ...tx, status: 'Pago' as const };
-              // Atualiza no banco de dados em background
-              db.transactions.update(newTx.id, { status: 'Pago' }).catch(console.error);
-              return newTx;
+        const invoiceTasks = prev.tasks.filter(t => t.invoiceId === result.id);
+        const completedInvoiceTasks = invoiceTasks.filter(t => t.status === 'Concluído');
+        const calculatedTotal = completedInvoiceTasks.reduce((a, c) => a + c.value, 0);
+        const taskIds = new Set(invoiceTasks.map(t => t.id));
+        
+        let txUpdated = false;
+        const newTransactions = prev.transactions.map(tx => {
+          if (tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada') {
+            const task = completedInvoiceTasks.find(t => t.id === tx.taskId);
+            if (task) {
+              let newValue = tx.value;
+              let newStatus = tx.status;
+              
+              if (updated.customValue !== undefined && updated.customValue !== null) {
+                const scale = calculatedTotal > 0 ? (updated.customValue / calculatedTotal) : 1;
+                newValue = Number((task.value * scale).toFixed(2));
+              } else {
+                newValue = task.value;
+              }
+
+              if (updated.status === 'Pago' && tx.status !== 'Pago') {
+                newStatus = 'Pago';
+              }
+
+              if (newValue !== tx.value || newStatus !== tx.status) {
+                txUpdated = true;
+                const newTx = { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente' };
+                db.transactions.update(tx.id, { value: newValue, status: newStatus }).catch(console.error);
+                return newTx;
+              }
             }
-            return tx;
-          });
-          
-          if (txUpdated) {
-            nextState.transactions = newTransactions;
           }
+          return tx;
+        });
+        
+        if (txUpdated) {
+          nextState.transactions = newTransactions;
         }
         
         return nextState;

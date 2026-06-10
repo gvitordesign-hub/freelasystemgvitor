@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 // Fix: Added missing MessageCircle import
 import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2 } from 'lucide-react';
 import { Client, Task, Invoice } from '../../types';
@@ -20,6 +20,8 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ client, tasks, invo
    const [copied, setCopied] = useState(false);
    const [localPix, setLocalPix] = useState(pixKey);
    const [editingPix, setEditingPix] = useState(false);
+   const [editingTotal, setEditingTotal] = useState(false);
+   const [localTotal, setLocalTotal] = useState('');
 
    const clientInvoices = useMemo(() => invoices.filter(i => i.clientId === client.id), [invoices, client.id]);
 
@@ -35,10 +37,38 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ client, tasks, invo
       tasks.filter(t => !t.invoiceId && t.clientId === client.id)
       , [tasks, client.id]);
 
+   useEffect(() => {
+      if (currentInvoice) {
+         const calculatedTotal = invoiceTasks.reduce((a, c) => a + c.value, 0);
+         const totalVal = currentInvoice.customValue !== undefined && currentInvoice.customValue !== null
+            ? currentInvoice.customValue
+            : calculatedTotal;
+         setLocalTotal(totalVal.toString());
+      } else {
+         setLocalTotal('');
+      }
+      setEditingTotal(false);
+   }, [selectedInvoiceId, currentInvoice, invoiceTasks]);
+
+   const handleSaveTotal = () => {
+      if (!currentInvoice) return;
+      const parsed = parseFloat(localTotal);
+      const calculatedTotal = invoiceTasks.reduce((a, c) => a + c.value, 0);
+
+      if (isNaN(parsed) || parsed === calculatedTotal || localTotal.trim() === '') {
+         onUpdateInvoice({ ...currentInvoice, customValue: null });
+      } else {
+         onUpdateInvoice({ ...currentInvoice, customValue: parsed });
+      }
+      setEditingTotal(false);
+   };
+
    const handleExportAll = () => {
       const allText = clientInvoices.map(inv => {
          const invTasks = tasks.filter(t => t.invoiceId === inv.id && t.status === 'Concluído');
-         const total = invTasks.reduce((a, c) => a + c.value, 0);
+         const total = inv.customValue !== undefined && inv.customValue !== null
+            ? inv.customValue
+            : invTasks.reduce((a, c) => a + c.value, 0);
          return `--- NOTA: ${inv.title} ---\n${invTasks.map(t => `• ${t.title}: R$ ${t.value.toLocaleString()}`).join('\n')}\nTotal: R$ ${total.toLocaleString()}`;
       }).join('\n\n');
 
@@ -53,7 +83,9 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ client, tasks, invo
    const handleExportSingle = () => {
       if (!currentInvoice) return;
       const invTasks = invoiceTasks.filter(t => t.status === 'Concluído');
-      const total = invTasks.reduce((a, c) => a + c.value, 0);
+      const total = currentInvoice.customValue !== undefined && currentInvoice.customValue !== null
+         ? currentInvoice.customValue
+         : invTasks.reduce((a, c) => a + c.value, 0);
 
       const text = `
 *NOTA DE SERVIÇO: ${currentInvoice.title.toUpperCase()}*
@@ -219,7 +251,43 @@ ${currentInvoice.notes ? `\n*OBS:* ${currentInvoice.notes}` : ''}
                            </div>
                            <div className="text-right flex flex-col items-end gap-2">
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total da Nota</span>
-                              <p className="text-2xl font-black text-emerald-400 cyber-font">R$ {invoiceTasks.reduce((a, c) => a + c.value, 0).toLocaleString()}</p>
+                              {editingTotal ? (
+                                 <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-black text-emerald-400 cyber-font">R$</span>
+                                    <input
+                                       autoFocus
+                                       type="number"
+                                       step="any"
+                                       value={localTotal}
+                                       onChange={e => setLocalTotal(e.target.value)}
+                                       onBlur={handleSaveTotal}
+                                       onKeyDown={e => {
+                                          if (e.key === 'Enter') handleSaveTotal();
+                                          if (e.key === 'Escape') {
+                                             setEditingTotal(false);
+                                             if (currentInvoice) {
+                                                setLocalTotal((currentInvoice.customValue ?? invoiceTasks.reduce((a, c) => a + c.value, 0)).toString());
+                                             }
+                                          }
+                                       }}
+                                       className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xl font-black text-emerald-400 cyber-font w-28 outline-none focus:border-emerald-500"
+                                    />
+                                 </div>
+                              ) : (
+                                 <div 
+                                    onClick={() => setEditingTotal(true)}
+                                    className="flex items-center gap-2 group cursor-pointer hover:bg-slate-850 px-2 py-1 rounded-xl transition-all border border-transparent hover:border-slate-800"
+                                    title="Clique para editar o total"
+                                 >
+                                    <p className="text-2xl font-black text-emerald-400 cyber-font">
+                                       R$ {Number(localTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                    </p>
+                                    <PenLine size={14} className="text-slate-500 group-hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" />
+                                 </div>
+                              )}
+                              {currentInvoice && currentInvoice.customValue !== undefined && currentInvoice.customValue !== null && (
+                                 <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wider">Valor Personalizado</span>
+                              )}
                               <div className="flex gap-2">
                                  {currentInvoice?.status === 'Pendente' && (
                                     <button

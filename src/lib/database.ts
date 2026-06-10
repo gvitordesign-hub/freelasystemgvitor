@@ -165,7 +165,7 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
-            return data.map(i => ({ ...i, clientId: i.client_id, createdAt: i.created_at })) as Invoice[];
+            return data.map(i => ({ ...i, clientId: i.client_id, createdAt: i.created_at, customValue: i.custom_value })) as Invoice[];
         },
         async create(invoice: Omit<Invoice, 'id'>) {
             const userId = await getUserId();
@@ -174,19 +174,21 @@ export const db = {
                 title: invoice.title,
                 status: invoice.status,
                 notes: invoice.notes,
+                custom_value: invoice.customValue,
                 user_id: userId
             }).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, createdAt: data.created_at } as Invoice;
+            return { ...data, clientId: data.client_id, createdAt: data.created_at, customValue: data.custom_value } as Invoice;
         },
         async update(id: string, invoice: Partial<Invoice>) {
             const userId = await getUserId();
             const transformed: any = { ...invoice };
             if (invoice.clientId !== undefined) { transformed.client_id = invoice.clientId; delete transformed.clientId; }
             if (invoice.createdAt !== undefined) { transformed.created_at = invoice.createdAt; delete transformed.createdAt; }
+            if (invoice.customValue !== undefined) { transformed.custom_value = invoice.customValue; delete transformed.customValue; }
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, createdAt: data.created_at } as Invoice;
+            return { ...data, clientId: data.client_id, createdAt: data.created_at, customValue: data.custom_value } as Invoice;
         },
         async delete(id: string) {
             await supabase.from('invoices').delete().eq('id', id);
