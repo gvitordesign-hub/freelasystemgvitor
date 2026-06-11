@@ -47,11 +47,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // 2. Listen to real-time authentication state changes from Supabase
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-                setUser({
-                    id: session.user.id,
-                    name: session.user.user_metadata?.name || 'Administrador',
-                    email: session.user.email || '',
-                    status: 'active'
+                setUser(prevUser => {
+                    const name = session.user.user_metadata?.name || 'Administrador';
+                    const email = session.user.email || '';
+                    if (prevUser &&
+                        prevUser.id === session.user.id &&
+                        prevUser.email === email &&
+                        prevUser.name === name) {
+                        return prevUser;
+                    }
+                    return {
+                        id: session.user.id,
+                        name,
+                        email,
+                        status: 'active'
+                    };
                 });
             } else {
                 setUser(null);

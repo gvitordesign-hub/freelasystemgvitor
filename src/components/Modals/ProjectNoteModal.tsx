@@ -37,7 +37,14 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ client, tasks, invo
       tasks.filter(t => !t.invoiceId && t.clientId === client.id)
       , [tasks, client.id]);
 
+   // Reset editing state when switching between invoices
    useEffect(() => {
+      setEditingTotal(false);
+   }, [selectedInvoiceId]);
+
+   useEffect(() => {
+      if (editingTotal) return; // Prevent overwriting while the user is actively editing
+
       if (currentInvoice) {
          const calculatedTotal = invoiceTasks.reduce((a, c) => a + c.value, 0);
          const totalVal = currentInvoice.customValue !== undefined && currentInvoice.customValue !== null
@@ -47,8 +54,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ client, tasks, invo
       } else {
          setLocalTotal('');
       }
-      setEditingTotal(false);
-   }, [selectedInvoiceId, currentInvoice, invoiceTasks]);
+   }, [selectedInvoiceId, currentInvoice, invoiceTasks, editingTotal]);
 
    const handleSaveTotal = () => {
       if (!currentInvoice) return;

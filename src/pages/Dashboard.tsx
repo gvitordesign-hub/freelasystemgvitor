@@ -52,7 +52,8 @@ const Dashboard: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
     try {
       const [clients, tasks, transactions, services, invoices, reminders, budgets, albums, stats, holidays] = await Promise.all([
         db.clients.list(),
@@ -84,11 +85,10 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsInitialLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Initial fetch
   useEffect(() => {
-    setIsInitialLoading(true);
     fetchData();
   }, [fetchData]);
 
