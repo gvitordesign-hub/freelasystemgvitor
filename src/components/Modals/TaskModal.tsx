@@ -24,7 +24,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, h
 
   const [formData, setFormData] = useState({
     title: editingTask?.title || '',
-    clientId: editingTask?.clientId || clients[0]?.id || '',
+    clientId: editingTask?.clientId || '',
     invoiceId: editingTask?.invoiceId || '',
     value: editingTask?.value?.toString() || '',
     date: editingTask?.date ? (editingTask.date.includes('T') ? editingTask.date.split('T')[0] : editingTask.date) : new Date().toLocaleDateString('en-CA'),
@@ -175,7 +175,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ clients, invoices, editingTask, h
                   onChange={e => setFormData({ ...formData, invoiceId: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
                 >
-                  <option value="">Nenhuma (Avulsa)</option>
+                  <option value="">Nenhuma (Pasta "Outros")</option>
                   {filteredInvoices.map(inv => <option key={inv.id} value={inv.id}>{inv.title}</option>)}
                 </select>
               )}

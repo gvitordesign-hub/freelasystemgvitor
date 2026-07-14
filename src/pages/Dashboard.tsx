@@ -432,6 +432,7 @@ const Dashboard: React.FC = () => {
             if (task) {
               let newValue = tx.value;
               let newStatus = tx.status;
+              let newDate = tx.date;
               
               if (updated.customValue !== undefined && updated.customValue !== null) {
                 const scale = calculatedTotal > 0 ? (updated.customValue / calculatedTotal) : 1;
@@ -442,12 +443,13 @@ const Dashboard: React.FC = () => {
 
               if (updated.status === 'Pago' && tx.status !== 'Pago') {
                 newStatus = 'Pago';
+                newDate = new Date().toISOString();
               }
 
-              if (newValue !== tx.value || newStatus !== tx.status) {
+              if (newValue !== tx.value || newStatus !== tx.status || newDate !== tx.date) {
                 txUpdated = true;
-                const newTx = { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente' };
-                db.transactions.update(tx.id, { value: newValue, status: newStatus }).catch(console.error);
+                const newTx = { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente', date: newDate };
+                db.transactions.update(tx.id, { value: newValue, status: newStatus, date: newDate }).catch(console.error);
                 return newTx;
               }
             }
@@ -468,9 +470,36 @@ const Dashboard: React.FC = () => {
 
   const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
     try {
+      let finalInvoiceId = task.invoiceId;
+
+      if (!finalInvoiceId) {
+        const existingInvoice = state.invoices.find(
+          inv => inv.clientId === task.clientId && inv.title.trim().toLowerCase() === 'outros'
+        );
+
+        if (existingInvoice) {
+          finalInvoiceId = existingInvoice.id;
+        } else {
+          const newInvoiceId = await addInvoice({
+            clientId: task.clientId,
+            title: 'Outros',
+            status: 'Pendente',
+            notes: 'Pasta automática para demandas sem nota vinculada',
+            createdAt: new Date().toISOString()
+          });
+          if (newInvoiceId) {
+            finalInvoiceId = newInvoiceId;
+          }
+        }
+      }
+
       const initialStatus = task.status;
       // If task is created as Concluído, we'll create it as Pendente first and trigger the payment confirmation modal to set it correctly
-      const taskToCreate = { ...task, status: initialStatus === 'Concluído' ? 'Pendente' : initialStatus };
+      const taskToCreate = { 
+        ...task, 
+        invoiceId: finalInvoiceId || undefined,
+        status: initialStatus === 'Concluído' ? 'Pendente' : initialStatus 
+      };
       const newTask = await db.tasks.create(taskToCreate);
       
       setState(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
@@ -483,7 +512,7 @@ const Dashboard: React.FC = () => {
     } catch (e) {
       console.error('Error adding task:', e);
     }
-  }, [fetchData]);
+  }, [fetchData, state.invoices, addInvoice]);
 
   const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
     try {
@@ -499,10 +528,33 @@ const Dashboard: React.FC = () => {
 
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'>) => {
     try {
+      let finalInvoiceId = updatedTask.invoiceId;
+
+      if (!finalInvoiceId) {
+        const existingInvoice = state.invoices.find(
+          inv => inv.clientId === updatedTask.clientId && inv.title.trim().toLowerCase() === 'outros'
+        );
+
+        if (existingInvoice) {
+          finalInvoiceId = existingInvoice.id;
+        } else {
+          const newInvoiceId = await addInvoice({
+            clientId: updatedTask.clientId,
+            title: 'Outros',
+            status: 'Pendente',
+            notes: 'Pasta automática para demandas sem nota vinculada',
+            createdAt: new Date().toISOString()
+          });
+          if (newInvoiceId) {
+            finalInvoiceId = newInvoiceId;
+          }
+        }
+      }
+
       const taskBefore = state.tasks.find(t => t.id === taskId);
       const isConcluding = taskBefore && taskBefore.status !== 'Concluído' && updatedTask.status === 'Concluído';
       
-      const taskToSave = { ...updatedTask };
+      const taskToSave = { ...updatedTask, invoiceId: finalInvoiceId || undefined };
       if (isConcluding) {
         taskToSave.status = taskBefore.status;
       }
@@ -547,7 +599,7 @@ const Dashboard: React.FC = () => {
     } catch (e) {
       console.error('Error updating task:', e);
     }
-  }, [state.tasks, fetchData]);
+  }, [state.tasks, state.invoices, addInvoice, fetchData]);
 
 
   const deleteTask = useCallback(async (taskId: string) => {

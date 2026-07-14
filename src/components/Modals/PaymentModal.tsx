@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CheckCircle, XCircle, DollarSign, Award } from 'lucide-react';
+import { CheckCircle, XCircle, DollarSign, Award, X } from 'lucide-react';
 import { Task } from '../../types';
 
 interface PaymentModalProps {
@@ -12,7 +12,14 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({ task, onConfirm, onClose }) => {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-slate-900 border border-emerald-500/50 w-full max-w-md rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] overflow-hidden animate-in slide-in-from-bottom-8 duration-300">
+      <div className="bg-slate-900 border border-emerald-500/50 w-full max-w-md rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] overflow-hidden animate-in slide-in-from-bottom-8 duration-300 relative">
+        <button 
+          onClick={onClose} 
+          className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"
+          title="Fechar"
+        >
+          <X size={20} />
+        </button>
         <div className="p-8 text-center">
           <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-emerald-500/40 animate-pulse">
             <CheckCircle className="text-emerald-400" size={40} />

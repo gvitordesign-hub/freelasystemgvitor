@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Plus, GripVertical, CheckCircle2, Circle,
   Clock, DollarSign, Calendar as CalendarIcon,
@@ -32,6 +32,63 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, holidays, onU
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{ id: string, position: 'top' | 'bottom' } | null>(null);
+
+  const boardRef = useRef<HTMLDivElement>(null);
+  const dummyRef = useRef<HTMLDivElement>(null);
+  const [contentWidth, setContentWidth] = useState(0);
+
+  const handleDummyScroll = () => {
+    if (dummyRef.current && boardRef.current) {
+      if (boardRef.current.scrollLeft !== dummyRef.current.scrollLeft) {
+        boardRef.current.scrollLeft = dummyRef.current.scrollLeft;
+      }
+    }
+  };
+
+  const handleBoardScroll = () => {
+    if (boardRef.current && dummyRef.current) {
+      if (dummyRef.current.scrollLeft !== boardRef.current.scrollLeft) {
+        dummyRef.current.scrollLeft = boardRef.current.scrollLeft;
+      }
+    }
+  };
+
+  const [scrollbarStyle, setScrollbarStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (boardRef.current && viewMode === 'kanban') {
+      const updateDimensionsAndPosition = () => {
+        if (boardRef.current) {
+          const rect = boardRef.current.getBoundingClientRect();
+          setContentWidth(boardRef.current.scrollWidth);
+          setScrollbarStyle({
+            position: 'fixed',
+            bottom: 0,
+            left: rect.left,
+            width: rect.width,
+            zIndex: 40,
+          });
+        }
+      };
+      
+      updateDimensionsAndPosition();
+      
+      window.addEventListener('resize', updateDimensionsAndPosition);
+      window.addEventListener('scroll', updateDimensionsAndPosition, true);
+      
+      const observer = new ResizeObserver(updateDimensionsAndPosition);
+      observer.observe(boardRef.current);
+      if (boardRef.current.firstElementChild) {
+        observer.observe(boardRef.current.firstElementChild);
+      }
+      
+      return () => {
+        window.removeEventListener('resize', updateDimensionsAndPosition);
+        window.removeEventListener('scroll', updateDimensionsAndPosition, true);
+        observer.disconnect();
+      };
+    }
+  }, [tasks, viewMode]);
 
   // Helper to get start of week (Sunday)
   const getStartOfWeek = (d: Date) => {
@@ -387,7 +444,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, holidays, onU
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className={`flex-1 ${viewMode === 'kanban' ? '' : 'overflow-hidden'}`}>
         {viewMode === 'kanban' && (
           <div className="h-full flex flex-col gap-4">
             {/* Week Navigation */}
@@ -402,7 +459,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, holidays, onU
               </button>
             </div>
 
-            <div className="flex-1 flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory">
+            <div 
+              ref={boardRef}
+              onScroll={handleBoardScroll}
+              className="flex-1 flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory no-scrollbar"
+            >
               {weekDates.map(date => {
                 const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' });
                 const formattedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1).split('-')[0];
@@ -562,6 +623,15 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, clients, holidays, onU
                   </div>
                 );
               })}
+            </div>
+            {/* Dummy scrollbar to keep horizontal scroll sticky */}
+            <div
+              ref={dummyRef}
+              onScroll={handleDummyScroll}
+              style={scrollbarStyle}
+              className="overflow-x-auto custom-scrollbar bg-slate-900 border-t border-slate-800 py-1"
+            >
+              <div style={{ width: `${contentWidth}px`, height: '1px' }} />
             </div>
           </div>
         )}
