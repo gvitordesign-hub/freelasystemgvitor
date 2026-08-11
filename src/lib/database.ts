@@ -2,10 +2,12 @@
 import { supabase } from './supabase';
 import { Client, Task, Transaction, Album, Service, Budget, Invoice, Reminder, UserStats, AppState, Holiday } from '../types';
 
-// Fallback for development/bypassing login
 const getUserId = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || '00000000-0000-0000-0000-000000000000';
+    if (!user?.id) {
+        throw new Error('Usuário não autenticado. Faça login para continuar.');
+    }
+    return user.id;
 };
 
 export const db = {
@@ -191,7 +193,9 @@ export const db = {
             return { ...data, clientId: data.client_id, createdAt: data.created_at, customValue: data.custom_value } as Invoice;
         },
         async delete(id: string) {
-            await supabase.from('invoices').delete().eq('id', id);
+            const userId = await getUserId();
+            const { error } = await supabase.from('invoices').delete().eq('id', id).eq('user_id', userId);
+            if (error) throw error;
         }
     },
 
@@ -298,7 +302,9 @@ export const db = {
             return { ...data, linkedTaskId: data.linked_task_id, alertBefore: data.alert_before } as Reminder;
         },
         async delete(id: string) {
-            await supabase.from('reminders').delete().eq('id', id);
+            const userId = await getUserId();
+            const { error } = await supabase.from('reminders').delete().eq('id', id).eq('user_id', userId);
+            if (error) throw error;
         }
     },
 

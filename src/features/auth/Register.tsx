@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import AuthLayout from '../../layouts/AuthLayout';
+import { useAuth } from '@/context/AuthContext';
+import AuthLayout from '@/features/auth/AuthLayout';
 import { User, Mail, Lock, Info, ArrowRight, Loader2, CheckCircle2, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { calculatePasswordStrength, StrengthResult } from '../../utils/passwordStrength';
+import { calculatePasswordStrength, StrengthResult } from '@/utils/passwordStrength';
 
 const Register: React.FC = () => {
     const [name, setName] = useState('');

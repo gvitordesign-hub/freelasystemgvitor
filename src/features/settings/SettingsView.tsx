@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell, Calendar, Plus, RefreshCw } from 'lucide-react';
-import { UserStats, ThemeColor, Client, Task, Holiday } from '../types';
-import FreelancerCalculator from './FreelancerCalculator';
+import { UserStats, ThemeColor, Client, Task, Holiday } from '@/types';
+import FreelancerCalculator from '@/features/settings/FreelancerCalculator';
 
 interface SettingsViewProps {
   stats: UserStats;

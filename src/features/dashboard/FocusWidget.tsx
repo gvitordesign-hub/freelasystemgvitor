@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Target, Zap, Plus, Circle, CheckCircle2, DollarSign, Trash2, ArrowRight, Sparkles, Calendar, Clock, Bell, Pencil, X } from 'lucide-react';
-import { Reminder } from '../../types';
+import { Reminder } from '@/types';
 
 interface FocusWidgetProps {
   reminders: Reminder[];

@@ -29,7 +29,7 @@ const defaultData: FinancialData = {
   ]
 };
 
-import { UserStats, Client } from '../types';
+import { UserStats, Client } from '@/types';
 
 interface FreelancerCalculatorProps {
   stats?: UserStats;

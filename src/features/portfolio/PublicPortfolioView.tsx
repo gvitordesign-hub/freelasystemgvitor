@@ -135,7 +135,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
             {selectedAlbum.assets.map(asset => (
               <div
                 key={asset.id}
-                onClick={() => asset.type === 'image' ? setLightBoxAsset(asset) : window.open().document.write(`<video autoplay controls src="${asset.url}" style="width:100%;height:100%;background:#000;"></video>`)}
+                onClick={() => setLightBoxAsset(asset)}
                 className="group relative aspect-square bg-white/5 rounded-[2rem] overflow-hidden cursor-zoom-in"
               >
                 {asset.type === 'image' ? (
@@ -160,7 +160,11 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
       {lightBoxAsset && (
         <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-8 animate-in fade-in" onClick={() => setLightBoxAsset(null)}>
           <button className="absolute top-10 right-10 text-white/40 hover:text-white"><X size={32} /></button>
-          <img src={lightBoxAsset.url} className="max-w-full max-h-full object-contain rounded-xl animate-in zoom-in-95" alt="" />
+          {lightBoxAsset.type === 'video' ? (
+            <video src={lightBoxAsset.url} controls autoPlay className="max-w-full max-h-full rounded-xl" />
+          ) : (
+            <img src={lightBoxAsset.url} className="max-w-full max-h-full object-contain rounded-xl animate-in zoom-in-95" alt="" />
+          )}
         </div>
       )}
 

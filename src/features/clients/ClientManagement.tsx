@@ -20,8 +20,8 @@ import {
   Clock,
   CheckCircle2
 } from 'lucide-react';
-import { Client, Transaction, Task, Invoice } from '../types';
-import ConfirmModal from './Modals/ConfirmModal';
+import { Client, Transaction, Task, Invoice } from '@/types';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 
 interface ClientManagementProps {
   clients: Client[];

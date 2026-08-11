@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, Clock, Search, Plus, ArrowUpRight, ArrowDownRight, PencilLine, ExternalLink, ChevronLeft, ChevronRight, Calendar, BarChart3 } from 'lucide-react';
-import { Transaction, Task, TransactionType, Client, Invoice } from '../types';
-import FinancialReportModal from './Modals/FinancialReportModal';
+import { Transaction, Task, TransactionType, Client, Invoice } from '@/types';
+import FinancialReportModal from '@/components/modals/FinancialReportModal';
 
 interface FinanceDashboardProps {
   transactions: Transaction[];

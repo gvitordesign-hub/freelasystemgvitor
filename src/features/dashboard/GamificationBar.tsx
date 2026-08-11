@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Target, Flame, DollarSign, LogOut, User, ChevronDown } from 'lucide-react';
-import { UserStats } from '../types';
-import { useAuth } from '../context/AuthContext';
+import { UserStats } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface GamificationBarProps {
   stats: UserStats;

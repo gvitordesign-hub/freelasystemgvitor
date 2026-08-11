@@ -17,6 +17,16 @@ dist-ssr
 .env.local
 .env*.local
 
+# Supabase CLI cache
+supabase/.temp/
+
+# Build/deploy artifacts
+*.zip
+deploy_log.txt
+
+# Scratch / dev snippets
+*.snippet.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

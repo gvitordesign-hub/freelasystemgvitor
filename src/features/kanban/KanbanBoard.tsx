@@ -6,10 +6,10 @@ import {
   LayoutDashboard, List, ChevronLeft, ChevronRight,
   Briefcase, AlertTriangle, Calendar, Pencil, Trash2, Maximize2
 } from 'lucide-react';
-import { Task, Client, DayOfWeek, Status, Holiday } from '../types';
-import { DAYS_OF_WEEK } from '../constants';
-import TaskDetailModal from './Modals/TaskDetailModal';
-import ConfirmModal from './Modals/ConfirmModal';
+import { Task, Client, DayOfWeek, Status, Holiday } from '@/types';
+import { DAYS_OF_WEEK } from '@/constants';
+import TaskDetailModal from '@/components/modals/TaskDetailModal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 
 interface KanbanBoardProps {
   tasks: Task[];

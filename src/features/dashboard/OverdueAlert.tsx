@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AlertTriangle, X, ChevronRight, Bell } from 'lucide-react';
-import { Client, Invoice } from '../types';
+import { Client, Invoice } from '@/types';
 
 interface OverdueAlertProps {
   clients: Client[];
