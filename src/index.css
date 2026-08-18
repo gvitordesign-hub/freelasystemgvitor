@@ -6,77 +6,86 @@
   @keyframes reveal {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(14px);
     }
-
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
 
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.8;
+      filter: drop-shadow(0 0 12px var(--primary-shadow));
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 20px var(--primary-shadow));
+    }
+  }
+
   .animate-reveal {
     opacity: 0;
-    animation: reveal 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation: reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  .delay-100 {
-    animation-delay: 100ms;
-  }
-
-  .delay-200 {
-    animation-delay: 200ms;
-  }
-
-  .delay-300 {
-    animation-delay: 300ms;
-  }
-
-  .delay-400 {
-    animation-delay: 400ms;
-  }
-
-  .delay-500 {
-    animation-delay: 500ms;
-  }
-
-  .delay-600 {
-    animation-delay: 600ms;
-  }
-
-  .delay-700 {
-    animation-delay: 700ms;
-  }
+  .delay-100 { animation-delay: 80ms; }
+  .delay-200 { animation-delay: 160ms; }
+  .delay-300 { animation-delay: 240ms; }
+  .delay-400 { animation-delay: 320ms; }
+  .delay-500 { animation-delay: 400ms; }
+  .delay-600 { animation-delay: 480ms; }
+  .delay-700 { animation-delay: 560ms; }
 
   .cyber-font {
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum" 1, "zero" 1;
   }
 
   .neon-text {
-    text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+    text-shadow: 0 0 12px var(--primary-color), 0 0 24px var(--primary-color);
   }
 
   .neon-shadow-primary {
-    box-shadow: 0 0 15px var(--primary-shadow);
+    box-shadow: 0 0 20px var(--primary-shadow), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Glassmorphic Layering & Surfaces (Impeccable System) */
+  .surface-card {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .surface-card-hover {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .surface-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 14px 40px 0 rgba(0, 0, 0, 0.48), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
   }
 }
 
 /* Custom Scrollbars matching the project's visual identity */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617; /* bg-slate-950 */
+  background: #020617;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b; /* bg-slate-800 */
+  background: #1e293b;
   border-radius: 9999px;
   border: 2px solid #020617;
-  transition: all 0.25s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -86,20 +95,20 @@
 
 /* Specific class .custom-scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.4); /* transparent slate-900 */
+  background: rgba(15, 23, 42, 0.4);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25); /* transparent slate-400 */
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
   border: 1px solid rgba(15, 23, 42, 0.2);
-  transition: all 0.25s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -113,6 +122,44 @@
 }
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;  /* Firefox */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Media Print Rules for Clean PDF Export */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-area, #printable-area * {
+    visibility: visible !important;
+  }
+
+  #printable-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    box-shadow: none !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
 }

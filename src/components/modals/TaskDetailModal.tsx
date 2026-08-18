@@ -23,10 +23,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-black bg-[var(--primary-color)] text-slate-950 px-2 py-0.5 rounded uppercase tracking-[0.2em]">{task.category}</span>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] ${
+                                    task.category === 'Demanda Rápida' 
+                                        ? 'bg-amber-500 text-slate-950' 
+                                        : 'bg-[var(--primary-color)] text-slate-950'
+                                }`}>
+                                    {task.category === 'Demanda Rápida' ? '⚡ Demanda Rápida' : task.category}
+                                </span>
                                 <span className="text-[10px] font-black border border-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase tracking-[0.2em]">Protocolo {task.id.slice(0, 4)}</span>
                             </div>
-                            <h2 className="text-2xl font-black cyber-font text-white uppercase tracking-tight">Especificações do Projeto</h2>
+                            <h2 className="text-2xl font-black cyber-font text-white uppercase tracking-tight">
+                                {task.category === 'Demanda Rápida' ? 'Lembrete de Serviço' : 'Especificações do Projeto'}
+                            </h2>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-slate-500 hover:text-white transition-all p-3 hover:bg-slate-800 rounded-2xl group">
@@ -46,16 +54,29 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 relative group transition-all hover:border-[var(--primary-color)]/30">
-                            <div className="flex items-center gap-2 mb-4 text-emerald-400">
-                                <DollarSign size={18} />
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em]">Preço do Projeto</label>
+                        {task.category === 'Demanda Rápida' ? (
+                            <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-amber-500/30 relative group transition-all hover:border-amber-400">
+                                <div className="flex items-center gap-2 mb-4 text-amber-400">
+                                    <Zap size={18} className="fill-amber-400/20" />
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em]">Objetivo / Valor</label>
+                                </div>
+                                <p className="text-xl font-black text-amber-400 tracking-tight flex items-center gap-2">
+                                    ⚡ Lembrete sem custo
+                                </p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Serviço sem cobrança ou faturamento</p>
                             </div>
-                            <p className="text-4xl font-black text-white tracking-tight">
-                                <span className="text-emerald-400 text-lg mr-1 italic">R$</span>
-                                {task.value.toLocaleString('pt-BR')}
-                            </p>
-                        </div>
+                        ) : (
+                            <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 relative group transition-all hover:border-[var(--primary-color)]/30">
+                                <div className="flex items-center gap-2 mb-4 text-emerald-400">
+                                    <DollarSign size={18} />
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em]">Preço do Projeto</label>
+                                </div>
+                                <p className="text-4xl font-black text-white tracking-tight">
+                                    <span className="text-emerald-400 text-lg mr-1 italic">R$</span>
+                                    {task.value.toLocaleString('pt-BR')}
+                                </p>
+                            </div>
+                        )}
 
                         <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 transition-all hover:border-blue-500/30">
                             <div className="flex items-center gap-2 mb-4 text-blue-400">

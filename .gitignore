@@ -43,4 +43,6 @@ deploy_log.txt
 # Local exclusions
 tmp/
 .agents/
+.codex/
+.gemini/
 skills-lock.json

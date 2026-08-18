@@ -18,6 +18,7 @@ const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
 const BudgetBuilder = lazy(() => import('@/features/budgets/BudgetBuilder'));
 const CommandCenter = lazy(() => import('@/features/dashboard/CommandCenter'));
 const TaskModal = lazy(() => import('@/components/modals/TaskModal'));
+const QuickTaskModal = lazy(() => import('@/components/modals/QuickTaskModal'));
 const PaymentModal = lazy(() => import('@/components/modals/PaymentModal'));
 const ProjectNoteModal = lazy(() => import('@/components/modals/ProjectNoteModal'));
 const BriefingModal = lazy(() => import('@/components/modals/BriefingModal'));
@@ -98,6 +99,7 @@ const DashboardPage: React.FC = () => {
   }, [user, fetchData]);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isQuickTaskModalOpen, setIsQuickTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedClientForInvoice, setSelectedClientForInvoice] = useState<Client | null>(null);
   const [pendingPaymentTask, setPendingPaymentTask] = useState<Task | null>(null);
@@ -773,6 +775,7 @@ const DashboardPage: React.FC = () => {
           holidays={state.holidays}
           onUpdateStatus={updateTaskStatus}
           onAddTask={() => setIsTaskModalOpen(true)}
+          onAddQuickTask={() => setIsQuickTaskModalOpen(true)}
           onEditTask={(task) => { setEditingTask(task); setIsTaskModalOpen(true); }}
           onDeleteTask={deleteTask}
           onMoveTask={moveTask}
@@ -796,6 +799,7 @@ const DashboardPage: React.FC = () => {
             transactions={state.transactions}
             tasks={state.tasks}
             invoices={state.invoices}
+            overdueAlertDays={state.stats.overdueAlertDays ?? 30}
             onAddClient={addClient}
             onUpdateClient={updateClient}
             onDeleteClient={deleteClient}
@@ -895,6 +899,15 @@ const DashboardPage: React.FC = () => {
             onSkip={() => setShowBriefing(false)}
           />
         )
+      }
+      {
+        isQuickTaskModalOpen && <QuickTaskModal
+          clients={state.clients}
+          holidays={state.holidays}
+          onClose={() => setIsQuickTaskModalOpen(false)}
+          onSubmit={addTask}
+          onQuickAddClient={addClient}
+        />
       }
       {
         isTaskModalOpen && <TaskModal
