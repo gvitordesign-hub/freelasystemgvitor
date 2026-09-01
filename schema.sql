@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   briefing TEXT,
   add_to_portfolio BOOLEAN DEFAULT FALSE,
   position INTEGER DEFAULT 0,
+  deliverables JSONB DEFAULT '[]'::jsonb,
   user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

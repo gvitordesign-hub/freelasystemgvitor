@@ -30,17 +30,18 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
    const totalPending = pendingTransactions.reduce((acc, curr) => acc + curr.value, 0);
 
    return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl animate-in fade-in duration-500">
-         <div className="bg-slate-900/40 border border-slate-800 w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500 relative">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-2xl animate-in fade-in duration-500">
+         <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl md:rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500 relative max-h-[92dvh] overflow-y-auto custom-scrollbar">
             {/* Decorative Grid Background */}
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--primary-color) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
-            <div className="p-6 md:p-10 relative z-10 space-y-6 md:space-y-8">
+            <div className="p-5 sm:p-6 md:p-10 relative z-10 space-y-5 sm:space-y-6 md:space-y-8">
                {onSkip && (
                   <button
                      onClick={onSkip}
-                     className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all group"
+                     className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all group cursor-pointer"
                      title="Pular Briefing (ESC)"
+                     aria-label="Fechar Briefing"
                   >
                      <X size={18} className="group-hover:scale-110 transition-transform" />
                   </button>
@@ -48,13 +49,13 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
                      <div className="w-8 md:w-12 h-1 bg-[var(--primary-color)] rounded-full animate-pulse" />
-                     <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.5em]">Morning Protocol v2.5</span>
+                     <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] md:tracking-[0.5em]">Morning Protocol v2.5</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black text-white cyber-font uppercase tracking-tighter leading-none mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white cyber-font uppercase tracking-tighter leading-none mb-2">
                      BOM DIA, <span className="text-[var(--primary-color)]">{userName.split(' ')[0]}</span>
                   </h1>
-                  <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-[0.4em] flex items-center gap-2">
-                     <span className="w-8 h-px bg-slate-800"></span>
+                  <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+                     <span className="w-6 sm:w-8 h-px bg-slate-800"></span>
                      OPERACIONAL FRELLA INICIADO
                   </p>
                </div>

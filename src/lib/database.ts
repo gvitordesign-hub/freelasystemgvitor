@@ -49,12 +49,13 @@ export const db = {
                 clientId: t.client_id,
                 invoiceId: t.invoice_id,
                 addToPortfolio: t.add_to_portfolio,
-                position: t.position || 0
+                position: t.position || 0,
+                deliverables: Array.isArray(t.deliverables) ? t.deliverables : []
             })) as Task[];
         },
         async create(task: Omit<Task, 'id'>) {
             const userId = await getUserId();
-            const { data, error } = await supabase.from('tasks').insert({
+            const payload: any = {
                 title: task.title,
                 client_id: task.clientId,
                 invoice_id: task.invoiceId,
@@ -66,10 +67,19 @@ export const db = {
                 briefing: task.briefing,
                 add_to_portfolio: task.addToPortfolio,
                 position: task.position || 0,
+                deliverables: task.deliverables || [],
                 user_id: userId
-            }).select().single();
+            };
+            const { data, error } = await supabase.from('tasks').insert(payload).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio, position: data.position } as Task;
+            return {
+                ...data,
+                clientId: data.client_id,
+                invoiceId: data.invoice_id,
+                addToPortfolio: data.add_to_portfolio,
+                position: data.position,
+                deliverables: Array.isArray(data.deliverables) ? data.deliverables : (task.deliverables || [])
+            } as Task;
         },
         async update(id: string, task: Partial<Task>) {
             const userId = await getUserId();
@@ -77,10 +87,18 @@ export const db = {
             if (task.clientId !== undefined) { transformed.client_id = task.clientId; delete transformed.clientId; }
             if (task.invoiceId !== undefined) { transformed.invoice_id = task.invoiceId; delete transformed.invoiceId; }
             if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
+            if (task.deliverables !== undefined) { transformed.deliverables = task.deliverables; }
 
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
             if (error) throw error;
-            return { ...data, clientId: data.client_id, invoiceId: data.invoice_id, addToPortfolio: data.add_to_portfolio, position: data.position } as Task;
+            return {
+                ...data,
+                clientId: data.client_id,
+                invoiceId: data.invoice_id,
+                addToPortfolio: data.add_to_portfolio,
+                position: data.position,
+                deliverables: Array.isArray(data.deliverables) ? data.deliverables : (task.deliverables || [])
+            } as Task;
         },
         async delete(id: string) {
             const userId = await getUserId();
@@ -185,6 +203,8 @@ export const db = {
         async update(id: string, invoice: Partial<Invoice>) {
             const userId = await getUserId();
             const transformed: any = { ...invoice };
+            delete transformed.id;
+            delete transformed.user_id;
             if (invoice.clientId !== undefined) { transformed.client_id = invoice.clientId; delete transformed.clientId; }
             if (invoice.createdAt !== undefined) { transformed.created_at = invoice.createdAt; delete transformed.createdAt; }
             if (invoice.customValue !== undefined) { transformed.custom_value = invoice.customValue; delete transformed.customValue; }

@@ -1,26 +1,38 @@
 import React, { useState } from 'react';
-import { Target, Flame, DollarSign, LogOut, User, ChevronDown } from 'lucide-react';
+import { Target, Flame, DollarSign, LogOut, User, ChevronDown, Menu } from 'lucide-react';
 import { UserStats } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 interface GamificationBarProps {
   stats: UserStats;
   currentIncome: number;
+  onOpenMobileMenu?: () => void;
 }
 
-const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome }) => {
+const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome, onOpenMobileMenu }) => {
   const goal = stats.weeklyGoal || 2000;
   const progressPercentage = Math.min((currentIncome / goal) * 100, 100);
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <div className="h-16 border-b border-slate-800/80 bg-slate-950/75 backdrop-blur-2xl px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 w-full shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-      <div className="flex items-center gap-3 md:gap-6 flex-1 max-w-2xl">
-        <div className="flex items-center gap-2.5">
+    <div className="h-16 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-2xl px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 z-30 w-full shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+      <div className="flex items-center gap-2.5 sm:gap-4 md:gap-6 flex-1 max-w-2xl min-w-0">
+        {/* Mobile Menu Button */}
+        {onOpenMobileMenu && (
+          <button
+            onClick={onOpenMobileMenu}
+            className="lg:hidden p-2 -ml-1 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl transition-colors cursor-pointer touch-target flex items-center justify-center shrink-0"
+            aria-label="Abrir Menu"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+
+        <div className="flex items-center gap-2 shrink-0">
           <div className="relative">
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 flex items-center justify-center neon-shadow-primary border border-white/20 transition-all duration-300 hover:scale-105 shrink-0">
-              <span className="font-black cyber-font text-white text-sm md:text-base drop-shadow-sm">{stats.level}</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 flex items-center justify-center neon-shadow-primary border border-white/20 transition-all duration-300 hover:scale-105 shrink-0">
+              <span className="font-black cyber-font text-white text-xs sm:text-base drop-shadow-sm">{stats.level}</span>
             </div>
           </div>
           <div className="hidden sm:block">
@@ -32,7 +44,7 @@ const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome 
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-1.5">
+        <div className="flex-1 flex flex-col gap-1 min-w-0">
           <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-color)]/90 transition-all duration-1000 ease-out shadow-[0_0_12px_var(--primary-shadow)]"
@@ -40,8 +52,8 @@ const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome 
             />
           </div>
           <div className="flex justify-between text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider cyber-font">
-            <span className="text-emerald-400">R$ {currentIncome.toLocaleString('pt-BR')}</span>
-            <span className="hidden xs:inline text-slate-500">Alvo: R$ {goal.toLocaleString('pt-BR')}</span>
+            <span className="text-emerald-400 truncate">R$ {currentIncome.toLocaleString('pt-BR')}</span>
+            <span className="text-slate-500 truncate ml-1">Meta: R$ {goal.toLocaleString('pt-BR')}</span>
           </div>
         </div>
       </div>

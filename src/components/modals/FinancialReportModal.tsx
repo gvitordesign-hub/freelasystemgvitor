@@ -101,39 +101,41 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300 print:p-0 print:bg-white print:backdrop-blur-none">
-            <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 print:h-auto print:rounded-none print:border-none print:shadow-none print:bg-white print:max-w-none print:static">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 print:p-0 print:bg-white">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[92dvh] max-h-[92dvh] rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 print:border-none print:shadow-none print:h-auto print:max-h-none print:w-full print:rounded-none">
 
                 {/* Header */}
-                <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 sticky top-0 z-10 print:hidden">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-[var(--primary-color)]/20 rounded-2xl">
-                            <BarChart3 className="text-[var(--primary-color)]" size={24} />
+                <div className="p-4 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 print:hidden">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 sm:p-3 bg-[var(--primary-color)]/20 text-[var(--primary-color)] rounded-2xl border border-[var(--primary-color)]/30 shrink-0">
+                            <BarChart3 size={20} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold cyber-font text-white uppercase tracking-tight">Relatório Financeiro</h2>
-                            <p className="text-slate-400 text-xs uppercase tracking-widest font-black">Performance e Prestação de Contas</p>
+                            <h2 className="text-base sm:text-xl font-black cyber-font text-white uppercase tracking-tight">Relatório Financeiro</h2>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Análise de Desempenho & Fluxo de Caixa</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
                         <button
                             onClick={handlePrint}
-                            className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border border-slate-700"
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border border-slate-700 cursor-pointer"
                         >
-                            <Printer size={16} />
+                            <Printer size={15} />
                             Imprimir / PDF
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl transition-all border border-slate-700"
+                            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 cursor-pointer"
+                            aria-label="Fechar"
                         >
-                            <X size={20} />
+                            <X size={18} />
                         </button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-8 space-y-8 custom-scrollbar print:overflow-visible print:px-0 print:py-4">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 custom-scrollbar print:overflow-visible print:px-0 print:py-4">
 
                     {/* Print Only Header */}
                     <div className="hidden print:block mb-8 border-b-2 border-slate-200 pb-4">

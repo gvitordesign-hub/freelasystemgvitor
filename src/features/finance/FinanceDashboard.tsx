@@ -75,111 +75,97 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ transactions, tasks
   };
 
   return (
-    <div className="p-6 animate-reveal">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 animate-reveal max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold cyber-font text-white uppercase tracking-tighter">Fluxo de Caixa</h1>
-          <p className="text-slate-400">Controle total sobre o seu capital</p>
+          <h1 className="text-2xl md:text-3xl font-black cyber-font text-white uppercase tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mt-1">Controle total sobre o seu capital</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => setShowReportModal(true)}
-            className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all border border-slate-700 flex items-center gap-2"
+            className="flex-1 sm:flex-none bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border border-slate-800 flex items-center justify-center gap-2 shadow-inner cursor-pointer"
           >
-            <BarChart3 size={20} />
-            Gerar Relatório
+            <BarChart3 size={17} />
+            Relatório
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
           >
-            <Plus size={20} />
+            <Plus size={17} />
             {showAddForm ? 'Cancelar' : 'Novo Lançamento'}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-purple-500/20 rounded-xl">
-              <Wallet className="text-purple-400" />
+            <div className="p-3 bg-purple-500/20 rounded-2xl border border-purple-500/30">
+              <Wallet className="text-purple-400" size={20} />
             </div>
           </div>
-          <p className="text-slate-400 text-sm font-medium">Saldo Atual</p>
-          <h2 className="text-3xl font-bold mt-1">R$ {totalBalance.toLocaleString()}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo Atual</p>
+          <h2 className="text-2xl md:text-3xl font-black cyber-font text-white mt-1">R$ {totalBalance.toLocaleString('pt-BR')}</h2>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-emerald-500/20 rounded-xl">
-              <TrendingUp className="text-emerald-400" />
+            <div className="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/30">
+              <TrendingUp className="text-emerald-400" size={20} />
             </div>
-            <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">REALIZADO</span>
+            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">REALIZADO</span>
           </div>
-          <p className="text-slate-400 text-sm font-medium">Entradas</p>
-          <h2 className="text-3xl font-bold mt-1 neon-text-green">R$ {realIncome.toLocaleString()}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Entradas</p>
+          <h2 className="text-2xl md:text-3xl font-black cyber-font text-emerald-400 mt-1">R$ {realIncome.toLocaleString('pt-BR')}</h2>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-amber-500/20 rounded-xl">
-              <Clock className="text-amber-400" />
+            <div className="p-3 bg-amber-500/20 rounded-2xl border border-amber-500/30">
+              <Clock className="text-amber-400" size={20} />
             </div>
-            <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded">PREVISTO</span>
+            <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">PREVISTO</span>
           </div>
-          <p className="text-slate-400 text-sm font-medium">Previsão</p>
-          <h2 className="text-3xl font-bold mt-1 text-amber-400">R$ {pendingIncome.toLocaleString()}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Previsão</p>
+          <h2 className="text-2xl md:text-3xl font-black cyber-font text-amber-400 mt-1">R$ {pendingIncome.toLocaleString('pt-BR')}</h2>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-rose-500/20 rounded-xl">
-              <TrendingDown className="text-rose-400" />
+            <div className="p-3 bg-rose-500/20 rounded-2xl border border-rose-500/30">
+              <TrendingDown className="text-rose-400" size={20} />
             </div>
           </div>
-          <p className="text-slate-400 text-sm font-medium">Saídas Mensais</p>
-          <h2 className="text-3xl font-bold mt-1 neon-text-red">R$ {totalExpenses.toLocaleString()}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saídas Mensais</p>
+          <h2 className="text-2xl md:text-3xl font-black cyber-font text-rose-400 mt-1">R$ {totalExpenses.toLocaleString('pt-BR')}</h2>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 mb-8 bg-slate-900/50 border border-slate-800 p-4 rounded-3xl">
-        <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-4 md:p-5 rounded-3xl shadow-lg">
+        <div className="flex items-center justify-between sm:justify-start gap-4">
+          <button onClick={handlePrevMonth} className="p-2.5 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer active:scale-95">
             <ChevronLeft size={20} />
           </button>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-[var(--primary-color)] uppercase tracking-widest leading-none mb-1">Período de Análise</span>
-            <span className="text-lg font-black text-white cyber-font tracking-tighter">{monthYearLabel}</span>
+          <div className="flex flex-col text-center sm:text-left">
+            <span className="text-[9px] font-black text-[var(--primary-color)] uppercase tracking-widest leading-none mb-1">Período de Análise</span>
+            <span className="text-base sm:text-lg font-black text-white cyber-font tracking-tight">{monthYearLabel}</span>
           </div>
-          <button onClick={handleNextMonth} className="p-2 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white">
+          <button onClick={handleNextMonth} className="p-2.5 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer active:scale-95">
             <ChevronRight size={20} />
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6">
-          <div className="flex items-center gap-4 order-2 sm:order-1">
-            <div className="flex flex-col items-start sm:items-end">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Balanço do Mês</span>
-              <span className={`text-sm font-black ${(realIncome - totalExpenses) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {(realIncome - totalExpenses) >= 0 ? '+' : ''} R$ {(realIncome - totalExpenses).toLocaleString()}
-              </span>
-            </div>
-            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-slate-500">
-              <Calendar size={18} />
-            </div>
+        <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+          <div className="flex flex-col items-start sm:items-end">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Balanço do Mês</span>
+            <span className={`text-sm sm:text-base font-black cyber-font ${(realIncome - totalExpenses) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {(realIncome - totalExpenses) >= 0 ? '+' : ''} R$ {(realIncome - totalExpenses).toLocaleString('pt-BR')}
+            </span>
           </div>
-          <div className="flex flex-col items-center min-w-[140px] w-full sm:w-auto order-1 sm:order-2">
-            <div className="w-full flex justify-between text-[8px] font-black text-slate-500 uppercase mb-1">
-              <span>Progresso Meta</span>
-              <span>{Math.round(Math.min((realIncome / (monthlyGoal || 1)) * 100, 100))}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
-              <div
-                className="h-full bg-[var(--primary-color)] transition-all duration-1000"
-                style={{ width: `${Math.min((realIncome / (monthlyGoal || 1)) * 100, 100)}%` }}
-              />
-            </div>
+          <div className="w-10 h-10 bg-slate-800/80 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700/60 shrink-0">
+            <Calendar size={18} />
           </div>
         </div>
       </div>

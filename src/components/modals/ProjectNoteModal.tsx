@@ -59,6 +59,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    onClose 
 }) => {
    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+   const [mobileView, setMobileView] = useState<'list' | 'detail'>('detail');
    const [copied, setCopied] = useState(false);
    const [localPix, setLocalPix] = useState(pixKey);
    const [editingPix, setEditingPix] = useState(false);
@@ -88,7 +89,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
       if (editingTotal) return;
 
       if (currentInvoice) {
-         const calculatedTotal = invoiceTasks.reduce((a, c) => a + c.value, 0);
+         const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
          const totalVal = currentInvoice.customValue !== undefined && currentInvoice.customValue !== null
             ? currentInvoice.customValue
             : calculatedTotal;
@@ -101,13 +102,21 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    const handleSaveTotal = () => {
       if (!currentInvoice) return;
       const parsed = parseFloat(localTotal);
-      const calculatedTotal = invoiceTasks.reduce((a, c) => a + c.value, 0);
+      const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
 
-      if (isNaN(parsed) || parsed === calculatedTotal || localTotal.trim() === '') {
+      if (isNaN(parsed) || localTotal.trim() === '' || parsed === calculatedTotal) {
          onUpdateInvoice({ ...currentInvoice, customValue: null });
       } else {
          onUpdateInvoice({ ...currentInvoice, customValue: parsed });
       }
+      setEditingTotal(false);
+   };
+
+   const handleResetToCalculated = () => {
+      if (!currentInvoice) return;
+      const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+      setLocalTotal(calculatedTotal.toString());
+      onUpdateInvoice({ ...currentInvoice, customValue: null });
       setEditingTotal(false);
    };
 
@@ -123,9 +132,19 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
       const taskLines = invTasks.map(t => {
          const isQuick = t.category === 'Demanda Rápida';
          if (isQuick) return `  ⚡ *${t.title}* _(Lembrete)_`;
-         return showIndividualPrices 
+         
+         const mainLine = showIndividualPrices 
             ? `  ▫️ *${t.title}*: _R$ ${t.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}_`
             : `  ▫️ *${t.title}*`;
+
+         if (t.deliverables && t.deliverables.length > 0) {
+            const subLines = t.deliverables.map(d => 
+               `     ↳ ${d.completed ? '✅' : '⏳'} _${d.title}_${showIndividualPrices ? ` (R$ ${Number(d.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})` : ''}`
+            ).join('\n');
+            return `${mainLine}\n${subLines}`;
+         }
+
+         return mainLine;
       }).join('\n');
 
       return `
@@ -159,9 +178,19 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
          const taskLines = invTasks.map(t => {
             const isQuick = t.category === 'Demanda Rápida';
             if (isQuick) return `  ⚡ *${t.title}* _(Lembrete)_`;
-            return showIndividualPrices 
+            
+            const mainLine = showIndividualPrices 
                ? `  ▫️ *${t.title}*: _R$ ${t.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}_`
                : `  ▫️ *${t.title}*`;
+
+            if (t.deliverables && t.deliverables.length > 0) {
+               const subLines = t.deliverables.map(d => 
+                  `     ↳ ${d.completed ? '✅' : '⏳'} _${d.title}_${showIndividualPrices ? ` (R$ ${Number(d.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })})` : ''}`
+               ).join('\n');
+               return `${mainLine}\n${subLines}`;
+            }
+
+            return mainLine;
          }).join('\n');
 
          return `📌 *NOTA: ${inv.title.toUpperCase()}*\n${taskLines || '  _(Sem demandas concluídas)_'}\n💵 *Subtotal:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`;
@@ -170,38 +199,41 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
       const header = `📑 *RELATÓRIO DE COBRANÇA MASTER* 📑\n👤 *Cliente:* *${companyName}*\n\n`;
       const pix = localPix ? `\n\n💳 *TOTAL GERAL:* *R$ ${grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n🔑 *CHAVE PIX:* \`${localPix}\`\n\n🙏 _Agradecemos a parceria!_` : `\n\n💳 *TOTAL GERAL:* *R$ ${grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n\n🙏 _Agradecemos a parceria!_`;
 
-      return (header + allText + pix).trim();
+      return `${header}${allText}${pix}`.trim();
    };
 
    const handleExportSingle = async () => {
       const text = buildWhatsAppTextSingle();
-      if (!text) return;
       const success = await copyToClipboard(text);
       if (success) {
          setCopied(true);
-         setTimeout(() => setCopied(false), 2500);
+         setTimeout(() => setCopied(false), 2000);
       } else {
-         openWhatsAppWeb(text);
+         alert('Não foi possível copiar automaticamente.');
       }
    };
 
    const handleExportAll = async () => {
       const text = buildWhatsAppTextMaster();
-      if (!text) return;
       const success = await copyToClipboard(text);
       if (success) {
          setCopied(true);
-         setTimeout(() => setCopied(false), 2500);
+         setTimeout(() => setCopied(false), 2000);
       } else {
-         openWhatsAppWeb(text);
+         alert('Não foi possível copiar automaticamente.');
       }
    };
 
-   const handleDeleteInvoice = () => {
+   const handlePrint = () => {
+      window.print();
+   };
+
+   const handleDelete = () => {
       if (!currentInvoice) return;
       if (confirm(`Deseja realmente excluir a nota "${currentInvoice.title}"? As demandas vinculadas serão mantidas como avulsas.`)) {
          onDeleteInvoice(currentInvoice.id);
          setSelectedInvoiceId(null);
+         setMobileView('list');
       }
    };
 
@@ -210,50 +242,101 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
       onUpdateInvoice({ ...currentInvoice, status: 'Pago' });
    };
 
+   const masterPaidTotal = useMemo(() => {
+      return clientInvoices
+         .filter(i => i.status === 'Pago')
+         .reduce((acc, inv) => {
+            const invTasks = tasks.filter(t => t.invoiceId === inv.id);
+            const val = inv.customValue !== undefined && inv.customValue !== null
+               ? Number(inv.customValue)
+               : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+            return acc + val;
+         }, 0);
+   }, [clientInvoices, tasks]);
+
+   const masterPendingTotal = useMemo(() => {
+      const invPending = clientInvoices
+         .filter(i => i.status === 'Pendente')
+         .reduce((acc, inv) => {
+            const invTasks = tasks.filter(t => t.invoiceId === inv.id);
+            const val = inv.customValue !== undefined && inv.customValue !== null
+               ? Number(inv.customValue)
+               : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+            return acc + val;
+         }, 0);
+      const unassignedSum = unassignedTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+      return invPending + unassignedSum;
+   }, [clientInvoices, tasks, unassignedTasks]);
+
+   const masterGrandTotal = masterPaidTotal + masterPendingTotal;
+
+   const invoiceCalculatedTotal = useMemo(() => {
+      return invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+   }, [invoiceTasks]);
+
+   const isCustomValueActive = currentInvoice && currentInvoice.customValue !== undefined && currentInvoice.customValue !== null;
+
    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
-         <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[85vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+         <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[92dvh] max-h-[92dvh] rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95">
 
             {/* Sidebar: Lista de Notas */}
-            <div className="w-full md:w-80 bg-slate-950/50 border-r border-slate-800 p-6 flex flex-col gap-6">
+            <div className={`w-full md:w-80 bg-slate-950/70 border-r border-slate-800 p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 ${mobileView === 'list' ? 'flex flex-1' : 'hidden md:flex'}`}>
                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Faturamento Frella</h3>
-                  <button onClick={onClose} className="md:hidden text-slate-500"><X size={20} /></button>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faturamento Frella</h3>
+                  <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-slate-800" aria-label="Fechar"><X size={20} /></button>
                </div>
 
-               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
                   <button
-                     onClick={() => setSelectedInvoiceId(null)}
-                     className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-3 ${!selectedInvoiceId ? 'bg-[var(--primary-color)]/20 border-[var(--primary-color)]/40 text-white' : 'bg-slate-800/40 border-slate-700/50 text-slate-400 hover:border-slate-600'}`}
+                     onClick={() => {
+                        setSelectedInvoiceId(null);
+                        setMobileView('detail');
+                     }}
+                     className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer ${!selectedInvoiceId ? 'bg-[var(--primary-color)]/20 border-[var(--primary-color)]/40 text-white shadow-md' : 'bg-slate-800/40 border-slate-700/50 text-slate-400 hover:border-slate-600'}`}
                   >
-                     <Archive size={16} />
+                     <Archive size={16} className="text-[var(--primary-color)]" />
                      <div className="flex flex-col">
-                        <span className="text-xs font-bold uppercase tracking-tighter">Resumo Master</span>
+                        <span className="text-xs font-bold uppercase tracking-tight">Resumo Master</span>
                         <span className="text-[9px] opacity-60">Todas as notas ativas</span>
                      </div>
                   </button>
 
-                  <div className="pt-4 space-y-2">
-                     <p className="text-[9px] font-black text-slate-600 uppercase mb-2">Notas Individuais</p>
-                     {clientInvoices.map(inv => (
+                  <div className="pt-3 space-y-2">
+                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-2">Notas Individuais ({clientInvoices.length})</p>
+                     {clientInvoices.map(inv => {
+                        const invTasks = tasks.filter(t => t.invoiceId === inv.id);
+                        const invTotal = inv.customValue !== undefined && inv.customValue !== null
+                           ? Number(inv.customValue)
+                           : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+                        return (
                         <button
                            key={inv.id}
-                           onClick={() => setSelectedInvoiceId(inv.id)}
-                           className={`w-full text-left p-4 rounded-2xl border transition-all group ${selectedInvoiceId === inv.id ? 'bg-slate-800 border-[var(--primary-color)] text-white' : 'bg-slate-900/50 border-slate-800/50 text-slate-500 hover:bg-slate-800'}`}
+                           onClick={() => {
+                              setSelectedInvoiceId(inv.id);
+                              setMobileView('detail');
+                           }}
+                           className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all group cursor-pointer ${selectedInvoiceId === inv.id ? 'bg-slate-800 border-[var(--primary-color)] text-white shadow-md' : 'bg-slate-900/50 border-slate-800/50 text-slate-500 hover:bg-slate-800'}`}
                         >
                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-xs font-bold truncate max-w-[120px]">{inv.title}</span>
+                              <span className="text-xs font-bold truncate max-w-[130px]">{inv.title}</span>
                               {inv.status === 'Pago' ? <CheckCircle2 size={12} className="text-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
                            </div>
-                           <span className="text-[9px] uppercase tracking-tighter">{new Date(inv.createdAt).toLocaleDateString()}</span>
+                           <div className="flex items-center justify-between text-[9px] uppercase tracking-tight">
+                              <span>{new Date(inv.createdAt).toLocaleDateString('pt-BR')}</span>
+                              <span className={`font-mono font-bold ${inv.status === 'Pago' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                 R$ {invTotal.toLocaleString('pt-BR')}
+                              </span>
+                           </div>
                         </button>
-                     ))}
+                        );
+                     })}
                   </div>
                </div>
 
-               <div className="pt-4 border-t border-slate-800 space-y-3">
+               <div className="pt-3 border-t border-slate-800 space-y-3">
                   <div className="flex items-center justify-between px-1">
-                     <span className="text-[10px] font-bold text-slate-400">Preço em cada serviço</span>
+                     <span className="text-[10px] font-bold text-slate-400">Preço nos itens</span>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input 
                            type="checkbox" 
@@ -268,14 +351,14 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                   <div className="grid grid-cols-2 gap-2">
                      <button
                         onClick={handleExportAll}
-                        className="bg-slate-800 hover:bg-slate-700 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                        className="bg-slate-800 hover:bg-slate-700 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
                         title="Copiar relatório master para a área de transferência"
                      >
                         <Copy size={12} /> {copied ? 'Copiado!' : 'Copiar Master'}
                      </button>
                      <button
                         onClick={() => openWhatsAppWeb(buildWhatsAppTextMaster())}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
                         title="Abrir diretamente no WhatsApp"
                      >
                         <ExternalLink size={12} /> Abrir Zap
@@ -285,60 +368,68 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
             </div>
 
             {/* Content: Detalhe da Nota */}
-            <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden relative">
-               {/* Pix Floating Header */}
-               <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur-md">
-                  <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 bg-[var(--primary-color)]/10 rounded-xl flex items-center justify-center">
+            <div className={`flex-1 flex flex-col bg-slate-900 overflow-hidden relative ${mobileView === 'detail' ? 'flex' : 'hidden md:flex'}`}>
+               {/* Floating Header */}
+               <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur-md">
+                  <div className="flex items-center gap-3">
+                     {/* Mobile Back Button to Note List */}
+                     <button
+                        onClick={() => setMobileView('list')}
+                        className="md:hidden p-2 -ml-1 text-slate-400 hover:text-white bg-slate-800/80 rounded-xl flex items-center gap-1 cursor-pointer touch-target"
+                        aria-label="Voltar para a lista de notas"
+                     >
+                        <ChevronLeft size={18} />
+                     </button>
+
+                     <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--primary-color)]/10 rounded-xl flex items-center justify-center shrink-0">
                         {selectedInvoiceId ? <FileText className="text-[var(--primary-color)]" size={18} /> : <LayoutPanelLeft className="text-[var(--primary-color)]" size={18} />}
                      </div>
-                     <div>
-                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">{selectedInvoiceId ? currentInvoice?.title : 'Visão Geral do Cliente'}</h2>
-                        <p className="text-[10px] text-slate-500 uppercase font-black">{client.company}</p>
+                     <div className="truncate">
+                        <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider truncate max-w-[160px] sm:max-w-xs">{selectedInvoiceId ? currentInvoice?.title : 'Visão Geral do Cliente'}</h2>
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black truncate">{client.company || client.name}</p>
                      </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                     <div className="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2 group cursor-pointer" onClick={() => setEditingPix(true)}>
-                        <CreditCard size={12} className="text-amber-400" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                     <div className="bg-slate-800/80 border border-slate-700 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 group cursor-pointer" onClick={() => setEditingPix(true)}>
+                        <CreditCard size={12} className="text-amber-400 shrink-0" />
                         {editingPix ? (
                            <input
                               autoFocus
                               value={localPix}
                               onChange={e => setLocalPix(e.target.value)}
                               onBlur={() => { onUpdatePix(localPix); setEditingPix(false); }}
-                              className="bg-transparent border-none outline-none text-[10px] text-white w-24"
+                              className="bg-transparent border-none outline-none text-[10px] text-white w-20 sm:w-24 font-mono"
                            />
                         ) : (
-                           <span className="text-[10px] font-mono text-slate-400">{localPix || 'Sem Pix'}</span>
+                           <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 truncate max-w-[80px] sm:max-w-[120px]">{localPix || 'Sem Pix'}</span>
                         )}
                      </div>
-                     <button onClick={onClose} className="p-2 text-slate-600 hover:text-white lg:block hidden"><X size={20} /></button>
+                     <button onClick={onClose} className="p-2 text-slate-500 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer" aria-label="Fechar"><X size={20} /></button>
                   </div>
                </div>
 
-               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar">
                   {!selectedInvoiceId ? (
                      /* Master View */
                      <div className="space-y-8 animate-in fade-in duration-500">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-800">
-                              <h4 className="text-[9px] font-black text-slate-500 uppercase mb-4 tracking-widest">Resumo Financeiro</h4>
-                              <p className="text-4xl font-black text-white cyber-font">R$ {tasks.filter(t => t.clientId === client.id && t.status === 'Concluído').reduce((a, c) => a + c.value, 0).toLocaleString('pt-BR')}</p>
-                              <p className="text-[10px] text-slate-500 mt-2 font-bold">VALOR ACUMULADO CONCLUÍDO</p>
+                              <h4 className="text-[9px] font-black text-slate-500 uppercase mb-2 tracking-widest">Total Acumulado</h4>
+                              <p className="text-3xl font-black text-white cyber-font">R$ {masterGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[10px] text-slate-500 mt-1 font-bold">FATURAMENTO TOTAL</p>
                            </div>
-                           <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-800">
-                              <h4 className="text-[9px] font-black text-slate-500 uppercase mb-4 tracking-widest">Status das Notas</h4>
-                              <div className="flex items-center gap-4">
-                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-emerald-400">{clientInvoices.filter(i => i.status === 'Pago').length}</span>
-                                    <span className="text-[9px] font-black uppercase text-slate-600">Pagas</span>
-                                 </div>
-                                 <div className="flex flex-col">
-                                    <span className="text-xl font-bold text-amber-500">{clientInvoices.filter(i => i.status === 'Pendente').length}</span>
-                                    <span className="text-[9px] font-black uppercase text-slate-600">Pendentes</span>
-                                 </div>
-                              </div>
+
+                           <div className="bg-emerald-500/10 p-6 rounded-3xl border border-emerald-500/20">
+                              <h4 className="text-[9px] font-black text-emerald-400 uppercase mb-2 tracking-widest">Total Pago</h4>
+                              <p className="text-3xl font-black text-emerald-400 cyber-font">R$ {masterPaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[10px] text-emerald-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pago').length} notas quitadas</p>
+                           </div>
+
+                           <div className="bg-amber-500/10 p-6 rounded-3xl border border-amber-500/20">
+                              <h4 className="text-[9px] font-black text-amber-400 uppercase mb-2 tracking-widest">Total Pendente</h4>
+                              <p className="text-3xl font-black text-amber-400 cyber-font">R$ {masterPendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[10px] text-amber-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pendente').length} notas a receber</p>
                            </div>
                         </div>
 
@@ -360,12 +451,12 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                   ) : (
                      /* Individual Invoice View */
                      <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-                        <div className="flex justify-between items-end">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
                            <div>
                               <span className="text-[10px] font-black text-[var(--primary-color)] uppercase tracking-widest mb-1 block">Detalhamento da Nota</span>
                               <h3 className="text-3xl font-black text-white">{currentInvoice?.title}</h3>
                            </div>
-                           <div className="text-right flex flex-col items-end gap-2">
+                           <div className="text-left sm:text-right flex flex-col sm:items-end gap-2">
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total da Nota</span>
                               {editingTotal ? (
                                  <div className="flex items-center gap-2">
@@ -376,46 +467,86 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                        step="any"
                                        value={localTotal}
                                        onChange={e => setLocalTotal(e.target.value)}
-                                       onBlur={handleSaveTotal}
                                        onKeyDown={e => {
                                           if (e.key === 'Enter') handleSaveTotal();
                                           if (e.key === 'Escape') {
                                              setEditingTotal(false);
                                              if (currentInvoice) {
-                                                setLocalTotal((currentInvoice.customValue ?? invoiceTasks.reduce((a, c) => a + c.value, 0)).toString());
+                                                setLocalTotal((currentInvoice.customValue ?? invoiceCalculatedTotal).toString());
                                              }
                                           }
                                        }}
-                                       className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xl font-black text-emerald-400 cyber-font w-28 outline-none focus:border-emerald-500"
+                                       className="bg-slate-950 border border-emerald-500 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-400 cyber-font w-32 outline-none focus:ring-2 focus:ring-emerald-500/30"
                                     />
+                                    <button
+                                       type="button"
+                                       onClick={handleSaveTotal}
+                                       className="p-2 bg-emerald-500 text-slate-950 rounded-xl hover:bg-emerald-400 transition-all font-bold"
+                                       title="Salvar valor"
+                                    >
+                                       <Check size={16} />
+                                    </button>
+                                    <button
+                                       type="button"
+                                       onClick={() => {
+                                          setEditingTotal(false);
+                                          if (currentInvoice) {
+                                             setLocalTotal((currentInvoice.customValue ?? invoiceCalculatedTotal).toString());
+                                          }
+                                       }}
+                                       className="p-2 bg-slate-800 text-slate-400 rounded-xl hover:text-white transition-all"
+                                       title="Cancelar edição"
+                                    >
+                                       <X size={16} />
+                                    </button>
                                  </div>
                               ) : (
                                  <div 
                                     onClick={() => setEditingTotal(true)}
-                                    className="flex items-center gap-2 group cursor-pointer hover:bg-slate-850 px-2 py-1 rounded-xl transition-all border border-transparent hover:border-slate-800"
-                                    title="Clique para editar o total"
+                                    className="flex items-center gap-2 group cursor-pointer hover:bg-slate-800/80 px-3 py-1.5 rounded-2xl transition-all border border-slate-800 hover:border-emerald-500/40"
+                                    title="Clique para editar o total da nota"
                                  >
                                     <p className="text-2xl font-black text-emerald-400 cyber-font">
-                                       R$ {Number(localTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                       R$ {Number(localTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
-                                    <PenLine size={14} className="text-slate-500 group-hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" />
+                                    <PenLine size={15} className="text-slate-500 group-hover:text-emerald-400 transition-all shrink-0" />
                                  </div>
                               )}
-                              {currentInvoice && currentInvoice.customValue !== undefined && currentInvoice.customValue !== null && (
-                                 <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wider">Valor Personalizado</span>
+                              
+                              {isCustomValueActive && (
+                                 <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                       Valor Personalizado
+                                    </span>
+                                    <button
+                                       onClick={handleResetToCalculated}
+                                       className="text-[9px] text-slate-500 hover:text-slate-300 underline cursor-pointer"
+                                       title={`Restaurar soma dos itens (R$ ${invoiceCalculatedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`}
+                                    >
+                                       Restaurar automático (R$ {invoiceCalculatedTotal.toLocaleString('pt-BR')})
+                                    </button>
+                                 </div>
                               )}
-                              <div className="flex gap-2">
-                                 {currentInvoice?.status === 'Pendente' && (
+
+                              <div className="flex gap-2 pt-1">
+                                 {currentInvoice?.status === 'Pendente' ? (
                                     <button
                                        onClick={handleMarkAsPaid}
-                                       className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase transition-all"
+                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                     >
                                        <Check size={12} /> Marcar como Pago
+                                    </button>
+                                 ) : (
+                                    <button
+                                       onClick={() => onUpdateInvoice({ ...currentInvoice!, status: 'Pendente' })}
+                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                    >
+                                       <Clock size={12} /> Reabrir Nota (Pendente)
                                     </button>
                                  )}
                                  <button
                                     onClick={handleDeleteInvoice}
-                                    className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[10px] font-bold uppercase transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                  >
                                     <Trash2 size={12} /> Excluir Nota
                                  </button>
@@ -425,19 +556,42 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
 
                         <div className="space-y-3">
                            {invoiceTasks.map(t => (
-                              <div key={t.id} className="p-5 bg-slate-800/40 border border-slate-700 rounded-[1.5rem] flex items-center justify-between">
-                                 <div className="flex items-center gap-4">
-                                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${t.status === 'Concluído' ? 'border-emerald-500 text-emerald-500' : 'border-slate-700 text-slate-700'}`}>
-                                       {t.status === 'Concluído' ? <Check size={14} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />}
+                              <div key={t.id} className="p-5 bg-slate-800/40 border border-slate-700 rounded-[1.5rem] flex flex-col gap-3">
+                                 <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                       <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${t.status === 'Concluído' ? 'border-emerald-500 text-emerald-500' : 'border-slate-700 text-slate-700'}`}>
+                                          {t.status === 'Concluído' ? <Check size={14} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />}
+                                       </div>
+                                       <div>
+                                          <p className="text-xs font-bold text-slate-200">{t.title}</p>
+                                          <p className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">{t.category}</p>
+                                       </div>
                                     </div>
-                                    <div>
-                                       <p className="text-xs font-bold text-slate-200">{t.title}</p>
-                                       <p className="text-[9px] font-black uppercase text-slate-600 tracking-tighter">{t.category}</p>
-                                    </div>
+                                    <span className="text-sm font-black text-white font-mono">
+                                       {t.category === 'Demanda Rápida' ? 'Lembrete' : `R$ ${t.value.toLocaleString('pt-BR')}`}
+                                    </span>
                                  </div>
-                                 <span className="text-sm font-black text-white">
-                                    {t.category === 'Demanda Rápida' ? 'Lembrete' : `R$ ${t.value.toLocaleString('pt-BR')}`}
-                                 </span>
+
+                                 {/* Sub-lista de entregáveis */}
+                                 {t.deliverables && t.deliverables.length > 0 && (
+                                    <div className="pl-12 pt-2 border-t border-slate-800/80 space-y-1.5">
+                                       {t.deliverables.map(d => (
+                                          <div key={d.id} className="flex items-center justify-between text-xs text-slate-400">
+                                             <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] ${d.completed ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                                   {d.completed ? '✓' : '○'}
+                                                </span>
+                                                <span className={d.completed ? 'line-through text-slate-500' : 'text-slate-300'}>
+                                                   {d.title}
+                                                </span>
+                                             </div>
+                                             <span className="font-mono text-[11px] text-emerald-400/80 font-bold">
+                                                {Number(d.value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                             </span>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
                               </div>
                            ))}
                         </div>

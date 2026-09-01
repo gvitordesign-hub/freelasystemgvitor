@@ -23,14 +23,14 @@ interface NavItemProps {
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active, collapsed, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group relative ${
+    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 group relative min-h-[44px] cursor-pointer active:scale-98 ${
       active
         ? 'bg-gradient-to-r from-[var(--primary-color)]/20 to-[var(--primary-color)]/5 text-white border border-[var(--primary-color)]/35 shadow-[0_4px_20px_var(--primary-shadow)]'
         : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 hover:border-slate-700/60 border border-transparent'
     }`}
   >
     {active && (
-      <span className="absolute left-0 top-2 bottom-2 w-1 bg-[var(--primary-color)] rounded-r-full shadow-[0_0_8px_var(--primary-color)]" />
+      <span className="absolute left-0 top-2 bottom-2 w-1.5 bg-[var(--primary-color)] rounded-r-full shadow-[0_0_8px_var(--primary-color)]" />
     )}
     <div className={`shrink-0 transition-transform duration-200 ${active ? 'text-[var(--primary-color)] scale-105' : 'group-hover:text-slate-200 group-hover:scale-105'}`}>
       {icon}
@@ -45,24 +45,38 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, collapsed, onCli
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, isSidebarOpen, isMobileMenuOpen, userEmail, onNavigate, onToggleSidebar, onCloseMobile }) => {
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 lg:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-950/90 backdrop-blur-2xl border-r border-slate-800/80 transition-all duration-300 flex flex-col print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.4)]`}>
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 rounded-xl flex items-center justify-center neon-shadow-primary shrink-0 transition-all duration-300 hover:scale-105">
-            <LayoutDashboard size={18} className="text-white drop-shadow-sm" />
-          </div>
-          {isSidebarOpen && (
-            <div className="flex flex-col">
-              <span className="text-xl font-black cyber-font tracking-tighter text-white leading-none">FRELLA</span>
-              <span className="text-[10px] font-black tracking-[0.3em] text-[var(--primary-color)] mt-0.5 opacity-90">SYSTEM</span>
+    <>
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 lg:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-950/95 backdrop-blur-2xl border-r border-slate-800/80 transition-all duration-300 flex flex-col print:hidden shadow-[4px_0_24px_rgba(0,0,0,0.5)] h-screen-dvh`}>
+        <div className="p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 rounded-xl flex items-center justify-center neon-shadow-primary shrink-0 transition-all duration-300 hover:scale-105">
+              <LayoutDashboard size={18} className="text-white drop-shadow-sm" />
             </div>
+            {isSidebarOpen && (
+              <div className="flex flex-col">
+                <span className="text-xl font-black cyber-font tracking-tighter text-white leading-none">FRELLA</span>
+                <span className="text-[10px] font-black tracking-[0.3em] text-[var(--primary-color)] mt-0.5 opacity-90">SYSTEM</span>
+              </div>
+            )}
+          </div>
+          {isMobileMenuOpen && (
+            <button 
+              onClick={onCloseMobile} 
+              className="lg:hidden p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white transition-colors cursor-pointer touch-target flex items-center justify-center"
+              aria-label="Fechar Menu"
+            >
+              <X size={20} />
+            </button>
           )}
-        </div>
-        {isMobileMenuOpen && (
-          <button onClick={onCloseMobile} className="lg:hidden p-1.5 rounded-lg bg-slate-800/60 text-slate-400 hover:text-white transition-colors">
-            <X size={18} />
-          </button>
-        )}
 
         {/* Desktop Toggle Button - Visible when SIDEBAR OPEN */}
         {isSidebarOpen && (
@@ -110,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, isSidebarOpen, isMobileMen
         </div>
       )}
     </aside>
+    </>
   );
 };
 

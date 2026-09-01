@@ -87,6 +87,14 @@ export interface Client {
   status?: string;
 }
 
+export interface DeliverableItem {
+  id: string;
+  title: string;
+  value: number;
+  completed: boolean;
+  serviceId?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -100,6 +108,7 @@ export interface Task {
   briefing?: string;
   addToPortfolio?: boolean;
   position: number;
+  deliverables?: DeliverableItem[];
 }
 
 export interface Transaction {

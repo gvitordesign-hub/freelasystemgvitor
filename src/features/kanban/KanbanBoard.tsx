@@ -3,7 +3,8 @@ import {
   Plus, GripVertical, CheckCircle2, Circle,
   Clock, DollarSign, Calendar as CalendarIcon,
   LayoutDashboard, List, ChevronLeft, ChevronRight,
-  Briefcase, AlertTriangle, Calendar, Pencil, Trash2, Maximize2, Zap
+  Briefcase, AlertTriangle, Calendar, Pencil, Trash2, Maximize2, Zap,
+  Sparkles, Check
 } from 'lucide-react';
 import { Task, Client, DayOfWeek, Status, Holiday } from '@/types';
 import { DAYS_OF_WEEK } from '@/constants';
@@ -20,6 +21,7 @@ interface KanbanBoardProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onMoveTask: (taskId: string, day: DayOfWeek, date?: string, position?: number) => void;
+  onUpdateTask?: (id: string, task: Partial<Task>) => void;
 }
 
 type ViewMode = 'kanban' | 'diario' | 'mensal';
@@ -33,7 +35,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onAddQuickTask,
   onEditTask, 
   onDeleteTask, 
-  onMoveTask 
+  onMoveTask,
+  onUpdateTask
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -41,6 +44,28 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{ id: string, position: 'top' | 'bottom' } | null>(null);
+
+  const handleToggleDeliverable = (task: Task, deliverableId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!task.deliverables || !onUpdateTask) return;
+
+    const updatedDeliverables = task.deliverables.map(d =>
+      d.id === deliverableId ? { ...d, completed: !d.completed } : d
+    );
+
+    const allCompleted = updatedDeliverables.length > 0 && updatedDeliverables.every(d => d.completed);
+    const updates: Partial<Task> = { deliverables: updatedDeliverables };
+
+    if (allCompleted && task.status !== 'Concluído') {
+      updates.status = 'Concluído';
+    }
+
+    onUpdateTask(task.id, updates);
+
+    if (selectedTask && selectedTask.id === task.id) {
+      setSelectedTask(prev => prev ? { ...prev, ...updates } : null);
+    }
+  };
 
   const boardRef = useRef<HTMLDivElement>(null);
   const dummyRef = useRef<HTMLDivElement>(null);
@@ -378,6 +403,32 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     </span>
                   </div>
                   <h4 className={`text-base font-bold ${styles.text}`}>{task.title}</h4>
+                  
+                  {/* Barra de Progresso no Modo Diário */}
+                  {task.deliverables && task.deliverables.length > 0 && (() => {
+                    const total = task.deliverables.length;
+                    const done = task.deliverables.filter(d => d.completed).length;
+                    const percent = Math.round((done / total) * 100);
+
+                    return (
+                      <div className="w-full max-w-xs space-y-1.5 py-1">
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-wider">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <Sparkles size={10} className="text-[var(--primary-color)]" />
+                            {done}/{total} Entregáveis
+                          </span>
+                          <span className="text-emerald-400 font-mono">{percent}%</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                          <div
+                            className="h-full bg-gradient-to-r from-[var(--primary-color)] to-emerald-400 rounded-full transition-all duration-300 shadow-[0_0_8px_var(--primary-shadow)]"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="flex gap-2">
                     <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
                       isQuick ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -607,14 +658,77 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                     {styles.icon} {styles.label}
                                   </div>
                                 </div>
-                                <div className={`text-slate-600 group-hover:text-[var(--primary-color)] transition-colors`}>
+                                <div className="text-slate-600 group-hover:text-[var(--primary-color)] transition-colors">
                                   <GripVertical size={14} />
                                 </div>
                               </div>
 
-                              <h4 className={`font-bold text-sm mb-3 leading-snug transition-all ${styles.text}`}>
+                              <h4 className={`font-bold text-sm mb-2 leading-snug transition-all ${styles.text}`}>
                                 {task.title}
                               </h4>
+
+                              {/* Barra de Progresso e Checklist de Entregáveis */}
+                              {task.deliverables && task.deliverables.length > 0 && (() => {
+                                const total = task.deliverables.length;
+                                const done = task.deliverables.filter(d => d.completed).length;
+                                const percent = Math.round((done / total) * 100);
+                                const isFullyDone = done === total;
+
+                                return (
+                                  <div className="my-2.5 space-y-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80">
+                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
+                                      <span className="text-slate-400 flex items-center gap-1">
+                                        <Sparkles size={10} className={isFullyDone ? 'text-emerald-400' : 'text-[var(--primary-color)]'} />
+                                        {done}/{total} Entregáveis
+                                      </span>
+                                      <span className={isFullyDone ? 'text-emerald-400 font-mono' : 'text-slate-300 font-mono'}>
+                                        {percent}%
+                                      </span>
+                                    </div>
+
+                                    {/* Barra de Progresso Neon */}
+                                    <div className="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-700/40">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                          isFullyDone
+                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                                            : 'bg-gradient-to-r from-[var(--primary-color)] to-emerald-400 shadow-[0_0_8px_var(--primary-shadow)]'
+                                        }`}
+                                        style={{ width: `${percent}%` }}
+                                      />
+                                    </div>
+
+                                    {/* Mini Checklist de Entregáveis */}
+                                    <div className="space-y-1 pt-1 max-h-24 overflow-y-auto custom-scrollbar">
+                                      {task.deliverables.map(d => (
+                                        <div
+                                          key={d.id}
+                                          onClick={(e) => handleToggleDeliverable(task, d.id, e)}
+                                          className="flex items-center justify-between gap-1.5 py-0.5 px-1 rounded-lg hover:bg-slate-800/60 cursor-pointer group/item transition-colors"
+                                        >
+                                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                            <div
+                                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                                d.completed
+                                                  ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+                                                  : 'border-slate-600 group-hover/item:border-slate-400 bg-slate-900'
+                                              }`}
+                                            >
+                                              {d.completed && <Check size={9} strokeWidth={3} />}
+                                            </div>
+                                            <span className={`text-[10px] truncate ${d.completed ? 'line-through text-slate-500' : 'text-slate-300 font-medium'}`}>
+                                              {d.title}
+                                            </span>
+                                          </div>
+                                          <span className="text-[9px] font-mono text-emerald-400/80 font-bold shrink-0">
+                                            R${d.value}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                               <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-800/60">
                                 <div className="flex flex-col">
@@ -698,7 +812,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               ref={dummyRef}
               onScroll={handleDummyScroll}
               style={scrollbarStyle}
-              className="overflow-x-auto custom-scrollbar bg-slate-950 border-t border-slate-800/80 py-1"
+              className="overflow-x-auto h-3 bg-slate-950/80 border-t border-slate-800 z-40"
             >
               <div style={{ width: `${contentWidth}px`, height: '1px' }} />
             </div>
@@ -721,6 +835,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onDelete={() => {
             setTaskToDelete(selectedTask);
           }}
+          onToggleDeliverable={(deliverableId) => handleToggleDeliverable(selectedTask, deliverableId)}
         />
       )}
 

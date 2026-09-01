@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Calendar, DollarSign, User, FileText, Pencil, Trash2, Briefcase, Sparkles, Zap } from 'lucide-react';
+import { X, Calendar, DollarSign, User, FileText, Pencil, Trash2, Briefcase, Sparkles, Zap, Check } from 'lucide-react';
 import { Task, Client } from '../../types';
 
 interface TaskDetailModalProps {
@@ -9,82 +9,83 @@ interface TaskDetailModalProps {
     onClose: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    onToggleDeliverable?: (deliverableId: string) => void;
 }
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose, onEdit, onDelete }) => {
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose, onEdit, onDelete, onToggleDeliverable }) => {
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[92dvh] flex flex-col">
                 {/* Header with Project Badge */}
-                <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-gradient-to-br from-[var(--primary-color)]/20 via-transparent to-transparent">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-[var(--primary-color)]/20 flex items-center justify-center shadow-[0_0_20px_var(--primary-shadow)] border border-[var(--primary-color)]/20">
-                            <Sparkles className="text-[var(--primary-color)] animate-pulse" size={28} />
+                <div className="p-5 sm:p-8 border-b border-slate-800 flex items-center justify-between bg-gradient-to-br from-[var(--primary-color)]/20 via-transparent to-transparent shrink-0">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[var(--primary-color)]/20 flex items-center justify-center shadow-[0_0_20px_var(--primary-shadow)] border border-[var(--primary-color)]/20 shrink-0">
+                            <Sparkles className="text-[var(--primary-color)] animate-pulse" size={24} />
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] ${
+                                <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] ${
                                     task.category === 'Demanda Rápida' 
                                         ? 'bg-amber-500 text-slate-950' 
                                         : 'bg-[var(--primary-color)] text-slate-950'
                                 }`}>
                                     {task.category === 'Demanda Rápida' ? '⚡ Demanda Rápida' : task.category}
                                 </span>
-                                <span className="text-[10px] font-black border border-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase tracking-[0.2em]">Protocolo {task.id.slice(0, 4)}</span>
+                                <span className="text-[9px] sm:text-[10px] font-black border border-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase tracking-[0.2em]">Protocolo {task.id.slice(0, 4)}</span>
                             </div>
-                            <h2 className="text-2xl font-black cyber-font text-white uppercase tracking-tight">
-                                {task.category === 'Demanda Rápida' ? 'Lembrete de Serviço' : 'Especificações do Projeto'}
+                            <h2 className="text-lg sm:text-2xl font-black cyber-font text-white uppercase tracking-tight truncate max-w-[200px] sm:max-w-md">
+                                {task.category === 'Demanda Rápida' ? 'Lembrete de Serviço' : 'Especificações'}
                             </h2>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-all p-3 hover:bg-slate-800 rounded-2xl group">
-                        <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-all p-2 sm:p-3 hover:bg-slate-800 rounded-2xl group cursor-pointer" aria-label="Fechar">
+                        <X size={22} className="group-hover:rotate-90 transition-transform duration-300" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-8 space-y-8 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <div className="p-5 sm:p-8 space-y-6 sm:space-y-8 flex-1 overflow-y-auto custom-scrollbar">
                     {/* Main Demand Section */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <div className="flex items-center gap-2">
                             <FileText size={16} className="text-[var(--primary-color)]" />
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Demanda Principal</label>
                         </div>
-                        <h3 className="text-3xl font-black text-white leading-tight italic">{task.title}</h3>
+                        <h3 className="text-xl sm:text-3xl font-black text-white leading-tight italic">{task.title}</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         {task.category === 'Demanda Rápida' ? (
-                            <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-amber-500/30 relative group transition-all hover:border-amber-400">
-                                <div className="flex items-center gap-2 mb-4 text-amber-400">
-                                    <Zap size={18} className="fill-amber-400/20" />
+                            <div className="bg-slate-950/50 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-amber-500/30 relative group transition-all hover:border-amber-400">
+                                <div className="flex items-center gap-2 mb-3 text-amber-400">
+                                    <Zap size={16} className="fill-amber-400/20" />
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em]">Objetivo / Valor</label>
                                 </div>
-                                <p className="text-xl font-black text-amber-400 tracking-tight flex items-center gap-2">
+                                <p className="text-lg sm:text-xl font-black text-amber-400 tracking-tight flex items-center gap-2">
                                     ⚡ Lembrete sem custo
                                 </p>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Serviço sem cobrança ou faturamento</p>
                             </div>
                         ) : (
-                            <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 relative group transition-all hover:border-[var(--primary-color)]/30">
-                                <div className="flex items-center gap-2 mb-4 text-emerald-400">
-                                    <DollarSign size={18} />
+                            <div className="bg-slate-950/50 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-800 relative group transition-all hover:border-[var(--primary-color)]/30">
+                                <div className="flex items-center gap-2 mb-3 text-emerald-400">
+                                    <DollarSign size={16} />
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em]">Preço do Projeto</label>
                                 </div>
-                                <p className="text-4xl font-black text-white tracking-tight">
-                                    <span className="text-emerald-400 text-lg mr-1 italic">R$</span>
+                                <p className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                                    <span className="text-emerald-400 text-base sm:text-lg mr-1 italic">R$</span>
                                     {task.value.toLocaleString('pt-BR')}
                                 </p>
                             </div>
                         )}
 
-                        <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 transition-all hover:border-blue-500/30">
-                            <div className="flex items-center gap-2 mb-4 text-blue-400">
-                                <User size={18} />
+                        <div className="bg-slate-950/50 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-800 transition-all hover:border-blue-500/30">
+                            <div className="flex items-center gap-2 mb-3 text-blue-400">
+                                <User size={16} />
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em]">Cliente Associado</label>
                             </div>
-                            <p className="text-xl font-bold text-white mb-1">{client?.name || 'Agente Externo'}</p>
-                            <div className="flex items-center gap-4 mt-2">
+                            <p className="text-base sm:text-xl font-bold text-white mb-1">{client?.name || 'Agente Externo'}</p>
+                            <div className="flex items-center gap-3 mt-2">
                                 <div className="flex items-center gap-1 text-[9px] font-bold text-slate-500 uppercase tracking-widest"><Calendar size={10} /> {task.day}</div>
                                 <div className="w-1 h-1 rounded-full bg-slate-800"></div>
                                 <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{new Date(task.date).toLocaleDateString('pt-BR')}</div>
@@ -93,35 +94,102 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                     </div>
 
                     {/* Detailed Briefing */}
-                    <div className="bg-slate-950/50 p-8 rounded-[2rem] border border-slate-800 space-y-4 relative overflow-hidden group">
+                    <div className="bg-slate-950/50 p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] border border-slate-800 space-y-3 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-color)]/5 blur-[60px] group-hover:bg-[var(--primary-color)]/10 transition-all"></div>
                         <div className="flex items-center gap-2 text-[var(--primary-color)]">
-                            <Zap size={18} />
+                            <Zap size={16} />
                             <label className="text-[10px] font-black uppercase tracking-[0.3em]">Briefing & Detalhamento</label>
                         </div>
                         <div className="relative z-10">
-                            <p className="text-slate-300 leading-relaxed text-lg whitespace-pre-wrap font-medium">
+                            <p className="text-slate-300 leading-relaxed text-sm sm:text-base whitespace-pre-wrap font-medium">
                                 {task.briefing || 'Nenhuma especificação adicional fornecida para este protocolo.'}
                             </p>
                         </div>
                     </div>
 
+                    {/* Deliverables Checklist Section */}
+                    {task.deliverables && task.deliverables.length > 0 && (() => {
+                        const total = task.deliverables.length;
+                        const done = task.deliverables.filter(d => d.completed).length;
+                        const percent = Math.round((done / total) * 100);
+
+                        return (
+                            <div className="bg-slate-950/50 p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-800 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-[var(--primary-color)]">
+                                        <Sparkles size={16} />
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                            Entregáveis do Projeto ({done}/{total})
+                                        </label>
+                                    </div>
+                                    <span className="text-xs font-black text-emerald-400 font-mono">
+                                        {percent}% Concluído
+                                    </span>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-[var(--primary-color)] to-emerald-400 transition-all duration-500"
+                                        style={{ width: `${percent}%` }}
+                                    />
+                                </div>
+
+                                {/* Items List */}
+                                <div className="space-y-2 pt-2">
+                                    {task.deliverables.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => onToggleDeliverable && onToggleDeliverable(item.id)}
+                                            className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all text-left group cursor-pointer ${
+                                                item.completed
+                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-slate-300'
+                                                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                                                    item.completed
+                                                        ? 'bg-emerald-500 border-emerald-400 text-white'
+                                                        : 'border-slate-700 bg-slate-800 group-hover:border-slate-500'
+                                                }`}>
+                                                    {item.completed && <Check size={12} className="stroke-[3]" />}
+                                                </div>
+                                                <span className={`text-xs font-bold transition-all ${
+                                                    item.completed ? 'line-through text-slate-500' : 'text-slate-200'
+                                                }`}>
+                                                    {item.title}
+                                                </span>
+                                            </div>
+                                            {item.value && item.value > 0 ? (
+                                                <span className="text-[10px] font-mono font-bold text-emerald-400/80 bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">
+                                                    R$ {item.value.toLocaleString('pt-BR')}
+                                                </span>
+                                            ) : null}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* Status Bar */}
-                    <div className="flex items-center justify-between p-6 bg-slate-800/20 rounded-3xl border border-slate-800">
-                        <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between p-4 sm:p-6 bg-slate-800/20 rounded-2xl sm:rounded-3xl border border-slate-800">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
                             <div className={`w-3 h-3 rounded-full ${task.status === 'Concluído' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' :
                                 task.status === 'Em Andamento' ? 'bg-slate-500' :
                                     'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
                                 }`}></div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status de Operação:</span>
-                            <span className={`text-xs font-black uppercase tracking-widest ${task.status === 'Concluído' ? 'text-emerald-400' :
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status:</span>
+                            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest ${task.status === 'Concluído' ? 'text-emerald-400' :
                                 task.status === 'Em Andamento' ? 'text-slate-400' :
                                     'text-red-400'
                                 }`}>{task.status}</span>
                         </div>
                         {task.addToPortfolio && (
-                            <div className="flex items-center gap-2 text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
-                                <Briefcase size={12} />
+                            <div className="flex items-center gap-1.5 text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
+                                <Briefcase size={11} />
                                 <span className="text-[8px] font-black uppercase">Portfólio</span>
                             </div>
                         )}
@@ -129,19 +197,19 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                 </div>
 
                 {/* Action Controls */}
-                <div className="p-8 border-t border-slate-800 bg-slate-900/50 flex gap-4">
+                <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/50 flex gap-3 shrink-0">
                     <button
                         onClick={onEdit}
-                        className="flex-[2] h-16 flex items-center justify-center gap-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-blue-500/20 hover:scale-[1.02] active:scale-95"
+                        className="flex-[2] py-3.5 sm:py-4 flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-2xl sm:rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-blue-500/20 active:scale-95 cursor-pointer touch-target"
                     >
-                        <Pencil size={18} />
-                        Editar Protocolo
+                        <Pencil size={16} />
+                        Editar
                     </button>
                     <button
                         onClick={onDelete}
-                        className="flex-1 h-16 flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-red-500/20 hover:scale-[1.02] active:scale-95"
+                        className="flex-1 py-3.5 sm:py-4 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl sm:rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-red-500/20 active:scale-95 cursor-pointer touch-target"
                     >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                         Excluir
                     </button>
                 </div>

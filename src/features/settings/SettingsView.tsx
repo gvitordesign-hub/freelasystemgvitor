@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell, Calendar, Plus, RefreshCw } from 'lucide-react';
-import { UserStats, ThemeColor, Client, Task, Holiday } from '@/types';
+import React, { useState } from 'react';
+import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell, Calendar, Plus, RefreshCw, Package, Sparkles, DollarSign, Pencil, X, Check, Search, Tag, Layers } from 'lucide-react';
+import { UserStats, ThemeColor, Client, Task, Holiday, Service } from '@/types';
 import FreelancerCalculator from '@/features/settings/FreelancerCalculator';
 
 interface SettingsViewProps {
@@ -13,13 +13,42 @@ interface SettingsViewProps {
   onAddHoliday?: (holiday: Omit<Holiday, 'id'>) => Promise<void>;
   onDeleteHoliday?: (id: string) => Promise<void>;
   onSyncHolidays?: (holidays: Omit<Holiday, 'id'>[]) => Promise<void>;
+  services?: Service[];
+  onAddService?: (service: Omit<Service, 'id'>) => Promise<any>;
+  onUpdateService?: (id: string, service: Omit<Service, 'id'>) => Promise<any>;
+  onDeleteService?: (id: string) => Promise<any>;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats, clients, onAddTask, holidays, onAddHoliday, onDeleteHoliday, onSyncHolidays }) => {
-  const [newHolidayDate, setNewHolidayDate] = React.useState('');
-  const [newHolidayDesc, setNewHolidayDesc] = React.useState('');
-  const [isSyncing, setIsSyncing] = React.useState(false);
+const SettingsView: React.FC<SettingsViewProps> = ({
+  stats,
+  onUpdateStats,
+  clients,
+  onAddTask,
+  holidays,
+  onAddHoliday,
+  onDeleteHoliday,
+  onSyncHolidays,
+  services = [],
+  onAddService,
+  onUpdateService,
+  onDeleteService
+}) => {
+  const [newHolidayDate, setNewHolidayDate] = useState('');
+  const [newHolidayDesc, setNewHolidayDesc] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
   const colors: ThemeColor[] = ['purple', 'emerald', 'cyan', 'rose'];
+
+  // Cardápio de Serviços State
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [serviceFormData, setServiceFormData] = useState({
+    name: '',
+    category: 'Design',
+    baseValue: '',
+    description: ''
+  });
 
   const handleSyncGeneralCalendar = async () => {
     if (!onSyncHolidays) return;
@@ -322,6 +351,307 @@ const SettingsView: React.FC<SettingsViewProps> = ({ stats, onUpdateStats, clien
               Nenhum feriado ou dia de folga cadastrado no momento.
             </div>
           )}
+        </section>
+
+        {/* Cardápio de Entregáveis / Serviços */}
+        <section className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6 lg:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                <Package className="text-[var(--primary-color)]" size={20} />
+                Cardápio de Entregáveis & Serviços
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Cadastre seus serviços e valores padrão (ex: Motion Design R$100, Capa de CD R$100). Eles aparecerão para inserção com 1 clique na criação de Projetos.
+              </p>
+            </div>
+            {!isAddingService && (
+              <button
+                onClick={() => {
+                  setEditingServiceId(null);
+                  setServiceFormData({ name: '', category: 'Design', baseValue: '', description: '' });
+                  setIsAddingService(true);
+                }}
+                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[var(--primary-color)]/20 hover:bg-[var(--primary-color)]/30 border border-[var(--primary-color)]/40 text-[var(--primary-color)] flex items-center justify-center gap-2 active:scale-95 transition-all self-start sm:self-auto shrink-0 shadow-lg"
+              >
+                <Plus size={14} />
+                Novo Serviço no Cardápio
+              </button>
+            )}
+          </div>
+
+          {/* Formulário de Adicionar / Editar Serviço */}
+          {isAddingService && (
+            <div className="bg-slate-950/60 p-6 rounded-2xl border border-[var(--primary-color)]/30 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-xs font-bold cyber-font text-white uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles size={14} className="text-[var(--primary-color)]" />
+                  {editingServiceId ? 'Editar Serviço do Cardápio' : 'Cadastrar Novo Serviço'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingService(false);
+                    setEditingServiceId(null);
+                  }}
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Nome do Serviço / Entregável *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Motion Design, Capa de CD, Banner Youtube..."
+                    value={serviceFormData.name}
+                    onChange={e => setServiceFormData({ ...serviceFormData, name: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-[var(--primary-color)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Valor Padrão (R$) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-500">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="100.00"
+                      value={serviceFormData.baseValue}
+                      onChange={e => setServiceFormData({ ...serviceFormData, baseValue: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-white text-xs outline-none focus:border-[var(--primary-color)] font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Categoria
+                  </label>
+                  <select
+                    value={serviceFormData.category}
+                    onChange={e => setServiceFormData({ ...serviceFormData, category: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-xs outline-none focus:border-[var(--primary-color)]"
+                  >
+                    <option value="Design">Design</option>
+                    <option value="Motion">Motion Design</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Identidade Visual">Identidade Visual</option>
+                    <option value="Edição Video">Edição de Vídeo</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Desenvolvimento">Desenvolvimento</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Descrição ou Observação (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Formato vertical 1080x1920 com trilha sonora inclusa"
+                    value={serviceFormData.description}
+                    onChange={e => setServiceFormData({ ...serviceFormData, description: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-[var(--primary-color)]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingService(false);
+                    setEditingServiceId(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!serviceFormData.name.trim()) {
+                      alert('Por favor, informe o nome do serviço.');
+                      return;
+                    }
+                    const val = parseFloat(serviceFormData.baseValue);
+                    if (isNaN(val) || val < 0) {
+                      alert('Por favor, informe um valor padrão válido.');
+                      return;
+                    }
+
+                    if (editingServiceId && onUpdateService) {
+                      await onUpdateService(editingServiceId, {
+                        name: serviceFormData.name.trim(),
+                        description: serviceFormData.description.trim() || `${serviceFormData.category} - Padrão`,
+                        baseValue: val
+                      });
+                    } else if (onAddService) {
+                      await onAddService({
+                        name: serviceFormData.name.trim(),
+                        description: serviceFormData.description.trim() || `${serviceFormData.category} - Padrão`,
+                        baseValue: val
+                      });
+                    }
+
+                    setIsAddingService(false);
+                    setEditingServiceId(null);
+                    setServiceFormData({ name: '', category: 'Design', baseValue: '', description: '' });
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[var(--primary-color)] text-white hover:brightness-110 shadow-lg shadow-[var(--primary-shadow)] flex items-center gap-2"
+                >
+                  <Check size={14} />
+                  {editingServiceId ? 'Salvar Alterações' : 'Cadastrar Serviço'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Barra de Filtro e Busca */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
+              <input
+                type="text"
+                placeholder="Buscar serviço no cardápio..."
+                value={serviceSearch}
+                onChange={e => setServiceSearch(e.target.value)}
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-white text-xs outline-none focus:border-[var(--primary-color)] placeholder:text-slate-500"
+              />
+              {serviceSearch && (
+                <button onClick={() => setServiceSearch('')} className="absolute right-3 top-2.5 text-slate-500 hover:text-white">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
+              {['Todos', 'Motion', 'Design', 'Social Media', 'Edição Video'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-[var(--primary-color)] text-white shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid de Serviços Cadastrados */}
+          {(() => {
+            const filtered = services.filter(s => {
+              const matchesSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                (s.description && s.description.toLowerCase().includes(serviceSearch.toLowerCase()));
+              const matchesCategory = selectedCategory === 'Todos' ||
+                s.name.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+                (s.description && s.description.toLowerCase().includes(selectedCategory.toLowerCase()));
+              return matchesSearch && matchesCategory;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div className="py-12 text-center border border-dashed border-slate-800 rounded-2xl space-y-3 bg-slate-950/20">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800/50 flex items-center justify-center mx-auto text-slate-500">
+                    <Package size={22} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-400">Nenhum serviço encontrado no cardápio</p>
+                    <p className="text-[10px] text-slate-600 mt-0.5">Cadastre seus serviços mais comuns para acelerar a criação de projetos.</p>
+                  </div>
+                  {!isAddingService && (
+                    <button
+                      onClick={() => {
+                        setEditingServiceId(null);
+                        setServiceFormData({ name: '', category: 'Design', baseValue: '', description: '' });
+                        setIsAddingService(true);
+                      }}
+                      className="text-xs font-bold text-[var(--primary-color)] hover:underline inline-flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Cadastrar primeiro serviço
+                    </button>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {filtered.map(service => (
+                  <div
+                    key={service.id}
+                    className="p-4 bg-slate-800/40 border border-slate-800/80 hover:border-[var(--primary-color)]/40 rounded-2xl flex flex-col justify-between gap-3 group transition-all relative overflow-hidden"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-xs font-black text-white group-hover:text-[var(--primary-color)] transition-colors leading-snug">
+                          {service.name}
+                        </h4>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button
+                            onClick={() => {
+                              setEditingServiceId(service.id);
+                              setServiceFormData({
+                                name: service.name,
+                                category: 'Design',
+                                baseValue: service.baseValue.toString(),
+                                description: service.description || ''
+                              });
+                              setIsAddingService(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/60 rounded-lg transition-colors"
+                            title="Editar serviço"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Tem certeza que deseja excluir "${service.name}" do cardápio?`)) {
+                                if (onDeleteService) await onDeleteService(service.id);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            title="Excluir serviço"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      {service.description && (
+                        <p className="text-[10px] text-slate-400 line-clamp-1">
+                          {service.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                        <Tag size={10} /> Valor Base
+                      </span>
+                      <span className="text-xs font-black text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                        {service.baseValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </section>
 
         {/* Financial Engine (Calculadora) */}

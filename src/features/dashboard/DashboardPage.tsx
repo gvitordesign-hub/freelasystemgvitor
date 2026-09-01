@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Menu, Clock, Loader2 } from 'lucide-react';
+import { Menu, Clock, Loader2, LayoutDashboard, Trophy, DollarSign, Users, Plus } from 'lucide-react';
 import { Client, Task, AppState, Status, UserStats, Transaction, DayOfWeek, Budget, Service, Invoice, Reminder, Holiday } from '@/types';
 import { INITIAL_STATE, XP_PER_TASK, XP_PER_CLIENT, XP_PER_LEVEL, XP_DAILY_BRIEFING } from '@/constants';
 import { db } from '@/lib/database';
@@ -322,29 +321,30 @@ const DashboardPage: React.FC = () => {
         const nextState = { ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) };
 
         const invoiceTasks = prev.tasks.filter(t => t.invoiceId === result.id);
-        const completedInvoiceTasks = invoiceTasks.filter(t => t.status === 'Concluído');
-        const calculatedTotal = completedInvoiceTasks.reduce((a, c) => a + c.value, 0);
+        const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
         const taskIds = new Set(invoiceTasks.map(t => t.id));
 
         let txUpdated = false;
         const newTransactions = prev.transactions.map(tx => {
           if (tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada') {
-            const task = completedInvoiceTasks.find(t => t.id === tx.taskId);
+            const task = invoiceTasks.find(t => t.id === tx.taskId);
             if (task) {
               let newValue = tx.value;
               let newStatus = tx.status;
               let newDate = tx.date;
 
-              if (updated.customValue !== undefined && updated.customValue !== null) {
-                const scale = calculatedTotal > 0 ? (updated.customValue / calculatedTotal) : 1;
-                newValue = Number((task.value * scale).toFixed(2));
+              if (result.customValue !== undefined && result.customValue !== null) {
+                const scale = calculatedTotal > 0 ? (Number(result.customValue) / calculatedTotal) : 1;
+                newValue = Number(((Number(task.value) || 0) * scale).toFixed(2));
               } else {
-                newValue = task.value;
+                newValue = Number(task.value) || 0;
               }
 
-              if (updated.status === 'Pago' && tx.status !== 'Pago') {
+              if (result.status === 'Pago' && tx.status !== 'Pago') {
                 newStatus = 'Pago';
                 newDate = new Date().toISOString();
+              } else if (result.status === 'Pendente' && tx.status === 'Pago') {
+                newStatus = 'Pendente';
               }
 
               if (newValue !== tx.value || newStatus !== tx.status || newDate !== tx.date) {
@@ -779,6 +779,7 @@ const DashboardPage: React.FC = () => {
           onEditTask={(task) => { setEditingTask(task); setIsTaskModalOpen(true); }}
           onDeleteTask={deleteTask}
           onMoveTask={moveTask}
+          onUpdateTask={updateTask}
         />;
       case 'finance':
         return <FinanceDashboard
@@ -829,6 +830,10 @@ const DashboardPage: React.FC = () => {
             onAddHoliday={addHoliday}
             onDeleteHoliday={deleteHoliday}
             onSyncHolidays={syncHolidays}
+            services={state.services}
+            onAddService={addService}
+            onUpdateService={updateService}
+            onDeleteService={deleteService}
           />
         );
       case 'dashboard':
@@ -866,17 +871,75 @@ const DashboardPage: React.FC = () => {
           onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
 
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
-        <header className="lg:hidden h-14 bg-slate-900 border-b border-slate-800 flex items-center px-4 shrink-0">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-400 hover:text-white"><Menu size={24} /></button>
-          <span className="ml-4 font-bold cyber-font text-sm uppercase tracking-widest text-[var(--primary-color)]">FRELLA SYSTEM</span>
-        </header>
+      <main className="flex-1 flex flex-col overflow-hidden w-full relative">
+        {!isPublicView && (
+          <GamificationBar 
+            stats={state.stats} 
+            currentIncome={monthlyIncome} 
+            onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          />
+        )}
 
-        {!isPublicView && <GamificationBar stats={state.stats} currentIncome={monthlyIncome} />}
-
-        <div className="flex-1 overflow-auto custom-scrollbar">
+        <div className="flex-1 overflow-auto custom-scrollbar pb-24 lg:pb-6">
           {renderContent()}
         </div>
+
+        {/* Mobile Bottom Navigation Bar (Natural Thumb Zone) */}
+        {!isPublicView && (
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-2xl border-t border-slate-800/90 px-2 py-1.5 pb-safe flex items-center justify-around shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
+            <button
+              onClick={() => handleNavigate('dashboard')}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-all touch-target cursor-pointer active:scale-95 ${
+                activeTab === 'dashboard' ? 'text-[var(--primary-color)] font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <LayoutDashboard size={19} />
+              <span className="text-[9px] uppercase tracking-wider">Início</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigate('kanban')}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-all touch-target cursor-pointer active:scale-95 ${
+                activeTab === 'kanban' ? 'text-[var(--primary-color)] font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Trophy size={19} />
+              <span className="text-[9px] uppercase tracking-wider">Agenda</span>
+            </button>
+
+            {/* Quick Action Center Button */}
+            <div className="flex-1 flex justify-center -mt-6">
+              <button
+                onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
+                className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[var(--primary-color)] to-[var(--primary-color)]/90 text-slate-950 font-black shadow-[0_0_20px_var(--primary-shadow)] active:scale-90 transition-all border-2 border-slate-950 cursor-pointer shrink-0"
+                title="Nova Demanda"
+                aria-label="Nova Demanda"
+              >
+                <Plus size={24} className="stroke-[3]" />
+              </button>
+            </div>
+
+            <button
+              onClick={() => handleNavigate('finance')}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-all touch-target cursor-pointer active:scale-95 ${
+                activeTab === 'finance' ? 'text-[var(--primary-color)] font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <DollarSign size={19} />
+              <span className="text-[9px] uppercase tracking-wider">Fluxo</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigate('clients')}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-all touch-target cursor-pointer active:scale-95 ${
+                activeTab === 'clients' ? 'text-[var(--primary-color)] font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Users size={19} />
+              <span className="text-[9px] uppercase tracking-wider">CRM</span>
+            </button>
+          </nav>
+        )}
       </main>
 
       {/* Modals & Overlays */}
@@ -913,6 +976,7 @@ const DashboardPage: React.FC = () => {
         isTaskModalOpen && <TaskModal
           clients={state.clients}
           invoices={state.invoices}
+          services={state.services}
           editingTask={editingTask}
           holidays={state.holidays}
           onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}

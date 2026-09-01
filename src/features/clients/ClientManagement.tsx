@@ -75,21 +75,61 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
 
     clients.forEach(client => {
       const clientTasks = tasks.filter(t => t.clientId === client.id);
-      const clientTaskIds = new Set(clientTasks.map(t => t.id));
-      const clientTransactions = transactions.filter(t => t.taskId && clientTaskIds.has(t.taskId) && t.type === 'Entrada');
       const clientInvoices = invoices.filter(i => i.clientId === client.id);
       
-      const paidTotal = clientTransactions
-        .filter(t => t.status === 'Pago')
-        .reduce((sum, t) => sum + t.value, 0);
-      
-      const pendingTotal = clientTransactions
-        .filter(t => t.status === 'Pendente')
-        .reduce((sum, t) => sum + t.value, 0);
+      // 1. Calculate from Invoices (respecting customValue)
+      let invoicePaid = 0;
+      let invoicePending = 0;
+      const tasksInInvoices = new Set<string>();
 
-      const taskPending = clientTasks
-        .filter(t => t.status !== 'Concluído')
-        .reduce((sum, t) => sum + t.value, 0);
+      clientInvoices.forEach(inv => {
+        const invTasks = clientTasks.filter(t => t.invoiceId === inv.id);
+        invTasks.forEach(t => tasksInInvoices.add(t.id));
+        
+        const invTotal = inv.customValue !== undefined && inv.customValue !== null
+          ? Number(inv.customValue)
+          : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+
+        if (inv.status === 'Pago') {
+          invoicePaid += invTotal;
+        } else {
+          invoicePending += invTotal;
+        }
+      });
+
+      // 2. Calculate unassigned tasks (not linked to any invoice)
+      let unassignedPaid = 0;
+      let unassignedPending = 0;
+      const unassignedTasks = clientTasks.filter(t => !tasksInInvoices.has(t.id));
+
+      unassignedTasks.forEach(t => {
+        const linkedTx = transactions.find(tx => tx.taskId === t.id && tx.type === 'Entrada');
+        if (linkedTx) {
+          if (linkedTx.status === 'Pago') {
+            unassignedPaid += Number(linkedTx.value) || 0;
+          } else {
+            unassignedPending += Number(linkedTx.value) || 0;
+          }
+        } else {
+          unassignedPending += Number(t.value) || 0;
+        }
+      });
+
+      // 3. Direct client transactions not linked to invoice tasks
+      const directTransactions = transactions.filter(t => 
+        t.type === 'Entrada' && 
+        (!t.taskId || (!tasksInInvoices.has(t.taskId) && !unassignedTasks.some(ut => ut.id === t.taskId))) &&
+        (client.name && t.description.toLowerCase().includes(client.name.toLowerCase()))
+      );
+      let directPaid = 0;
+      let directPending = 0;
+      directTransactions.forEach(tx => {
+        if (tx.status === 'Pago') directPaid += Number(tx.value) || 0;
+        else directPending += Number(tx.value) || 0;
+      });
+
+      const paidTotal = invoicePaid + unassignedPaid + directPaid;
+      const pendingTotal = invoicePending + unassignedPending + directPending;
       
       const activeTasks = clientTasks.filter(t => t.status !== 'Concluído').length;
       const pendingInvoices = clientInvoices.filter(i => i.status === 'Pendente').length;
@@ -103,7 +143,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
 
       financials.set(client.id, {
         paidTotal,
-        pendingTotal: pendingTotal || taskPending,
+        pendingTotal,
         activeTasks,
         pendingInvoices,
         overdueInvoicesCount,
@@ -350,17 +390,18 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300">
           <form 
             onSubmit={handleSubmit} 
-            className="w-full max-w-2xl bg-slate-900/95 backdrop-blur-2xl border border-slate-800 p-8 md:p-10 rounded-[3rem] shadow-2xl animate-reveal relative"
+            className="w-full max-w-2xl bg-slate-900/98 backdrop-blur-2xl border border-slate-800 p-5 sm:p-8 md:p-10 rounded-3xl shadow-2xl animate-reveal relative max-h-[92dvh] overflow-y-auto custom-scrollbar"
           >
             <button 
               type="button" 
               onClick={() => setShowForm(false)}
-              className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-5 right-5 sm:top-8 sm:right-8 text-slate-500 hover:text-white transition-colors cursor-pointer p-2 hover:bg-slate-800 rounded-xl"
+              aria-label="Fechar"
             >
-              <X size={24} />
+              <X size={22} />
             </button>
 
             <div className="flex items-center gap-4 mb-8">

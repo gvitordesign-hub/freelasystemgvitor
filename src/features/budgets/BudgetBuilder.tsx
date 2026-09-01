@@ -206,81 +206,81 @@ Qualquer dúvida, estou à disposição!
   };
 
   return (
-    <div className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32 animate-reveal">
+    <div className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 pb-32 animate-reveal max-w-7xl mx-auto">
       {/* Coluna de Edição */}
       <div className="lg:col-span-7 space-y-6 print:hidden">
-        <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] shadow-xl space-y-8">
+        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-xl space-y-6 sm:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold cyber-font text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold cyber-font text-white flex items-center gap-2">
               <Calculator className="text-[var(--primary-color)]" size={20} />
               Frella Smart Budget
             </h2>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-              Frella System v2.5
+            <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+              v2.5
             </span>
           </div>
 
           {/* Seleção de Cliente / Novo Cliente */}
-          <div className="bg-slate-800/30 p-6 rounded-2xl border border-slate-700/50 space-y-4">
+          <div className="bg-slate-800/30 p-4 sm:p-6 rounded-2xl border border-slate-700/50 space-y-4">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                <User size={12} /> Cliente da Proposta
+              <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1 tracking-wider">
+                <User size={12} className="text-[var(--primary-color)]" /> Cliente da Proposta
               </label>
               <button
                 onClick={() => setIsAddingNewClient(!isAddingNewClient)}
-                className="text-[10px] font-bold text-[var(--primary-color)] flex items-center gap-1 hover:brightness-125 transition-all uppercase"
+                className="text-[10px] font-black text-[var(--primary-color)] flex items-center gap-1 hover:brightness-125 transition-all uppercase cursor-pointer"
               >
                 {isAddingNewClient ? (
-                  <><ChevronLeft size={10} /> Voltar para Lista</>
+                  <><ChevronLeft size={11} /> Lista</>
                 ) : (
-                  <><UserPlus size={10} /> Cadastrar Novo Cliente</>
+                  <><UserPlus size={11} /> + Novo</>
                 )}
               </button>
             </div>
 
             {isAddingNewClient ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-in slide-in-from-right-4">
+              <div className="grid grid-cols-1 gap-3">
                 <input
                   type="text"
-                  placeholder="Nome do Contato"
+                  placeholder="Nome do Cliente *"
                   value={newClientData.name}
                   onChange={e => setNewClientData({ ...newClientData, name: e.target.value })}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:border-[var(--primary-color)] outline-none"
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:border-[var(--primary-color)] outline-none"
                 />
                 <input
                   type="text"
-                  placeholder="Empresa"
+                  placeholder="Empresa (opcional)"
                   value={newClientData.company}
                   onChange={e => setNewClientData({ ...newClientData, company: e.target.value })}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:border-[var(--primary-color)] outline-none"
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:border-[var(--primary-color)] outline-none"
                 />
                 <input
                   type="text"
-                  placeholder="WhatsApp"
+                  placeholder="WhatsApp / Contato"
                   value={newClientData.contact}
                   onChange={e => setNewClientData({ ...newClientData, contact: e.target.value })}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:border-[var(--primary-color)] outline-none"
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:border-[var(--primary-color)] outline-none"
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <select
                   value={activeBudget.clientId}
                   onChange={e => setActiveBudget({ ...activeBudget, clientId: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[var(--primary-color)] transition-all"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs outline-none focus:border-[var(--primary-color)] transition-all cursor-pointer"
                 >
-                  <option value="" disabled>Selecione um cliente cadastrado...</option>
+                  <option value="" disabled>Selecione um cliente...</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.company})</option>)}
                 </select>
                 <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700">
                   <button
                     onClick={() => setActiveBudget({ ...activeBudget, discountType: 'percent' })}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition-all ${activeBudget.discountType === 'percent' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
-                  >%</button>
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'percent' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
+                  >Desconto %</button>
                   <button
                     onClick={() => setActiveBudget({ ...activeBudget, discountType: 'fixed' })}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition-all ${activeBudget.discountType === 'fixed' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
-                  >R$</button>
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'fixed' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
+                  >Desconto R$</button>
                 </div>
               </div>
             )}
@@ -288,13 +288,15 @@ Qualquer dúvida, estou à disposição!
 
           {/* Itens do Orçamento */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Escopo da Proposta</h3>
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Package size={13} className="text-[var(--primary-color)]" /> Itens da Proposta
+              </label>
               <button
                 onClick={() => addItem()}
-                className="flex items-center gap-2 text-[10px] font-bold text-[var(--primary-color)] hover:brightness-125 transition-all"
+                className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary-color)] hover:brightness-125 transition-all uppercase cursor-pointer"
               >
-                <Plus size={14} /> Novo Item Avulso
+                <Plus size={13} /> + Item Avulso
               </button>
             </div>
 
@@ -302,47 +304,53 @@ Qualquer dúvida, estou à disposição!
               {activeBudget.items.map((item, idx) => {
                 const alreadySaved = isItemInCatalog(item.description);
                 return (
-                  <div key={item.id} className="bg-slate-800/40 border border-slate-700 p-4 rounded-2xl group animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 50}ms` }}>
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-5">
+                  <div key={item.id} className="bg-slate-800/40 border border-slate-700/80 p-3.5 sm:p-4 rounded-2xl group animate-in slide-in-from-left-4" style={{ animationDelay: `${idx * 50}ms` }}>
+                    <div className="flex flex-col sm:grid sm:grid-cols-12 gap-2.5 sm:gap-4 sm:items-center">
+                      <div className="sm:col-span-5">
                         <input
                           value={item.description}
                           onChange={e => updateItem(item.id, { description: e.target.value })}
                           placeholder="Descrição do serviço..."
-                          className="w-full bg-transparent border-none text-white text-sm outline-none placeholder:text-slate-600 font-medium"
+                          className="w-full bg-slate-900/40 sm:bg-transparent border sm:border-none border-slate-700/80 rounded-xl sm:rounded-none px-3 sm:px-0 py-2 sm:py-0 text-white text-xs sm:text-sm outline-none placeholder:text-slate-600 font-medium"
                         />
                       </div>
-                      <div className="col-span-2">
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={e => updateItem(item.id, { quantity: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-300 font-bold"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <div className="flex items-center gap-1 text-xs text-emerald-400 font-black">
-                          R$ <input
+                      <div className="flex items-center justify-between gap-3 sm:contents">
+                        <div className="sm:col-span-2 flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold text-slate-500 uppercase sm:hidden">Qtd:</span>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={e => updateItem(item.id, { quantity: parseInt(e.target.value) || 0 })}
+                            className="w-16 sm:w-full bg-slate-900/80 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-300 font-bold"
+                          />
+                        </div>
+                        <div className="sm:col-span-3 flex items-center gap-1 text-xs text-emerald-400 font-black">
+                          <span className="text-[9px] text-slate-500 font-bold sm:hidden">R$:</span>
+                          <input
                             type="number"
                             value={item.unitValue}
                             onChange={e => updateItem(item.id, { unitValue: parseFloat(e.target.value) || 0 })}
-                            className="w-full bg-transparent border-none outline-none text-right"
+                            className="w-24 sm:w-full bg-slate-900/80 sm:bg-transparent border sm:border-none border-slate-700 rounded-lg sm:rounded-none px-2 sm:px-0 py-1 sm:py-0 outline-none text-right font-mono font-bold"
                           />
                         </div>
-                      </div>
-                      <div className="col-span-2 flex justify-end gap-2">
-                        {!alreadySaved && item.description.trim() && (
-                          <button
-                            onClick={() => handleSaveToCatalog(item)}
-                            title="Salvar no catálogo de serviços"
-                            className="text-emerald-500/50 hover:text-emerald-500 transition-colors p-1"
+                        <div className="sm:col-span-2 flex justify-end gap-1">
+                          {!alreadySaved && item.description.trim() && (
+                            <button
+                              onClick={() => handleSaveToCatalog(item)}
+                              title="Salvar no catálogo de serviços"
+                              className="text-emerald-500/70 hover:text-emerald-400 p-2 hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Save size={15} />
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => removeItem(item.id)} 
+                            className="text-rose-500/70 hover:text-rose-400 p-2 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Remover Item"
                           >
-                            <Save size={16} />
+                            <Trash2 size={15} />
                           </button>
-                        )}
-                        <button onClick={() => removeItem(item.id)} className="text-rose-500/50 hover:text-rose-500 transition-colors p-1">
-                          <Trash2 size={16} />
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>
