@@ -16,7 +16,7 @@ interface BudgetBuilderProps {
   onSaveCatalog: (service: Omit<Service, 'id'>) => void;
   onUpdateCatalog: (id: string, service: Omit<Service, 'id'>) => void;
   onDeleteCatalog: (id: string) => void;
-  onQuickAddClient: (client: Omit<Client, 'id'>) => string;
+  onQuickAddClient: (client: Omit<Client, 'id'>) => Promise<string> | string;
   onUpdateStats: (stats: Partial<UserStats>) => void;
 }
 
@@ -159,7 +159,7 @@ Qualquer dúvida, estou à disposição!
     }
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (activeBudget.items.length === 0) return alert('Adicione itens ao orçamento.');
 
     let finalClientId = activeBudget.clientId;
@@ -168,7 +168,7 @@ Qualquer dúvida, estou à disposição!
       if (!newClientData.name || !newClientData.company) {
         return alert('Preencha os dados do novo cliente.');
       }
-      finalClientId = onQuickAddClient(newClientData);
+      finalClientId = await onQuickAddClient(newClientData);
     }
 
     if (!finalClientId) return alert('Selecione um cliente.');
@@ -190,7 +190,8 @@ Qualquer dúvida, estou à disposição!
       day: 'Segunda' as DayOfWeek,
       date: new Date().toISOString(),
       status: 'Pendente',
-      category: 'Serviço'
+      category: 'Serviço',
+      position: 0
     }));
 
     const transaction: Omit<Transaction, 'id'> = {

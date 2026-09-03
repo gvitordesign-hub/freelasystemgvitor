@@ -31,8 +31,8 @@ interface TaskModalProps {
   onClose: () => void;
   onSubmit: (task: Omit<Task, 'id'>) => void;
   onUpdate?: (taskId: string, task: Omit<Task, 'id'>) => void;
-  onQuickAddClient: (client: Omit<Client, 'id'>) => string;
-  onQuickAddInvoice: (invoice: Omit<Invoice, 'id'>) => string;
+  onQuickAddClient: (client: Omit<Client, 'id'>) => Promise<string> | string;
+  onQuickAddInvoice: (invoice: Omit<Invoice, 'id'>) => Promise<string> | string;
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({

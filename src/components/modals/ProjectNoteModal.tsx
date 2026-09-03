@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2, ExternalLink, Printer } from 'lucide-react';
+import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, ChevronLeft, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2, ExternalLink, Printer, Clock } from 'lucide-react';
 import { Client, Task, Invoice } from '../../types';
 
 interface ProjectNoteModalProps {
@@ -545,7 +545,7 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                     </button>
                                  )}
                                  <button
-                                    onClick={handleDeleteInvoice}
+                                    onClick={handleDelete}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                  >
                                     <Trash2 size={12} /> Excluir Nota

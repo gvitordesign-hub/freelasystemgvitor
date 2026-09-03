@@ -10,6 +10,39 @@ const getUserId = async () => {
     return user.id;
 };
 
+// Resilient fallback storage when Supabase schema migrations haven't run yet
+const getDeliverablesCache = (): Record<string, any[]> => {
+    try {
+        return JSON.parse(localStorage.getItem('task_deliverables_cache') || '{}');
+    } catch {
+        return {};
+    }
+};
+
+const setDeliverablesCache = (taskId: string, deliverables: any[]) => {
+    try {
+        const cache = getDeliverablesCache();
+        cache[taskId] = deliverables;
+        localStorage.setItem('task_deliverables_cache', JSON.stringify(cache));
+    } catch {}
+};
+
+const getCustomValueCache = (): Record<string, number | null> => {
+    try {
+        return JSON.parse(localStorage.getItem('invoice_custom_values_cache') || '{}');
+    } catch {
+        return {};
+    }
+};
+
+const setCustomValueCache = (invoiceId: string, customValue: number | null) => {
+    try {
+        const cache = getCustomValueCache();
+        cache[invoiceId] = customValue;
+        localStorage.setItem('invoice_custom_values_cache', JSON.stringify(cache));
+    } catch {}
+};
+
 export const db = {
     // Clients
     clients: {
@@ -44,13 +77,16 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('position', { ascending: true });
             if (error) throw error;
+            const deliverablesCache = getDeliverablesCache();
             return data.map(t => ({
                 ...t,
                 clientId: t.client_id,
                 invoiceId: t.invoice_id,
                 addToPortfolio: t.add_to_portfolio,
                 position: t.position || 0,
-                deliverables: Array.isArray(t.deliverables) ? t.deliverables : []
+                deliverables: (Array.isArray(t.deliverables) && t.deliverables.length > 0)
+                    ? t.deliverables
+                    : (deliverablesCache[t.id] || [])
             })) as Task[];
         },
         async create(task: Omit<Task, 'id'>) {
@@ -67,37 +103,89 @@ export const db = {
                 briefing: task.briefing,
                 add_to_portfolio: task.addToPortfolio,
                 position: task.position || 0,
-                deliverables: task.deliverables || [],
                 user_id: userId
             };
+            if (task.deliverables !== undefined) {
+                payload.deliverables = task.deliverables;
+            }
+
+            let insertedData: any = null;
             const { data, error } = await supabase.from('tasks').insert(payload).select().single();
-            if (error) throw error;
+
+            if (error) {
+                // If deliverables column doesn't exist yet on Supabase, retry without it
+                if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
+                    delete payload.deliverables;
+                    const retry = await supabase.from('tasks').insert(payload).select().single();
+                    if (retry.error) throw retry.error;
+                    insertedData = retry.data;
+                    if (task.deliverables && task.deliverables.length > 0) {
+                        setDeliverablesCache(insertedData.id, task.deliverables);
+                    }
+                } else {
+                    throw error;
+                }
+            } else {
+                insertedData = data;
+                if (task.deliverables && task.deliverables.length > 0) {
+                    setDeliverablesCache(insertedData.id, task.deliverables);
+                }
+            }
+
+            const deliverablesCache = getDeliverablesCache();
             return {
-                ...data,
-                clientId: data.client_id,
-                invoiceId: data.invoice_id,
-                addToPortfolio: data.add_to_portfolio,
-                position: data.position,
-                deliverables: Array.isArray(data.deliverables) ? data.deliverables : (task.deliverables || [])
+                ...insertedData,
+                clientId: insertedData.client_id,
+                invoiceId: insertedData.invoice_id,
+                addToPortfolio: insertedData.add_to_portfolio,
+                position: insertedData.position,
+                deliverables: Array.isArray(insertedData.deliverables) && insertedData.deliverables.length > 0
+                    ? insertedData.deliverables
+                    : (task.deliverables || deliverablesCache[insertedData.id] || [])
             } as Task;
         },
         async update(id: string, task: Partial<Task>) {
             const userId = await getUserId();
             const transformed: any = { ...task };
+            delete transformed.id;
+            delete transformed.user_id;
             if (task.clientId !== undefined) { transformed.client_id = task.clientId; delete transformed.clientId; }
             if (task.invoiceId !== undefined) { transformed.invoice_id = task.invoiceId; delete transformed.invoiceId; }
             if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
             if (task.deliverables !== undefined) { transformed.deliverables = task.deliverables; }
 
+            let updatedData: any = null;
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-            if (error) throw error;
+
+            if (error) {
+                if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
+                    delete transformed.deliverables;
+                    const retry = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
+                    if (retry.error) throw retry.error;
+                    updatedData = retry.data;
+                    if (task.deliverables !== undefined) {
+                        setDeliverablesCache(id, task.deliverables);
+                    }
+                } else {
+                    throw error;
+                }
+            } else {
+                updatedData = data;
+                if (task.deliverables !== undefined) {
+                    setDeliverablesCache(id, task.deliverables);
+                }
+            }
+
+            const deliverablesCache = getDeliverablesCache();
             return {
-                ...data,
-                clientId: data.client_id,
-                invoiceId: data.invoice_id,
-                addToPortfolio: data.add_to_portfolio,
-                position: data.position,
-                deliverables: Array.isArray(data.deliverables) ? data.deliverables : (task.deliverables || [])
+                ...updatedData,
+                clientId: updatedData.client_id,
+                invoiceId: updatedData.invoice_id,
+                addToPortfolio: updatedData.add_to_portfolio,
+                position: updatedData.position,
+                deliverables: Array.isArray(updatedData.deliverables) && updatedData.deliverables.length > 0
+                    ? updatedData.deliverables
+                    : (task.deliverables || deliverablesCache[id] || [])
             } as Task;
         },
         async delete(id: string) {
@@ -185,20 +273,60 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
-            return data.map(i => ({ ...i, clientId: i.client_id, createdAt: i.created_at, customValue: i.custom_value })) as Invoice[];
+            const customValueCache = getCustomValueCache();
+            return data.map(i => ({
+                ...i,
+                clientId: i.client_id,
+                createdAt: i.created_at,
+                customValue: i.custom_value !== undefined && i.custom_value !== null
+                    ? Number(i.custom_value)
+                    : (customValueCache[i.id] ?? null)
+            })) as Invoice[];
         },
         async create(invoice: Omit<Invoice, 'id'>) {
             const userId = await getUserId();
-            const { data, error } = await supabase.from('invoices').insert({
+            const payload: any = {
                 client_id: invoice.clientId,
                 title: invoice.title,
                 status: invoice.status,
                 notes: invoice.notes,
-                custom_value: invoice.customValue,
                 user_id: userId
-            }).select().single();
-            if (error) throw error;
-            return { ...data, clientId: data.client_id, createdAt: data.created_at, customValue: data.custom_value } as Invoice;
+            };
+            if (invoice.customValue !== undefined && invoice.customValue !== null) {
+                payload.custom_value = invoice.customValue;
+            }
+
+            let insertedData: any = null;
+            const { data, error } = await supabase.from('invoices').insert(payload).select().single();
+
+            if (error) {
+                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.code === '42703') {
+                    delete payload.custom_value;
+                    const retry = await supabase.from('invoices').insert(payload).select().single();
+                    if (retry.error) throw retry.error;
+                    insertedData = retry.data;
+                    if (invoice.customValue !== undefined) {
+                        setCustomValueCache(insertedData.id, invoice.customValue);
+                    }
+                } else {
+                    throw error;
+                }
+            } else {
+                insertedData = data;
+                if (invoice.customValue !== undefined) {
+                    setCustomValueCache(insertedData.id, invoice.customValue);
+                }
+            }
+
+            const customValueCache = getCustomValueCache();
+            return {
+                ...insertedData,
+                clientId: insertedData.client_id,
+                createdAt: insertedData.created_at,
+                customValue: insertedData.custom_value !== undefined && insertedData.custom_value !== null
+                    ? Number(insertedData.custom_value)
+                    : (invoice.customValue ?? customValueCache[insertedData.id] ?? null)
+            } as Invoice;
         },
         async update(id: string, invoice: Partial<Invoice>) {
             const userId = await getUserId();
@@ -207,10 +335,39 @@ export const db = {
             delete transformed.user_id;
             if (invoice.clientId !== undefined) { transformed.client_id = invoice.clientId; delete transformed.clientId; }
             if (invoice.createdAt !== undefined) { transformed.created_at = invoice.createdAt; delete transformed.createdAt; }
-            if (invoice.customValue !== undefined) { transformed.custom_value = invoice.customValue; delete transformed.customValue; }
+            if (invoice.customValue !== undefined) { transformed.custom_value = invoice.customValue; }
+
+            let updatedData: any = null;
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-            if (error) throw error;
-            return { ...data, clientId: data.client_id, createdAt: data.created_at, customValue: data.custom_value } as Invoice;
+
+            if (error) {
+                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.code === '42703') {
+                    delete transformed.custom_value;
+                    const retry = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
+                    if (retry.error) throw retry.error;
+                    updatedData = retry.data;
+                    if (invoice.customValue !== undefined) {
+                        setCustomValueCache(id, invoice.customValue);
+                    }
+                } else {
+                    throw error;
+                }
+            } else {
+                updatedData = data;
+                if (invoice.customValue !== undefined) {
+                    setCustomValueCache(id, invoice.customValue);
+                }
+            }
+
+            const customValueCache = getCustomValueCache();
+            return {
+                ...updatedData,
+                clientId: updatedData.client_id,
+                createdAt: updatedData.created_at,
+                customValue: updatedData.custom_value !== undefined && updatedData.custom_value !== null
+                    ? Number(updatedData.custom_value)
+                    : (invoice.customValue ?? customValueCache[id] ?? null)
+            } as Invoice;
         },
         async delete(id: string) {
             const userId = await getUserId();

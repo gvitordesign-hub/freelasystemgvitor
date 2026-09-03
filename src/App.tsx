@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import Dashboard from '@/features/dashboard/DashboardPage';
 import Login from '@/features/auth/Login';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Private Route to enforce authentication with smooth session loading
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -44,27 +45,29 @@ const LoginRoute: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Authentication Routes */}
-          <Route path="/login" element={<LoginRoute />} />
-          <Route path="/register" element={<Navigate to="/login" replace />} />
-          
-          {/* Private Core Application Routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Authentication Routes */}
+            <Route path="/login" element={<LoginRoute />} />
+            <Route path="/register" element={<Navigate to="/login" replace />} />
+            
+            {/* Private Core Application Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };
 
