@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import GamificationBar from '@/features/dashboard/GamificationBar';
 import Sidebar from '@/features/dashboard/Sidebar';
 import { DashboardTab } from '@/features/dashboard/types';
+import SystemLoader from '@/components/common/SystemLoader';
 
 // Code-splitting: features e modais só são carregados quando usados
 const KanbanBoard = lazy(() => import('@/features/kanban/KanbanBoard'));
@@ -24,9 +25,7 @@ const BriefingModal = lazy(() => import('@/components/modals/BriefingModal'));
 const TransactionModal = lazy(() => import('@/components/modals/TransactionModal'));
 
 const SuspenseFallback: React.FC = () => (
-  <div className="min-h-[40vh] flex items-center justify-center">
-    <Loader2 size={24} className="text-[var(--primary-color)] animate-spin" />
-  </div>
+  <SystemLoader compact message="Carregando módulo..." fullScreen={false} />
 );
 
 const DashboardPage: React.FC = () => {
@@ -757,12 +756,10 @@ const DashboardPage: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[var(--primary-color)]/20 border-t-[var(--primary-color)] rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Sincronizando Sistema...</p>
-        </div>
-      </div>
+      <SystemLoader
+        message="Sincronizando Sistema..."
+        submessage="Carregando tarefas e finanças"
+      />
     );
   }
 

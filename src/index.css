@@ -25,6 +25,63 @@
     }
   }
 
+  @keyframes loaderFloat {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-5px) scale(1.03);
+    }
+  }
+
+  @keyframes loaderRipple {
+    0% {
+      transform: scale(0.88);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+  }
+
+  @keyframes loaderBar {
+    0% {
+      transform: translateX(-120%);
+    }
+    50% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(250%);
+    }
+  }
+
+  @keyframes loaderSheen {
+    0% {
+      transform: translateX(-120%);
+    }
+    40%, 100% {
+      transform: translateX(150%);
+    }
+  }
+
+  .animate-loader-float {
+    animation: loaderFloat 2.6s ease-in-out infinite;
+  }
+
+  .animate-loader-ripple {
+    animation: loaderRipple 2.2s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+  }
+
+  .animate-loader-bar {
+    animation: loaderBar 1.6s ease-in-out infinite;
+  }
+
+  .animate-loader-sheen {
+    animation: loaderSheen 2.6s ease-in-out infinite;
+  }
+
   .animate-reveal {
     opacity: 0;
     animation: reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;

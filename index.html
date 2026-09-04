@@ -2,20 +2,205 @@
 <html lang="pt-BR">
 
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>GVITOR SYSTEM</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Tailwind CSS is now imported via src/main.tsx -->
+    <!-- Fonts -->
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
+    
+    <style>
+        /* Immediate Dark Theme & Smooth Pre-loader to eliminate white flashes on initial load */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .pre-loader-bg {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #020617;
+            background-image: radial-gradient(circle at 50% 45%, rgba(168, 85, 247, 0.14) 0%, transparent 65%);
+            z-index: 99999;
+            user-select: none;
+        }
+
+        .pre-loader-icon-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 24px;
+        }
+
+        .pre-loader-ripple {
+            position: absolute;
+            inset: -14px;
+            border-radius: 26px;
+            border: 1.5px solid rgba(168, 85, 247, 0.35);
+            animation: preLoaderRipple 2.2s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+        }
+
+        .pre-loader-ripple-delayed {
+            animation-delay: 0.75s;
+        }
+
+        .pre-loader-icon {
+            width: 76px;
+            height: 76px;
+            border-radius: 22px;
+            filter: drop-shadow(0 12px 36px rgba(168, 85, 247, 0.45));
+            animation: preLoaderFloat 2.6s ease-in-out infinite;
+            position: relative;
+            z-index: 2;
+        }
+
+        .pre-loader-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .pre-loader-title {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .pre-loader-title span {
+            color: #c084fc;
+        }
+
+        .pre-loader-sub {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.3em;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .pre-loader-track {
+            width: 144px;
+            height: 4px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 9999px;
+            overflow: hidden;
+            border: 1px solid rgba(51, 65, 85, 0.4);
+            position: relative;
+        }
+
+        .pre-loader-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #a855f7, #e879f9, #38bdf8);
+            border-radius: 9999px;
+            animation: preLoaderBar 1.6s ease-in-out infinite;
+        }
+
+        .pre-loader-status {
+            margin-top: 14px;
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            animation: preLoaderPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes preLoaderFloat {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-5px) scale(1.03);
+            }
+        }
+
+        @keyframes preLoaderRipple {
+            0% {
+                transform: scale(0.88);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        @keyframes preLoaderBar {
+            0% {
+                transform: translateX(-120%);
+            }
+            50% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(250%);
+            }
+        }
+
+        @keyframes preLoaderPulse {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div class="pre-loader-bg">
+            <div class="pre-loader-icon-wrapper">
+                <div class="pre-loader-ripple"></div>
+                <div class="pre-loader-ripple pre-loader-ripple-delayed"></div>
+                <svg viewBox="0 0 240 240" class="pre-loader-icon" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="240" height="240" rx="60" fill="#a855f7" />
+                    <g transform="translate(60, 60) scale(5)">
+                        <rect width="7" height="9" x="3" y="3" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="5" x="14" y="3" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="9" x="14" y="12" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="5" x="3" y="16" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                </svg>
+            </div>
+            <div class="pre-loader-brand">
+                <div class="pre-loader-title">FRELLA<span>SYSTEM</span></div>
+                <div class="pre-loader-sub">WORKSPACE</div>
+            </div>
+            <div class="pre-loader-track">
+                <div class="pre-loader-bar"></div>
+            </div>
+            <div class="pre-loader-status">Carregando sistema...</div>
+        </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
 </body>
 

@@ -4,22 +4,14 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import Dashboard from '@/features/dashboard/DashboardPage';
 import Login from '@/features/auth/Login';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import SystemLoader from '@/components/common/SystemLoader';
 
 // Private Route to enforce authentication with smooth session loading
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f1115] flex items-center justify-center">
-        <div className="relative flex items-center justify-center">
-          {/* Pulsing glow ring */}
-          <div className="absolute w-12 h-12 border-2 border-purple-500/20 rounded-full animate-ping"></div>
-          {/* Core spinning loader */}
-          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
+    return <SystemLoader message="Iniciando sessão..." submessage="Verificando autenticação segura" />;
   }
   
   return user ? <>{children}</> : <Navigate to="/login" replace />;
@@ -30,14 +22,7 @@ const LoginRoute: React.FC = () => {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f1115] flex items-center justify-center">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-12 h-12 border-2 border-purple-500/20 rounded-full animate-ping"></div>
-          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
+    return <SystemLoader message="Verificando credenciais..." />;
   }
   
   return user ? <Navigate to="/dashboard" replace /> : <Login />;
