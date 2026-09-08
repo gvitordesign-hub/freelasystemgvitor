@@ -313,6 +313,53 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const updateInvoice = useCallback(async (updated: Invoice) => {
+    // 1. Optimistic update
+    setState(prev => {
+      const nextInvoices = prev.invoices.map(i => i.id === updated.id ? updated : i);
+      const invoiceTasks = prev.tasks.filter(t => t.invoiceId === updated.id);
+      const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+      const taskIds = new Set(invoiceTasks.map(t => t.id));
+
+      const nextTransactions = prev.transactions.map(tx => {
+        if (tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada') {
+          const task = invoiceTasks.find(t => t.id === tx.taskId);
+          if (task) {
+            let newValue = tx.value;
+            let newStatus = tx.status;
+            let newDate = tx.date;
+
+            if (updated.customValue !== undefined && updated.customValue !== null) {
+              const scale = calculatedTotal > 0 ? (Number(updated.customValue) / calculatedTotal) : 1;
+              newValue = Number(((Number(task.value) || 0) * scale).toFixed(2));
+            } else {
+              newValue = Number(task.value) || 0;
+            }
+
+            if (updated.status === 'Pago' && tx.status !== 'Pago') {
+              newStatus = 'Pago';
+              newDate = new Date().toISOString();
+            } else if (updated.status === 'Pendente' && tx.status === 'Pago') {
+              newStatus = 'Pendente';
+            }
+
+            return { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente', date: newDate };
+          }
+        }
+        return tx;
+      });
+
+      const nextTasks = updated.status === 'Pago'
+        ? prev.tasks.map(t => taskIds.has(t.id) && t.status !== 'Concluído' ? { ...t, status: 'Concluído' as Status } : t)
+        : prev.tasks;
+
+      return {
+        ...prev,
+        invoices: nextInvoices,
+        transactions: nextTransactions,
+        tasks: nextTasks
+      };
+    });
+
     try {
       const result = await db.invoices.update(updated.id, updated);
 
@@ -363,6 +410,48 @@ const DashboardPage: React.FC = () => {
 
         return nextState;
       });
+
+      if (result.status === 'Pago') {
+        setState(prev => {
+          const currentTasks = prev.tasks.filter(t => t.invoiceId === result.id);
+          const calculatedTotal = currentTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+
+          currentTasks.forEach(task => {
+            if (task.status !== 'Concluído') {
+              db.tasks.update(task.id, { status: 'Concluído' }).catch(console.error);
+            }
+          });
+
+          const existingTxTaskIds = new Set(prev.transactions.filter(tx => tx.taskId && tx.type === 'Entrada').map(tx => tx.taskId));
+          const tasksWithoutTx = currentTasks.filter(t => !existingTxTaskIds.has(t.id) && (Number(t.value) || 0) > 0);
+
+          tasksWithoutTx.forEach(async (task) => {
+            try {
+              let val = Number(task.value) || 0;
+              if (result.customValue !== undefined && result.customValue !== null && calculatedTotal > 0) {
+                val = Number((val * (Number(result.customValue) / calculatedTotal)).toFixed(2));
+              }
+              const createdTx = await db.transactions.create({
+                description: `Serviço: ${task.title}`,
+                value: val,
+                type: 'Entrada',
+                date: new Date().toISOString().split('T')[0],
+                status: 'Pago',
+                category: 'Serviço',
+                taskId: task.id
+              });
+              setState(s => ({
+                ...s,
+                transactions: [...s.transactions.filter(t => t.id !== createdTx.id), createdTx]
+              }));
+            } catch (err) {
+              console.error('Error creating transaction for task:', err);
+            }
+          });
+
+          return prev;
+        });
+      }
     } catch (e) {
       console.error('Error updating invoice:', e);
     }
@@ -587,46 +676,90 @@ const DashboardPage: React.FC = () => {
   const handleConfirmPayment = async (received: boolean) => {
     if (!pendingPaymentTask) return;
 
+    const taskToConclude = pendingPaymentTask;
+    setPendingPaymentTask(null);
+    addXP(XP_PER_TASK);
+
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    // Optimistically update task and transactions
+    setState(prev => {
+      const updatedTasks = prev.tasks.map(t => t.id === taskToConclude.id ? { ...t, status: 'Concluído' as Status } : t);
+
+      const relatedTxs = prev.transactions.filter(tx => tx.taskId === taskToConclude.id);
+      let updatedTxs = prev.transactions;
+
+      if (relatedTxs.length > 0) {
+        updatedTxs = prev.transactions.map(tx => {
+          if (tx.taskId === taskToConclude.id) {
+            return {
+              ...tx,
+              status: (received ? 'Pago' : 'Pendente') as 'Pago' | 'Pendente',
+              date: received ? todayDate : tx.date
+            };
+          }
+          return tx;
+        });
+      } else if (taskToConclude.value > 0) {
+        const optimisticTx: Transaction = {
+          id: 'temp-' + Date.now(),
+          description: `Serviço: ${taskToConclude.title}`,
+          value: taskToConclude.value,
+          type: 'Entrada',
+          date: todayDate,
+          status: received ? 'Pago' : 'Pendente',
+          category: 'Serviço',
+          taskId: taskToConclude.id
+        };
+        updatedTxs = [...prev.transactions, optimisticTx];
+      }
+
+      return {
+        ...prev,
+        tasks: updatedTasks,
+        transactions: updatedTxs
+      };
+    });
+
     try {
       // 1. Update task status in Supabase
-      const updatedTask = await db.tasks.update(pendingPaymentTask.id, { status: 'Concluído' });
+      const updatedTask = await db.tasks.update(taskToConclude.id, { status: 'Concluído' });
 
       // 2. Find and update or create related transactions in Supabase
-      const relatedTxs = state.transactions.filter(tx => tx.taskId === pendingPaymentTask.id);
+      const relatedTxs = state.transactions.filter(tx => tx.taskId === taskToConclude.id);
 
       let updatedTxs: Transaction[] = [];
       if (relatedTxs.length > 0) {
         updatedTxs = await Promise.all(relatedTxs.map(tx =>
           db.transactions.update(tx.id, {
             status: received ? 'Pago' : 'Pendente',
-            date: received ? new Date().toISOString() : tx.date
+            date: received ? todayDate : tx.date
           })
         ));
-      } else if (pendingPaymentTask.value > 0) {
+      } else if (taskToConclude.value > 0) {
         const newTx = await db.transactions.create({
-          description: `Serviço: ${pendingPaymentTask.title}`,
-          value: pendingPaymentTask.value,
+          description: `Serviço: ${taskToConclude.title}`,
+          value: taskToConclude.value,
           type: 'Entrada',
-          date: new Date().toISOString(),
+          date: todayDate,
           status: received ? 'Pago' : 'Pendente',
           category: 'Serviço',
-          taskId: pendingPaymentTask.id
+          taskId: taskToConclude.id
         });
         updatedTxs = [newTx];
       }
 
       setState(prev => {
-        const updatedTasks = prev.tasks.map(t => t.id === pendingPaymentTask.id ? updatedTask : t);
-        const otherTransactions = prev.transactions.filter(tx => tx.taskId !== pendingPaymentTask.id);
-        const updatedTransactions = [...otherTransactions, ...updatedTxs];
-
-        return { ...prev, tasks: updatedTasks, transactions: updatedTransactions };
+        const otherTransactions = prev.transactions.filter(tx => tx.taskId !== taskToConclude.id && !tx.id.startsWith('temp-'));
+        return {
+          ...prev,
+          tasks: prev.tasks.map(t => t.id === taskToConclude.id ? updatedTask : t),
+          transactions: [...otherTransactions, ...updatedTxs]
+        };
       });
-
-      addXP(XP_PER_TASK);
-      setPendingPaymentTask(null);
     } catch (e) {
       console.error('Error confirming payment:', e);
+      fetchData();
     }
   };
 

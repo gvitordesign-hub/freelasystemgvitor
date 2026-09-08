@@ -99,14 +99,32 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
       }
    }, [selectedInvoiceId, currentInvoice, invoiceTasks, editingTotal]);
 
+   const parseCurrency = (val: string): number => {
+      if (!val) return NaN;
+      const clean = val.trim().replace(/[^0-9.,]/g, '');
+      if (!clean) return NaN;
+      if (clean.includes('.') && clean.includes(',')) {
+         return parseFloat(clean.replace(/\./g, '').replace(',', '.'));
+      }
+      if (clean.includes(',')) {
+         return parseFloat(clean.replace(',', '.'));
+      }
+      return parseFloat(clean);
+   };
+
    const handleSaveTotal = () => {
       if (!currentInvoice) return;
-      const parsed = parseFloat(localTotal);
+      const parsed = parseCurrency(localTotal);
       const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
 
-      if (isNaN(parsed) || localTotal.trim() === '' || parsed === calculatedTotal) {
+      if (isNaN(parsed) || localTotal.trim() === '') {
+         setLocalTotal(calculatedTotal.toString());
+         onUpdateInvoice({ ...currentInvoice, customValue: null });
+      } else if (Math.abs(parsed - calculatedTotal) < 0.001) {
+         setLocalTotal(calculatedTotal.toString());
          onUpdateInvoice({ ...currentInvoice, customValue: null });
       } else {
+         setLocalTotal(parsed.toString());
          onUpdateInvoice({ ...currentInvoice, customValue: parsed });
       }
       setEditingTotal(false);
@@ -239,7 +257,15 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
 
    const handleMarkAsPaid = () => {
       if (!currentInvoice) return;
+      if (editingTotal) {
+         handleSaveTotal();
+      }
       onUpdateInvoice({ ...currentInvoice, status: 'Pago' });
+   };
+
+   const handleReopenInvoice = () => {
+      if (!currentInvoice) return;
+      onUpdateInvoice({ ...currentInvoice, status: 'Pendente' });
    };
 
    const masterPaidTotal = useMemo(() => {
@@ -460,11 +486,10 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total da Nota</span>
                               {editingTotal ? (
                                  <div className="flex items-center gap-2">
-                                    <span className="text-2xl font-black text-emerald-400 cyber-font">R$</span>
                                     <input
                                        autoFocus
-                                       type="number"
-                                       step="any"
+                                       type="text"
+                                       inputMode="decimal"
                                        value={localTotal}
                                        onChange={e => setLocalTotal(e.target.value)}
                                        onKeyDown={e => {
@@ -476,12 +501,13 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                              }
                                           }
                                        }}
-                                       className="bg-slate-950 border border-emerald-500 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-400 cyber-font w-32 outline-none focus:ring-2 focus:ring-emerald-500/30"
+                                       placeholder={invoiceCalculatedTotal.toString()}
+                                       className="bg-slate-950 border border-emerald-500 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-400 cyber-font w-36 outline-none focus:ring-2 focus:ring-emerald-500/30"
                                     />
                                     <button
                                        type="button"
                                        onClick={handleSaveTotal}
-                                       className="p-2 bg-emerald-500 text-slate-950 rounded-xl hover:bg-emerald-400 transition-all font-bold"
+                                       className="p-2 bg-emerald-500 text-slate-950 rounded-xl hover:bg-emerald-400 transition-all font-bold cursor-pointer"
                                        title="Salvar valor"
                                     >
                                        <Check size={16} />
@@ -494,7 +520,7 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                              setLocalTotal((currentInvoice.customValue ?? invoiceCalculatedTotal).toString());
                                           }
                                        }}
-                                       className="p-2 bg-slate-800 text-slate-400 rounded-xl hover:text-white transition-all"
+                                       className="p-2 bg-slate-800 text-slate-400 rounded-xl hover:text-white transition-all cursor-pointer"
                                        title="Cancelar edição"
                                     >
                                        <X size={16} />
@@ -538,7 +564,7 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                     </button>
                                  ) : (
                                     <button
-                                       onClick={() => onUpdateInvoice({ ...currentInvoice!, status: 'Pendente' })}
+                                       onClick={handleReopenInvoice}
                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                     >
                                        <Clock size={12} /> Reabrir Nota (Pendente)

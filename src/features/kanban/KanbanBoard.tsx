@@ -4,7 +4,7 @@ import {
   Clock, DollarSign, Calendar as CalendarIcon,
   LayoutDashboard, List, ChevronLeft, ChevronRight,
   Briefcase, AlertTriangle, Calendar, Pencil, Trash2, Maximize2, Zap,
-  Sparkles, Check
+  Sparkles, Check, Filter
 } from 'lucide-react';
 import { Task, Client, DayOfWeek, Status, Holiday } from '@/types';
 import { DAYS_OF_WEEK } from '@/constants';
@@ -25,6 +25,7 @@ interface KanbanBoardProps {
 }
 
 type ViewMode = 'kanban' | 'diario' | 'mensal';
+type StatusFilter = 'Todos' | Status;
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ 
   tasks, 
@@ -39,6 +40,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onUpdateTask
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -162,6 +164,139 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const resetToToday = () => {
     setCurrentWeekStart(getStartOfWeek(new Date()));
   };
+
+  // Filtered tasks based on active statusFilter
+  const filteredTasks = useMemo(() => {
+    if (statusFilter === 'Todos') return tasks;
+    return tasks.filter(t => t.status === statusFilter);
+  }, [tasks, statusFilter]);
+
+  // Tasks in the currently visible period (week, month, or day) for counter badges
+  const currentViewTasks = useMemo(() => {
+    if (viewMode === 'kanban') {
+      const isCurrentWeek = getStartOfWeek(new Date()).getTime() === currentWeekStart.getTime();
+      const dateSet = new Set(weekDates.map(d => d.toLocaleDateString('en-CA')));
+      return tasks.filter(t => {
+        if (t.date) {
+          return dateSet.has(t.date.split('T')[0]);
+        }
+        if (isCurrentWeek && t.day) {
+          return true;
+        }
+        return false;
+      });
+    }
+    if (viewMode === 'mensal') {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      return tasks.filter(t => {
+        if (!t.date) return false;
+        const d = new Date(t.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+    }
+    if (viewMode === 'diario') {
+      const dateStr = currentDate.toLocaleDateString('en-CA');
+      return tasks.filter(t => t.date?.split('T')[0] === dateStr);
+    }
+    return tasks;
+  }, [tasks, viewMode, currentWeekStart, weekDates, currentDate]);
+
+  const counts = useMemo(() => {
+    const all = currentViewTasks.length;
+    const pendente = currentViewTasks.filter(t => t.status === 'Pendente').length;
+    const emAndamento = currentViewTasks.filter(t => t.status === 'Em Andamento').length;
+    const concluido = currentViewTasks.filter(t => t.status === 'Concluído').length;
+    return { all, pendente, emAndamento, concluido };
+  }, [currentViewTasks]);
+
+  const renderStatusFilter = () => (
+    <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-800/80 shadow-md overflow-x-auto no-scrollbar max-w-full">
+      <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 py-1 shrink-0">
+        <Filter size={12} className="text-[var(--primary-color)]" />
+        <span className="hidden sm:inline">Status:</span>
+      </div>
+
+      {/* TODOS */}
+      <button
+        type="button"
+        onClick={() => setStatusFilter('Todos')}
+        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 ${
+          statusFilter === 'Todos'
+            ? 'bg-[var(--primary-color)] text-white shadow-[0_0_12px_var(--primary-shadow)]'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+        }`}
+        title="Mostrar todas as demandas"
+      >
+        <span>Todos</span>
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+          statusFilter === 'Todos' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+        }`}>
+          {counts.all}
+        </span>
+      </button>
+
+      {/* PENDENTES */}
+      <button
+        type="button"
+        onClick={() => setStatusFilter(prev => prev === 'Pendente' ? 'Todos' : 'Pendente')}
+        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+          statusFilter === 'Pendente'
+            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
+            : 'text-slate-400 hover:text-rose-300 hover:bg-slate-800/60 border-transparent'
+        }`}
+        title="Filtrar por demandas pendentes"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'Pendente' ? 'bg-rose-400 animate-pulse' : 'bg-rose-500/70'}`} />
+        <span>Pendentes</span>
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+          statusFilter === 'Pendente' ? 'bg-rose-500/30 text-rose-200' : 'bg-slate-800 text-slate-400'
+        }`}>
+          {counts.pendente}
+        </span>
+      </button>
+
+      {/* EM ANDAMENTO */}
+      <button
+        type="button"
+        onClick={() => setStatusFilter(prev => prev === 'Em Andamento' ? 'Todos' : 'Em Andamento')}
+        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+          statusFilter === 'Em Andamento'
+            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
+            : 'text-slate-400 hover:text-blue-300 hover:bg-slate-800/60 border-transparent'
+        }`}
+        title="Filtrar por demandas em andamento"
+      >
+        <Clock size={11} className={statusFilter === 'Em Andamento' ? 'text-blue-400 animate-spin' : 'text-blue-400/70'} />
+        <span>Em Andamento</span>
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+          statusFilter === 'Em Andamento' ? 'bg-blue-500/30 text-blue-200' : 'bg-slate-800 text-slate-400'
+        }`}>
+          {counts.emAndamento}
+        </span>
+      </button>
+
+      {/* CONCLUÍDOS */}
+      <button
+        type="button"
+        onClick={() => setStatusFilter(prev => prev === 'Concluído' ? 'Todos' : 'Concluído')}
+        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+          statusFilter === 'Concluído'
+            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+            : 'text-slate-400 hover:text-emerald-300 hover:bg-slate-800/60 border-transparent'
+        }`}
+        title="Filtrar por demandas concluídas"
+      >
+        <CheckCircle2 size={11} className={statusFilter === 'Concluído' ? 'text-emerald-400' : 'text-emerald-400/70'} />
+        <span>Concluídos</span>
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+          statusFilter === 'Concluído' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-slate-800 text-slate-400'
+        }`}>
+          {counts.concluido}
+        </span>
+      </button>
+    </div>
+  );
 
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Cliente Externo';
 
@@ -295,13 +430,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
     return (
       <div className="flex flex-col h-full animate-reveal">
-        <div className="flex items-center justify-between mb-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-800/80 gap-4 shadow-lg">
-          <h2 className="cyber-font font-bold text-white uppercase tracking-widest text-xs md:text-sm truncate">{monthName}</h2>
-          <div className="flex gap-1 md:gap-2 shrink-0">
-            <button onClick={prevMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronLeft size={18} /></button>
-            <button onClick={() => setCurrentDate(new Date())} className="px-3 md:px-4 py-2 hover:bg-slate-800 rounded-xl text-[10px] font-bold uppercase text-slate-300 hover:text-white cursor-pointer">Hoje</button>
-            <button onClick={nextMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronRight size={18} /></button>
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-800/80 gap-4 shadow-lg">
+          <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+            <h2 className="cyber-font font-bold text-white uppercase tracking-widest text-xs md:text-sm truncate">{monthName}</h2>
+            <div className="flex gap-1 md:gap-2 shrink-0">
+              <button onClick={prevMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronLeft size={18} /></button>
+              <button onClick={() => setCurrentDate(new Date())} className="px-3 md:px-4 py-2 hover:bg-slate-800 rounded-xl text-[10px] font-bold uppercase text-slate-300 hover:text-white cursor-pointer">Hoje</button>
+              <button onClick={nextMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronRight size={18} /></button>
+            </div>
           </div>
+          {renderStatusFilter()}
         </div>
         <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
           <div className="grid grid-cols-7 gap-2 min-w-[700px] md:min-w-0">
@@ -310,7 +448,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             ))}
             {days.map((date, idx) => {
               const dateStr = date?.toLocaleDateString('en-CA');
-              const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
+              const dayTasks = filteredTasks.filter(t => t.date?.split('T')[0] === dateStr);
               const isToday = date?.toDateString() === new Date().toDateString();
               const holiday = dateStr ? holidays?.find(h => h.date === dateStr) : null;
 
@@ -364,18 +502,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const renderDailyView = () => {
     const dateStr = currentDate.toLocaleDateString('en-CA');
-    const dayTasks = tasks.filter(t => t.date?.split('T')[0] === dateStr);
+    const dayTasks = filteredTasks.filter(t => t.date?.split('T')[0] === dateStr);
     const dayName = currentDate.toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     const holiday = holidays?.find(h => h.date === dateStr);
 
     return (
-      <div className="flex flex-col h-full max-w-2xl mx-auto w-full animate-reveal">
-        <div className="flex items-center justify-between mb-6 bg-slate-900/80 backdrop-blur-xl p-4 rounded-3xl border border-slate-800/80 shadow-lg">
-          <button onClick={prevDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft size={20} /></button>
-          <div className="text-center">
-            <h2 className="cyber-font font-bold text-white uppercase text-sm">{dayName}</h2>
+      <div className="flex flex-col h-full max-w-4xl mx-auto w-full animate-reveal">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-6 bg-slate-900/80 backdrop-blur-xl p-4 rounded-3xl border border-slate-800/80 shadow-lg gap-4">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+            <button onClick={prevDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft size={20} /></button>
+            <div className="text-center">
+              <h2 className="cyber-font font-bold text-white uppercase text-sm">{dayName}</h2>
+            </div>
+            <button onClick={nextDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronRight size={20} /></button>
           </div>
-          <button onClick={nextDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronRight size={20} /></button>
+          {renderStatusFilter()}
         </div>
 
         {holiday && (
@@ -485,7 +626,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           }) : (
             <div className="py-20 text-center flex flex-col items-center gap-4 opacity-40">
               <Clock size={48} className="text-slate-600" />
-              <p className="cyber-font uppercase text-xs font-bold tracking-widest text-slate-400">Protocolo Vazio para Hoje</p>
+              <p className="cyber-font uppercase text-xs font-bold tracking-widest text-slate-400">
+                {statusFilter === 'Todos' ? 'Protocolo Vazio para Hoje' : `Nenhuma Demanda (${statusFilter}) para Hoje`}
+              </p>
             </div>
           )}
         </div>
@@ -557,16 +700,24 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <div className={`flex-1 ${viewMode === 'kanban' ? '' : 'overflow-hidden'}`}>
         {viewMode === 'kanban' && (
           <div className="h-full flex flex-col gap-4">
-            {/* Week Navigation */}
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-3 bg-slate-900/80 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-800/80 shadow-md">
-                <button onClick={prevWeek} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft size={18} /></button>
-                <span className="cyber-font text-white font-bold text-xs uppercase tracking-widest min-w-[130px] text-center">{weekRangeLabel}</span>
-                <button onClick={nextWeek} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronRight size={18} /></button>
+            {/* Week Navigation & Status Filters */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-1">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-800/80 shadow-md">
+                  <button onClick={prevWeek} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer" title="Semana anterior">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="cyber-font text-white font-bold text-xs uppercase tracking-widest min-w-[130px] text-center">{weekRangeLabel}</span>
+                  <button onClick={nextWeek} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer" title="Próxima semana">
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                <button onClick={resetToToday} className="text-[10px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-widest cursor-pointer px-1">
+                  Voltar para Hoje
+                </button>
               </div>
-              <button onClick={resetToToday} className="text-[10px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-widest cursor-pointer">
-                Voltar para Hoje
-              </button>
+
+              {renderStatusFilter()}
             </div>
 
             <div 
@@ -583,7 +734,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 const holiday = holidays?.find(h => h.date === dateStr);
                 const isCurrentWeek = getStartOfWeek(new Date()).getTime() === currentWeekStart.getTime();
 
-                const colTasks = tasks.filter(t => {
+                const colTasks = filteredTasks.filter(t => {
                   if (t.date) {
                     return t.date.split('T')[0] === dateStr;
                   }
@@ -797,9 +948,20 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       })}
 
                       {colTasks.length === 0 && (
-                        <div className={`h-32 border-2 border-dashed rounded-2xl flex items-center justify-center text-[10px] font-bold uppercase tracking-widest italic opacity-40
+                        <div className={`h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest italic opacity-40 px-3 text-center
                           ${holiday ? 'border-rose-500/30 text-rose-400' : 'border-slate-800/80 text-slate-600'}`}>
-                          {holiday ? 'Dia de Folga' : 'Sem Missões'}
+                          {holiday ? (
+                            <span>Dia de Folga</span>
+                          ) : statusFilter === 'Todos' ? (
+                            <span>Sem Missões</span>
+                          ) : (
+                            <>
+                              <span>Sem Missões</span>
+                              <span className="text-[8px] font-semibold text-slate-500 not-italic">
+                                ({statusFilter})
+                              </span>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

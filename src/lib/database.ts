@@ -35,10 +35,14 @@ const getCustomValueCache = (): Record<string, number | null> => {
     }
 };
 
-const setCustomValueCache = (invoiceId: string, customValue: number | null) => {
+const setCustomValueCache = (invoiceId: string, customValue: number | null | undefined) => {
     try {
         const cache = getCustomValueCache();
-        cache[invoiceId] = customValue;
+        if (customValue === null || customValue === undefined) {
+            delete cache[invoiceId];
+        } else {
+            cache[invoiceId] = customValue;
+        }
         localStorage.setItem('invoice_custom_values_cache', JSON.stringify(cache));
     } catch {}
 };
@@ -205,11 +209,12 @@ export const db = {
         },
         async create(tx: Omit<Transaction, 'id'>) {
             const userId = await getUserId();
+            const dateStr = tx.date ? (tx.date.includes('T') ? tx.date.split('T')[0] : tx.date) : new Date().toISOString().split('T')[0];
             const { data, error } = await supabase.from('transactions').insert({
                 description: tx.description,
                 value: tx.value,
                 type: tx.type,
-                date: tx.date,
+                date: dateStr,
                 status: tx.status,
                 category: tx.category,
                 task_id: tx.taskId,
@@ -221,7 +226,12 @@ export const db = {
         async update(id: string, tx: Partial<Transaction>) {
             const userId = await getUserId();
             const transformed: any = { ...tx };
+            delete transformed.id;
+            delete transformed.user_id;
             if (tx.taskId !== undefined) { transformed.task_id = tx.taskId; delete transformed.taskId; }
+            if (transformed.date && transformed.date.includes('T')) {
+                transformed.date = transformed.date.split('T')[0];
+            }
             const { data, error } = await supabase.from('transactions').update(transformed).eq('id', id).eq('user_id', userId).select().single();
             if (error) throw error;
             return { ...data, taskId: data.task_id } as Transaction;
@@ -325,17 +335,24 @@ export const db = {
                 createdAt: insertedData.created_at,
                 customValue: insertedData.custom_value !== undefined && insertedData.custom_value !== null
                     ? Number(insertedData.custom_value)
-                    : (invoice.customValue ?? customValueCache[insertedData.id] ?? null)
+                    : (invoice.customValue !== undefined ? invoice.customValue : (customValueCache[insertedData.id] ?? null))
             } as Invoice;
         },
-        async update(id: string, invoice: Partial<Invoice>) {
+        async update(id: string, invoice: Partial<Invoice> & Record<string, any>) {
             const userId = await getUserId();
-            const transformed: any = { ...invoice };
-            delete transformed.id;
-            delete transformed.user_id;
-            if (invoice.clientId !== undefined) { transformed.client_id = invoice.clientId; delete transformed.clientId; }
-            if (invoice.createdAt !== undefined) { transformed.created_at = invoice.createdAt; delete transformed.createdAt; }
-            if (invoice.customValue !== undefined) { transformed.custom_value = invoice.customValue; }
+            const transformed: any = {};
+            if (invoice.title !== undefined) transformed.title = invoice.title;
+            if (invoice.status !== undefined) transformed.status = invoice.status;
+            if (invoice.notes !== undefined) transformed.notes = invoice.notes;
+
+            const clientId = invoice.clientId ?? invoice.client_id;
+            if (clientId !== undefined) transformed.client_id = clientId;
+
+            const createdAt = invoice.createdAt ?? invoice.created_at;
+            if (createdAt !== undefined) transformed.created_at = createdAt;
+
+            const customValue = invoice.customValue !== undefined ? invoice.customValue : invoice.custom_value;
+            if (customValue !== undefined) transformed.custom_value = customValue;
 
             let updatedData: any = null;
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
@@ -346,16 +363,16 @@ export const db = {
                     const retry = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
                     if (retry.error) throw retry.error;
                     updatedData = retry.data;
-                    if (invoice.customValue !== undefined) {
-                        setCustomValueCache(id, invoice.customValue);
+                    if (customValue !== undefined) {
+                        setCustomValueCache(id, customValue);
                     }
                 } else {
                     throw error;
                 }
             } else {
                 updatedData = data;
-                if (invoice.customValue !== undefined) {
-                    setCustomValueCache(id, invoice.customValue);
+                if (customValue !== undefined) {
+                    setCustomValueCache(id, customValue);
                 }
             }
 
@@ -366,11 +383,12 @@ export const db = {
                 createdAt: updatedData.created_at,
                 customValue: updatedData.custom_value !== undefined && updatedData.custom_value !== null
                     ? Number(updatedData.custom_value)
-                    : (invoice.customValue ?? customValueCache[id] ?? null)
+                    : (customValue !== undefined ? customValue : (customValueCache[id] ?? null))
             } as Invoice;
         },
         async delete(id: string) {
             const userId = await getUserId();
+            setCustomValueCache(id, null);
             const { error } = await supabase.from('invoices').delete().eq('id', id).eq('user_id', userId);
             if (error) throw error;
         }
