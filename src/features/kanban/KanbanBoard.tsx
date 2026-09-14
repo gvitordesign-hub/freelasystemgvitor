@@ -82,15 +82,20 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     scrollLeft: number;
     scrollWidth: number;
     clientWidth: number;
-  }>({ scrollLeft: 0, scrollWidth: 0, clientWidth: 0 });
+    left: number;
+    width: number;
+  }>({ scrollLeft: 0, scrollWidth: 0, clientWidth: 0, left: 0, width: 0 });
 
   const updateScrollInfo = useCallback(() => {
     if (!boardRef.current) return;
     const b = boardRef.current;
+    const rect = b.getBoundingClientRect();
     setScrollbarInfo({
       scrollLeft: b.scrollLeft,
       scrollWidth: b.scrollWidth,
       clientWidth: b.clientWidth,
+      left: rect.left,
+      width: rect.width,
     });
   }, []);
 
@@ -103,20 +108,15 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     boardRef.current.scrollBy({ left: amount, behavior: 'smooth' });
   };
 
-  // Smart horizontal wheel: scrolls board horizontally unless hovering a column that can scroll vertically
+  // Horizontal wheel handler: only scrolls board if holding Shift or using horizontal scroll gesture
   const handleBoardWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (!boardRef.current) return;
-    const target = e.target as HTMLElement;
-    const colScrollable = target.closest('.col-cards-container');
-    if (colScrollable) {
-      const canScrollDown = e.deltaY > 0 && colScrollable.scrollTop < colScrollable.scrollHeight - colScrollable.clientHeight - 2;
-      const canScrollUp = e.deltaY < 0 && colScrollable.scrollTop > 2;
-      if (canScrollDown || canScrollUp) {
-        return; // Allow vertical scroll inside this column!
-      }
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      const delta = e.shiftKey ? (e.deltaY || e.deltaX) : e.deltaX;
+      boardRef.current.scrollLeft += delta;
+      updateScrollInfo();
     }
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    boardRef.current.scrollLeft += delta;
+    // Normal vertical mouse wheel is untouched to allow natural page vertical scrolling
   };
 
   // Grab-to-pan: click and drag anywhere on board background or column headers to slide
@@ -239,7 +239,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   useEffect(() => {
     updateScrollInfo();
+    const rafId = requestAnimationFrame(updateScrollInfo);
+    const timer = setTimeout(updateScrollInfo, 150);
+
     window.addEventListener('resize', updateScrollInfo);
+    window.addEventListener('scroll', updateScrollInfo, true);
 
     const observer = new ResizeObserver(updateScrollInfo);
     if (boardRef.current) {
@@ -250,7 +254,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }
 
     return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer);
       window.removeEventListener('resize', updateScrollInfo);
+      window.removeEventListener('scroll', updateScrollInfo, true);
       observer.disconnect();
     };
   }, [tasks, viewMode, currentWeekStart, statusFilter, filteredTasks, updateScrollInfo]);
@@ -728,9 +735,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const thumbLeft = maxScroll > 0 ? Math.max(0, Math.min(availableTrack, (scrollbarInfo.scrollLeft / maxScroll) * availableTrack)) : 0;
 
   return (
-    <div className="px-3 md:px-6 pt-2 md:pt-3 pb-2 h-full flex flex-col min-h-0 w-full animate-reveal relative max-w-[1800px] mx-auto">
-      {/* Header Compacto */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-2.5 shrink-0">
+    <div className="p-4 md:p-8 flex flex-col animate-reveal max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl md:text-2xl font-black cyber-font text-white uppercase tracking-tight">Agenda de Missões</h1>
@@ -791,13 +798,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
       </div>
 
-      <div className={`flex-1 min-h-0 ${viewMode === 'kanban' ? 'flex flex-col' : 'overflow-hidden'}`}>
+      <div className="flex-1">
         {viewMode === 'kanban' && (
-          <div className="h-full flex flex-col min-h-0">
+          <div className="flex flex-col relative">
             {/* Week Navigation & Status Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-0.5 shrink-0 mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-xl p-1 rounded-xl border border-slate-800/80 shadow-md">
+                <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-800/80 shadow-md">
                   <button onClick={prevWeek} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer" title="Semana anterior">
                     <ChevronLeft size={16} />
                   </button>
@@ -806,8 +813,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     <ChevronRight size={16} />
                   </button>
                 </div>
-                <button onClick={resetToToday} className="text-[9px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-widest cursor-pointer px-1">
-                  Hoje
+                <button onClick={resetToToday} className="text-[10px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-widest cursor-pointer px-2">
+                  Voltar para Hoje
                 </button>
               </div>
 
@@ -822,7 +829,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               onMouseMove={handleBoardMouseMove}
               onMouseUp={handleBoardMouseUp}
               onMouseLeave={handleBoardMouseUp}
-              className={`flex-1 min-h-0 flex gap-3.5 overflow-x-auto pb-1.5 no-scrollbar ${isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+              className={`flex gap-4 overflow-x-auto pb-24 no-scrollbar ${isPanning ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
             >
               {weekDates.map(date => {
                 const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' });
@@ -846,7 +853,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 return (
                   <div
                     key={dateStr}
-                    className={`flex-shrink-0 w-[85vw] sm:w-80 h-full min-h-0 border rounded-3xl flex flex-col transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.3)]
+                    className={`flex-shrink-0 w-[85vw] sm:w-80 border rounded-3xl flex flex-col transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.3)]
                       ${isToday 
                         ? 'bg-slate-900/90 border-[var(--primary-color)]/50 shadow-[0_0_24px_var(--primary-shadow)]' 
                         : holiday 
@@ -855,7 +862,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => onDrop(e, date)}
                   >
-                    <div className={`p-3.5 border-b shrink-0 flex items-center justify-between rounded-t-3xl 
+                    <div className={`p-4 border-b flex items-center justify-between rounded-t-3xl 
                       ${isToday ? 'bg-[var(--primary-color)]/10 border-[var(--primary-color)]/30' : holiday ? 'bg-rose-950/20 border-rose-500/20' : 'bg-slate-950/50 border-slate-800/80'}`}>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
@@ -877,7 +884,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       )}
                     </div>
 
-                    <div className="flex-1 min-h-0 p-3 space-y-3 overflow-y-auto custom-scrollbar col-cards-container">
+                    <div className="flex-1 p-3 space-y-3 min-h-[400px] md:min-h-[500px]">
                       {colTasks.map(task => {
                         const styles = getDeadlineStyles(task.status, task.category);
                         const isDragged = draggedTaskId === task.id;
@@ -1068,74 +1075,86 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 );
               })}
             </div>
-            {/* Integrated Control & Horizontal Scrollbar Bar */}
-            <div className="shrink-0 pt-2 pb-1 flex items-center justify-between gap-3 select-none w-full">
-              {/* Quick Jump Today / Left Info */}
-              <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">
-                <span>7 Dias da Semana</span>
-              </div>
-
-              {/* Center Controls: Left Button + Draggable Bar + Right Button */}
-              <div className="flex items-center gap-2 flex-1 max-w-2xl mx-auto">
-                {/* Left Step Button */}
-                <button
-                  type="button"
-                  onClick={() => scrollBoardBy(-340)}
-                  disabled={scrollbarInfo.scrollLeft <= 5}
-                  className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-20 disabled:pointer-events-none border border-slate-800 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-md"
-                  title="Voltar 1 dia (Rolar para a esquerda)"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-
-                {/* Draggable Track & Thumb */}
-                <div
-                  ref={trackRef}
-                  onClick={handleTrackClick}
-                  className="relative flex-1 h-3 bg-slate-900/90 rounded-full border border-slate-800/90 cursor-pointer overflow-hidden p-0.5 hover:border-slate-700 transition-colors shadow-inner"
-                  title="Clique na barra ou arraste a alça para rolar os dias"
-                >
-                  <div
-                    onPointerDown={handleThumbPointerDown}
-                    onPointerMove={handleThumbPointerMove}
-                    onPointerUp={handleThumbPointerUp}
-                    onPointerCancel={handleThumbPointerUp}
-                    style={{
-                      width: `${thumbWidth}px`,
-                      transform: `translateX(${thumbLeft}px)`,
-                    }}
-                    className={`h-full rounded-full cursor-grab active:cursor-grabbing transition-[background,box-shadow,transform] duration-75 touch-none relative ${
-                      isDraggingThumb
-                        ? 'bg-[var(--primary-color)] shadow-[0_0_16px_var(--primary-shadow)] scale-y-110'
-                        : 'bg-gradient-to-r from-[var(--primary-color)]/90 to-[var(--primary-color)] hover:brightness-125 shadow-[0_0_10px_var(--primary-shadow)]'
-                    }`}
-                    title="Arraste para rolar a Agenda horizontalmente"
-                  >
-                    <div className="absolute inset-y-0.5 left-1/2 -translate-x-1/2 w-3 flex items-center justify-center gap-0.5 opacity-60 pointer-events-none">
-                      <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
-                      <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
-                    </div>
-                  </div>
+            {/* Fixed Floating Integrated Horizontal Control Bar */}
+            {scrollbarInfo.scrollWidth > scrollbarInfo.clientWidth + 5 && scrollbarInfo.width > 0 && typeof document !== 'undefined' && createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  left: `${scrollbarInfo.left}px`,
+                  width: `${scrollbarInfo.width}px`,
+                  bottom: typeof window !== 'undefined' && window.innerWidth < 1024 ? '68px' : '14px',
+                  zIndex: 35,
+                }}
+                className="py-2.5 px-4 bg-slate-950/95 backdrop-blur-2xl border border-slate-800/90 rounded-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3 select-none transition-all duration-75 pointer-events-auto"
+              >
+                {/* Quick Jump Today / Left Info */}
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">
+                  <span>7 Dias da Semana</span>
                 </div>
 
-                {/* Right Step Button */}
-                <button
-                  type="button"
-                  onClick={() => scrollBoardBy(340)}
-                  disabled={scrollbarInfo.scrollLeft >= maxScroll - 5}
-                  className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-20 disabled:pointer-events-none border border-slate-800 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-md"
-                  title="Avançar 1 dia (Rolar para a direita)"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+                {/* Center Controls: Left Button + Draggable Bar + Right Button */}
+                <div className="flex items-center gap-2 flex-1 max-w-2xl mx-auto">
+                  {/* Left Step Button */}
+                  <button
+                    type="button"
+                    onClick={() => scrollBoardBy(-340)}
+                    disabled={scrollbarInfo.scrollLeft <= 5}
+                    className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-20 disabled:pointer-events-none border border-slate-800 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-md"
+                    title="Voltar 1 dia (Rolar para a esquerda)"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
 
-              {/* Right Hint */}
-              <div className="hidden lg:flex items-center gap-2 text-[9px] text-slate-500 font-medium shrink-0">
-                <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-400">Shift + Scroll</span>
-                <span>ou arraste o fundo</span>
-              </div>
-            </div>
+                  {/* Draggable Track & Thumb */}
+                  <div
+                    ref={trackRef}
+                    onClick={handleTrackClick}
+                    className="relative flex-1 h-3 bg-slate-900/90 rounded-full border border-slate-800/90 cursor-pointer overflow-hidden p-0.5 hover:border-slate-700 transition-colors shadow-inner"
+                    title="Clique na barra ou arraste a alça para rolar os dias"
+                  >
+                    <div
+                      onPointerDown={handleThumbPointerDown}
+                      onPointerMove={handleThumbPointerMove}
+                      onPointerUp={handleThumbPointerUp}
+                      onPointerCancel={handleThumbPointerUp}
+                      style={{
+                        width: `${thumbWidth}px`,
+                        transform: `translateX(${thumbLeft}px)`,
+                      }}
+                      className={`h-full rounded-full cursor-grab active:cursor-grabbing transition-[background,box-shadow,transform] duration-75 touch-none relative ${
+                        isDraggingThumb
+                          ? 'bg-[var(--primary-color)] shadow-[0_0_16px_var(--primary-shadow)] scale-y-110'
+                          : 'bg-gradient-to-r from-[var(--primary-color)]/90 to-[var(--primary-color)] hover:brightness-125 shadow-[0_0_10px_var(--primary-shadow)]'
+                      }`}
+                      title="Arraste para rolar a Agenda horizontalmente"
+                    >
+                      <div className="absolute inset-y-0.5 left-1/2 -translate-x-1/2 w-3 flex items-center justify-center gap-0.5 opacity-60 pointer-events-none">
+                        <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
+                        <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Step Button */}
+                  <button
+                    type="button"
+                    onClick={() => scrollBoardBy(340)}
+                    disabled={scrollbarInfo.scrollLeft >= maxScroll - 5}
+                    className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-20 disabled:pointer-events-none border border-slate-800 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-md"
+                    title="Avançar 1 dia (Rolar para a direita)"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                {/* Right Hint */}
+                <div className="hidden lg:flex items-center gap-2 text-[9px] text-slate-500 font-medium shrink-0">
+                  <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-400">Shift + Scroll</span>
+                  <span>ou arraste o fundo</span>
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
         )}
         {viewMode === 'mensal' && renderMonthlyView()}

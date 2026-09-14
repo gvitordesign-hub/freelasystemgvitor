@@ -990,7 +990,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Suspense fallback={<SuspenseFallback />}>
-      <div className="h-screen-dvh flex bg-slate-950 text-slate-50 overflow-hidden">
+      <div className="min-h-screen flex bg-slate-950 text-slate-50">
         <Sidebar
           activeTab={activeTab}
           isSidebarOpen={isSidebarOpen}
@@ -1001,7 +1001,7 @@ const DashboardPage: React.FC = () => {
           onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
 
-      <main className="flex-1 flex flex-col overflow-hidden w-full relative h-full">
+      <main className="flex-1 flex flex-col overflow-hidden w-full relative">
         {!isPublicView && (
           <GamificationBar 
             stats={state.stats} 
@@ -1010,7 +1010,7 @@ const DashboardPage: React.FC = () => {
           />
         )}
 
-        <div className={`flex-1 min-h-0 ${activeTab === 'kanban' ? 'overflow-hidden flex flex-col' : 'overflow-auto custom-scrollbar pb-24 lg:pb-6'}`}>
+        <div className="flex-1 overflow-auto custom-scrollbar pb-24 lg:pb-6">
           {renderContent()}
         </div>
 
