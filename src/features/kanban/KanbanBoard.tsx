@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, GripVertical, CheckCircle2, Circle,
   Clock, DollarSign, Calendar as CalendarIcon,
@@ -70,61 +71,80 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const boardRef = useRef<HTMLDivElement>(null);
-  const dummyRef = useRef<HTMLDivElement>(null);
-  const [contentWidth, setContentWidth] = useState(0);
-
-  const handleDummyScroll = () => {
-    if (dummyRef.current && boardRef.current) {
-      if (boardRef.current.scrollLeft !== dummyRef.current.scrollLeft) {
-        boardRef.current.scrollLeft = dummyRef.current.scrollLeft;
-      }
-    }
-  };
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ startX: number; startScrollLeft: number } | null>(null);
+  const [isDraggingThumb, setIsDraggingThumb] = useState(false);
+  const [scrollbarInfo, setScrollbarInfo] = useState<{
+    left: number;
+    width: number;
+    bottom: number;
+    scrollLeft: number;
+    scrollWidth: number;
+    clientWidth: number;
+  } | null>(null);
 
   const handleBoardScroll = () => {
-    if (boardRef.current && dummyRef.current) {
-      if (dummyRef.current.scrollLeft !== boardRef.current.scrollLeft) {
-        dummyRef.current.scrollLeft = boardRef.current.scrollLeft;
-      }
-    }
+    if (!boardRef.current) return;
+    const b = boardRef.current;
+    setScrollbarInfo(prev => prev ? {
+      ...prev,
+      scrollLeft: b.scrollLeft,
+      scrollWidth: b.scrollWidth,
+      clientWidth: b.clientWidth,
+    } : null);
   };
 
-  const [scrollbarStyle, setScrollbarStyle] = useState<React.CSSProperties>({});
+  const handleThumbPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setIsDraggingThumb(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startScrollLeft: boardRef.current?.scrollLeft || 0,
+    };
+  };
 
-  useEffect(() => {
-    if (boardRef.current && viewMode === 'kanban') {
-      const updateDimensionsAndPosition = () => {
-        if (boardRef.current) {
-          const rect = boardRef.current.getBoundingClientRect();
-          setContentWidth(boardRef.current.scrollWidth);
-          setScrollbarStyle({
-            position: 'fixed',
-            bottom: 0,
-            left: rect.left,
-            width: rect.width,
-            zIndex: 40,
-          });
-        }
-      };
-      
-      updateDimensionsAndPosition();
-      
-      window.addEventListener('resize', updateDimensionsAndPosition);
-      window.addEventListener('scroll', updateDimensionsAndPosition, true);
-      
-      const observer = new ResizeObserver(updateDimensionsAndPosition);
-      observer.observe(boardRef.current);
-      if (boardRef.current.firstElementChild) {
-        observer.observe(boardRef.current.firstElementChild);
-      }
-      
-      return () => {
-        window.removeEventListener('resize', updateDimensionsAndPosition);
-        window.removeEventListener('scroll', updateDimensionsAndPosition, true);
-        observer.disconnect();
-      };
-    }
-  }, [tasks, viewMode]);
+  const handleThumbPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStartRef.current || !boardRef.current || !scrollbarInfo || !trackRef.current) return;
+    const deltaX = e.clientX - dragStartRef.current.startX;
+    const trackWidth = trackRef.current.clientWidth;
+    const maxScroll = scrollbarInfo.scrollWidth - scrollbarInfo.clientWidth;
+    const thumbWidth = Math.max(50, (scrollbarInfo.clientWidth / scrollbarInfo.scrollWidth) * trackWidth);
+    const availableTrack = Math.max(1, trackWidth - thumbWidth);
+
+    const deltaScroll = (deltaX / availableTrack) * maxScroll;
+    boardRef.current.scrollLeft = dragStartRef.current.startScrollLeft + deltaScroll;
+  };
+
+  const handleThumbPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    dragStartRef.current = null;
+    setIsDraggingThumb(false);
+  };
+
+  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!trackRef.current || !boardRef.current || !scrollbarInfo) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const trackWidth = rect.width;
+    const maxScroll = scrollbarInfo.scrollWidth - scrollbarInfo.clientWidth;
+    const thumbWidth = Math.max(50, (scrollbarInfo.clientWidth / scrollbarInfo.scrollWidth) * trackWidth);
+    const availableTrack = Math.max(1, trackWidth - thumbWidth);
+
+    const targetThumbLeft = Math.max(0, Math.min(availableTrack, clickX - thumbWidth / 2));
+    const newScrollLeft = (targetThumbLeft / availableTrack) * maxScroll;
+    boardRef.current.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+  };
+
+  const handleScrollbarWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!boardRef.current) return;
+    e.preventDefault();
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    boardRef.current.scrollLeft += delta;
+  };
 
   // Helper to get start of week (Sunday)
   const getStartOfWeek = (d: Date) => {
@@ -170,6 +190,62 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (statusFilter === 'Todos') return tasks;
     return tasks.filter(t => t.status === statusFilter);
   }, [tasks, statusFilter]);
+
+  useEffect(() => {
+    if (viewMode !== 'kanban') {
+      setScrollbarInfo(null);
+      return;
+    }
+
+    const updateDimensionsAndPosition = () => {
+      if (!boardRef.current) {
+        setScrollbarInfo(null);
+        return;
+      }
+
+      const board = boardRef.current;
+      const rect = board.getBoundingClientRect();
+      const hasOverflow = board.scrollWidth > board.clientWidth + 5;
+      const isVisible = rect.bottom > 40 && rect.top < window.innerHeight;
+
+      if (!hasOverflow || !isVisible) {
+        setScrollbarInfo(null);
+        return;
+      }
+
+      const isMobile = window.innerWidth < 1024;
+      const baseBottom = isMobile ? 64 : 0;
+      const calculatedBottom = Math.max(baseBottom, window.innerHeight - rect.bottom);
+
+      setScrollbarInfo({
+        left: rect.left,
+        width: rect.width,
+        bottom: calculatedBottom,
+        scrollLeft: board.scrollLeft,
+        scrollWidth: board.scrollWidth,
+        clientWidth: board.clientWidth,
+      });
+    };
+
+    updateDimensionsAndPosition();
+
+    window.addEventListener('resize', updateDimensionsAndPosition);
+    window.addEventListener('scroll', updateDimensionsAndPosition, true);
+
+    const observer = new ResizeObserver(updateDimensionsAndPosition);
+    if (boardRef.current) {
+      observer.observe(boardRef.current);
+      if (boardRef.current.firstElementChild) {
+        observer.observe(boardRef.current.firstElementChild);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateDimensionsAndPosition);
+      window.removeEventListener('scroll', updateDimensionsAndPosition, true);
+      observer.disconnect();
+    };
+  }, [tasks, viewMode, currentWeekStart, statusFilter, filteredTasks]);
 
   // Tasks in the currently visible period (week, month, or day) for counter badges
   const currentViewTasks = useMemo(() => {
@@ -636,6 +712,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     );
   };
 
+  const trackInnerWidth = scrollbarInfo?.width ? Math.max(10, scrollbarInfo.width - 32) : 0;
+  const maxScroll = scrollbarInfo ? Math.max(1, scrollbarInfo.scrollWidth - scrollbarInfo.clientWidth) : 1;
+  const thumbWidth = scrollbarInfo && trackInnerWidth > 0
+    ? Math.max(50, Math.min(trackInnerWidth, (scrollbarInfo.clientWidth / scrollbarInfo.scrollWidth) * trackInnerWidth))
+    : 50;
+  const availableTrack = Math.max(1, trackInnerWidth - thumbWidth);
+  const thumbLeft = scrollbarInfo
+    ? Math.max(0, Math.min(availableTrack, (scrollbarInfo.scrollLeft / maxScroll) * availableTrack))
+    : 0;
+
   return (
     <div className="p-4 md:p-8 h-full flex flex-col animate-reveal max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
@@ -723,7 +809,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <div 
               ref={boardRef}
               onScroll={handleBoardScroll}
-              className="flex-1 flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory no-scrollbar"
+              className="flex-1 flex gap-4 overflow-x-auto pb-6 no-scrollbar"
             >
               {weekDates.map(date => {
                 const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' });
@@ -747,7 +833,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 return (
                   <div
                     key={dateStr}
-                    className={`flex-shrink-0 w-[85vw] sm:w-80 border rounded-3xl flex flex-col snap-center transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.3)]
+                    className={`flex-shrink-0 w-[85vw] sm:w-80 border rounded-3xl flex flex-col transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.3)]
                       ${isToday 
                         ? 'bg-slate-900/90 border-[var(--primary-color)]/50 shadow-[0_0_24px_var(--primary-shadow)]' 
                         : holiday 
@@ -969,15 +1055,49 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 );
               })}
             </div>
-            {/* Dummy scrollbar to keep horizontal scroll sticky */}
-            <div
-              ref={dummyRef}
-              onScroll={handleDummyScroll}
-              style={scrollbarStyle}
-              className="overflow-x-auto h-3 bg-slate-950/80 border-t border-slate-800 z-40"
-            >
-              <div style={{ width: `${contentWidth}px`, height: '1px' }} />
-            </div>
+            {/* Sticky horizontal scrollbar with interactive draggable neon thumb */}
+            {scrollbarInfo && typeof document !== 'undefined' && createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  left: scrollbarInfo.left,
+                  width: scrollbarInfo.width,
+                  bottom: scrollbarInfo.bottom,
+                  zIndex: 40,
+                }}
+                onWheel={handleScrollbarWheel}
+                className="py-2 px-4 bg-slate-950/95 backdrop-blur-2xl border-t border-slate-800/80 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] flex items-center select-none cursor-default group/scrollbar"
+              >
+                <div
+                  ref={trackRef}
+                  onClick={handleTrackClick}
+                  className="relative w-full h-3 bg-slate-900/90 rounded-full border border-slate-800/90 cursor-pointer overflow-hidden p-0.5 hover:border-slate-700 transition-colors"
+                >
+                  <div
+                    onPointerDown={handleThumbPointerDown}
+                    onPointerMove={handleThumbPointerMove}
+                    onPointerUp={handleThumbPointerUp}
+                    onPointerCancel={handleThumbPointerUp}
+                    style={{
+                      width: `${thumbWidth}px`,
+                      transform: `translateX(${thumbLeft}px)`,
+                    }}
+                    className={`h-full rounded-full cursor-grab active:cursor-grabbing transition-[background,box-shadow,transform] duration-75 touch-none relative ${
+                      isDraggingThumb
+                        ? 'bg-[var(--primary-color)] shadow-[0_0_16px_var(--primary-shadow)] scale-y-110'
+                        : 'bg-gradient-to-r from-[var(--primary-color)]/90 to-[var(--primary-color)] hover:brightness-125 shadow-[0_0_10px_var(--primary-shadow)]'
+                    }`}
+                    title="Arraste para rolar a Agenda horizontalmente"
+                  >
+                    <div className="absolute inset-y-0.5 left-1/2 -translate-x-1/2 w-3 flex items-center justify-center gap-0.5 opacity-60 pointer-events-none">
+                      <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
+                      <div className="w-0.5 h-1.5 bg-slate-950 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
         )}
         {viewMode === 'mensal' && renderMonthlyView()}
