@@ -33,7 +33,7 @@ interface ClientManagementProps {
   overdueAlertDays?: number;
   onAddClient: (client: Omit<Client, 'id'>) => void;
   onUpdateClient: (id: string, updated: Partial<Client>) => void;
-  onDeleteClient: (id: string) => void;
+  onDeleteClient: (id: string) => Promise<void> | void;
   onViewInvoice: (client: Client) => void;
 }
 
@@ -56,8 +56,9 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', company: '', contact: '', xp: 0, status: 'Ativo' });
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   // Compute per-client financial & overdue invoice summary
   const getClientFinancials = useMemo(() => {
@@ -211,49 +212,27 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       status: client.status || 'Ativo'
     });
     setShowForm(true);
-    setActiveMenu(null);
   };
 
   const handleDelete = (client: Client) => {
+    setDeleteError(null);
     setDeletingClient(client);
-    setActiveMenu(null);
   };
 
-  const ActionMenu = ({ client }: { client: Client }) => (
-    <div className="absolute top-4 right-4 z-10">
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveMenu(activeMenu === client.id ? null : client.id);
-        }}
-        className="text-slate-500 hover:text-white transition-colors p-1.5 rounded-xl hover:bg-slate-800 cursor-pointer"
-      >
-        <MoreVertical size={18} />
-      </button>
-      
-      {activeMenu === client.id && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
-          <div className="absolute right-0 top-8 w-48 py-2 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl shadow-2xl animate-reveal duration-100 z-50">
-            <button 
-              onClick={() => handleEdit(client)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              <Edit2 size={14} className="text-blue-400" />
-              Editar Cliente
-            </button>
-            <button 
-              onClick={() => handleDelete(client)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-            >
-              <Trash2 size={14} className="text-rose-400" />
-              Excluir Cliente
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  const handleConfirmDelete = async () => {
+    if (!deletingClient) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDeleteClient(deletingClient.id);
+      setDeletingClient(null);
+    } catch (err: any) {
+      console.error('Falha ao desvincular cliente:', err);
+      setDeleteError(err?.message || 'Falha ao desvincular cliente. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="p-4 md:p-8 animate-reveal max-w-7xl mx-auto space-y-6 md:space-y-8">
@@ -512,8 +491,36 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                   : 'border-slate-800/80 hover:border-[var(--primary-color)]/40 hover:shadow-[0_8px_32px_var(--primary-shadow)]'
               }`}
             >
-              {/* Action Menu */}
-              <ActionMenu client={client} />
+              {/* Quick Action Buttons */}
+              <div className="absolute top-4 right-4 flex items-center gap-1 z-10">
+                <button
+                  type="button"
+                  onClick={() => onViewInvoice(client)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10 transition-colors border border-transparent hover:border-[var(--primary-color)]/20 cursor-pointer"
+                  title="Ver Notas e Projetos"
+                  aria-label="Ver Notas"
+                >
+                  <FileText size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleEdit(client)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors border border-transparent hover:border-blue-500/20 cursor-pointer"
+                  title="Editar Cliente"
+                  aria-label="Editar Cliente"
+                >
+                  <Edit2 size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(client)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer"
+                  title="Excluir Cliente"
+                  aria-label="Excluir Cliente"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
 
               {/* Inadimplência Signal Badge on Card Header */}
               {financials.isOverdue && (
@@ -704,43 +711,36 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                       {financials.isOverdue ? 'Inadimplente' : (client.status || 'Ativo')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right relative">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button 
+                        type="button"
                         onClick={() => onViewInvoice(client)}
-                        className="p-1.5 text-slate-400 hover:text-[var(--primary-color)] transition-colors rounded-lg hover:bg-[var(--primary-color)]/10 cursor-pointer"
-                        title="Ver Projetos"
+                        className="p-2 text-slate-400 hover:text-[var(--primary-color)] transition-colors rounded-xl hover:bg-[var(--primary-color)]/10 border border-transparent hover:border-[var(--primary-color)]/20 cursor-pointer"
+                        title="Ver Projetos e Notas"
+                        aria-label="Ver Notas"
                       >
                         <FileText size={15} />
                       </button>
                       <button 
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           setActiveMenu(activeMenu === client.id ? null : client.id);
-                        }}
-                        className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer"
+                        type="button"
+                        onClick={() => handleEdit(client)}
+                        className="p-2 text-slate-400 hover:text-blue-400 transition-colors rounded-xl hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 cursor-pointer"
+                        title="Editar Cliente"
+                        aria-label="Editar Cliente"
                       >
-                        <MoreVertical size={15} />
+                        <Edit2 size={15} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => handleDelete(client)}
+                        className="p-2 text-slate-400 hover:text-rose-400 transition-colors rounded-xl hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 cursor-pointer"
+                        title="Excluir Cliente"
+                        aria-label="Excluir Cliente"
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </div>
-                    {activeMenu === client.id && (
-                      <div className="absolute right-6 top-12 w-48 py-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50">
-                        <button 
-                          onClick={() => handleEdit(client)}
-                          className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 cursor-pointer"
-                        >
-                          <Edit2 size={14} className="text-blue-400" />
-                          Editar
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(client)}
-                          className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                        >
-                          <Trash2 size={14} className="text-rose-400" />
-                          Excluir
-                        </button>
-                      </div>
-                    )}
                   </td>
                 </tr>
                 );
@@ -769,13 +769,17 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       {deletingClient && (
         <ConfirmModal
           title="Excluir Cliente"
-          message={`Tem certeza que deseja desvincular ${deletingClient.name} do sistema? Esta ação é irreversível e removerá todos os dados associados.`}
-          onConfirm={() => {
-            onDeleteClient(deletingClient.id);
-            setDeletingClient(null);
+          message={`Tem certeza que deseja desvincular ${deletingClient.name} do sistema? Esta ação é irreversível e desvinculará tarefas e orçamentos associados.`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => {
+            if (!isDeleting) {
+              setDeletingClient(null);
+              setDeleteError(null);
+            }
           }}
-          onCancel={() => setDeletingClient(null)}
           isDanger={true}
+          isLoading={isDeleting}
+          errorMessage={deleteError}
           confirmLabel="Desvincular"
         />
       )}

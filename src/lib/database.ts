@@ -70,8 +70,35 @@ export const db = {
         },
         async delete(id: string) {
             const userId = await getUserId();
+
+            // 1. Unlink related tasks to prevent foreign key constraint violations
+            try {
+                await supabase.from('tasks').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
+            } catch (err) {
+                console.warn('Could not unlink tasks from client:', err);
+            }
+
+            // 2. Unlink related invoices to prevent foreign key constraint violations
+            try {
+                await supabase.from('invoices').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
+            } catch (err) {
+                console.warn('Could not unlink invoices from client:', err);
+            }
+
+            // 3. Remove budgets associated with this client
+            try {
+                await supabase.from('budgets').delete().eq('client_id', id).eq('user_id', userId);
+            } catch (err) {
+                console.warn('Could not delete client budgets:', err);
+            }
+
+            // 4. Delete the client itself
             const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', userId);
-            if (error) throw error;
+            if (error) {
+                // Fallback for legacy records created before strict user isolation
+                const fallback = await supabase.from('clients').delete().eq('id', id);
+                if (fallback.error) throw fallback.error;
+            }
         }
     },
 
@@ -526,6 +553,11 @@ export const db = {
             }).select().single();
             if (error) throw error;
             return { ...data, clientId: data.client_id, discountType: data.discount_type, downPayment: data.down_payment, validityDays: data.validity_days, createdAt: data.created_at } as Budget;
+        },
+        async delete(id: string) {
+            const userId = await getUserId();
+            const { error } = await supabase.from('budgets').delete().eq('id', id).eq('user_id', userId);
+            if (error) throw error;
         }
     },
 

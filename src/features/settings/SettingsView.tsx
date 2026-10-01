@@ -337,8 +337,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                     <button
                       onClick={() => onDeleteHoliday && onDeleteHoliday(h.id)}
-                      className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      className="p-2 text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                       title="Excluir feriado"
+                      aria-label="Excluir feriado"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -625,8 +626,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 if (onDeleteService) await onDeleteService(service.id);
                               }
                             }}
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            className="p-1.5 text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                             title="Excluir serviço"
+                            aria-label="Excluir serviço"
                           >
                             <Trash2 size={12} />
                           </button>

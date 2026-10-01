@@ -34,12 +34,26 @@ const DashboardPage: React.FC = () => {
   const [isPublicView, setIsPublicView] = useState(false);
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('syncing');
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isSilent = false) => {
     const userId = user?.id;
     if (!userId) return;
+    if (!isSilent) setSyncStatus('syncing');
     try {
-      const [clients, tasks, transactions, services, invoices, reminders, budgets, albums, stats, holidays] = await Promise.all([
+      const [
+        clientsRes,
+        tasksRes,
+        transactionsRes,
+        servicesRes,
+        invoicesRes,
+        remindersRes,
+        budgetsRes,
+        albumsRes,
+        statsRes,
+        holidaysRes
+      ] = await Promise.allSettled([
         db.clients.list(),
         db.tasks.list(),
         db.transactions.list(),
@@ -49,23 +63,26 @@ const DashboardPage: React.FC = () => {
         db.budgets.list(),
         db.albums.list(),
         db.settings.get(),
-        db.holidays.list().catch(() => [])
+        db.holidays.list()
       ]);
 
-      setState({
-        clients,
-        tasks,
-        transactions,
-        services,
-        invoices,
-        reminders,
-        budgets,
-        albums,
-        stats: stats || INITIAL_STATE.stats,
-        holidays: holidays || []
-      });
+      setState(prev => ({
+        clients: clientsRes.status === 'fulfilled' ? clientsRes.value : prev.clients,
+        tasks: tasksRes.status === 'fulfilled' ? tasksRes.value : prev.tasks,
+        transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value : prev.transactions,
+        services: servicesRes.status === 'fulfilled' ? servicesRes.value : prev.services,
+        invoices: invoicesRes.status === 'fulfilled' ? invoicesRes.value : prev.invoices,
+        reminders: remindersRes.status === 'fulfilled' ? remindersRes.value : prev.reminders,
+        budgets: budgetsRes.status === 'fulfilled' ? budgetsRes.value : prev.budgets,
+        albums: albumsRes.status === 'fulfilled' ? albumsRes.value : prev.albums,
+        stats: statsRes.status === 'fulfilled' && statsRes.value ? statsRes.value : (prev.stats || INITIAL_STATE.stats),
+        holidays: holidaysRes.status === 'fulfilled' ? holidaysRes.value : prev.holidays
+      }));
+      setSyncStatus('synced');
+      setLastSyncTime(new Date());
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
+      setSyncStatus('error');
     } finally {
       setIsInitialLoading(false);
     }
@@ -76,7 +93,7 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Real-time synchronization
+  // Real-time synchronization with connection resilience
   useEffect(() => {
     if (!user) return;
 
@@ -86,10 +103,16 @@ const DashboardPage: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public' },
         () => {
-          fetchData();
+          fetchData(true);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setSyncStatus('synced');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSyncStatus('error');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -114,6 +137,18 @@ const DashboardPage: React.FC = () => {
       .filter(t => {
         const d = new Date(t.date);
         return t.type === 'Entrada' && t.status === 'Pago' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
+      .reduce((acc, curr) => acc + curr.value, 0);
+  }, [state.transactions]);
+
+  const monthlyPendingIncome = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    return state.transactions
+      .filter(t => {
+        const d = new Date(t.date);
+        return t.type === 'Entrada' && t.status === 'Pendente' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       })
       .reduce((acc, curr) => acc + curr.value, 0);
   }, [state.transactions]);
@@ -294,10 +329,15 @@ const DashboardPage: React.FC = () => {
       await db.clients.delete(id);
       setState(prev => ({
         ...prev,
-        clients: prev.clients.filter(c => c.id !== id)
+        clients: prev.clients.filter(c => c.id !== id),
+        tasks: prev.tasks.map(t => t.clientId === id ? { ...t, clientId: undefined } : t),
+        invoices: prev.invoices.map(i => i.clientId === id ? { ...i, clientId: undefined } : i),
+        budgets: prev.budgets.filter(b => b.clientId !== id)
       }));
-    } catch (e) {
+      setLastSyncTime(new Date());
+    } catch (e: any) {
       console.error('Error deleting client:', e);
+      throw e;
     }
   }, []);
 
@@ -1006,6 +1046,9 @@ const DashboardPage: React.FC = () => {
           <GamificationBar 
             stats={state.stats} 
             currentIncome={monthlyIncome} 
+            pendingIncome={monthlyPendingIncome}
+            syncStatus={syncStatus}
+            onManualSync={() => fetchData()}
             onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           />
         )}

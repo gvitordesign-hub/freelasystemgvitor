@@ -705,7 +705,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     onClick={() => onUpdateStatus(task.id, task.status === 'Concluído' ? 'Pendente' : 'Concluído')}
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center active:scale-90 transition-all cursor-pointer ${
                       task.status === 'Concluído' 
-                        ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.4)]' 
+                        ? 'bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)]' 
                         : 'bg-slate-800 text-slate-400 hover:bg-emerald-500/20 hover:text-emerald-400 border border-slate-700/60'
                     }`}
                   >
@@ -967,7 +967,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                             <div
                                               className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
                                                 d.completed
-                                                  ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+                                                  ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_6px_rgba(16,185,129,0.4)]'
                                                   : 'border-slate-600 group-hover/item:border-slate-400 bg-slate-900'
                                               }`}
                                             >
@@ -1039,7 +1039,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Concluído'); }}
-                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Concluído' ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-slate-500 hover:text-slate-300'}`}
+                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Concluído' ? 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-slate-500 hover:text-slate-300'}`}
                                   >
                                     <CheckCircle2 size={13} />
                                   </button>

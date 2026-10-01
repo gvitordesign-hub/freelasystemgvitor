@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,10 +14,11 @@
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    
+
     <style>
         /* Immediate Dark Theme & Smooth Pre-loader to eliminate white flashes on initial load */
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -133,9 +135,12 @@
         }
 
         @keyframes preLoaderFloat {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: translateY(0) scale(1);
             }
+
             50% {
                 transform: translateY(-5px) scale(1.03);
             }
@@ -146,6 +151,7 @@
                 transform: scale(0.88);
                 opacity: 0.7;
             }
+
             100% {
                 transform: scale(1.4);
                 opacity: 0;
@@ -156,18 +162,23 @@
             0% {
                 transform: translateX(-120%);
             }
+
             50% {
                 transform: translateX(100%);
             }
+
             100% {
                 transform: translateX(250%);
             }
         }
 
         @keyframes preLoaderPulse {
-            0%, 100% {
+
+            0%,
+            100% {
                 opacity: 0.6;
             }
+
             50% {
                 opacity: 1;
             }
@@ -184,10 +195,14 @@
                 <svg viewBox="0 0 240 240" class="pre-loader-icon" xmlns="http://www.w3.org/2000/svg">
                     <rect width="240" height="240" rx="60" fill="#a855f7" />
                     <g transform="translate(60, 60) scale(5)">
-                        <rect width="7" height="9" x="3" y="3" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="9" x="3" y="3" rx="1" fill="none" stroke="white" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="5" x="14" y="3" rx="1" fill="none" stroke="white" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="9" x="14" y="12" rx="1" fill="none" stroke="white" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <rect width="7" height="5" x="3" y="16" rx="1" fill="none" stroke="white" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
                     </g>
                 </svg>
             </div>

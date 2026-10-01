@@ -1,17 +1,39 @@
 import React, { useState } from 'react';
-import { Target, Flame, DollarSign, LogOut, User, ChevronDown, Menu } from 'lucide-react';
+import { Target, Flame, DollarSign, LogOut, User, ChevronDown, Menu, Loader2, RefreshCw } from 'lucide-react';
 import { UserStats } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 interface GamificationBarProps {
   stats: UserStats;
   currentIncome: number;
+  pendingIncome?: number;
+  syncStatus?: 'synced' | 'syncing' | 'error';
+  onManualSync?: () => void;
   onOpenMobileMenu?: () => void;
 }
 
-const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome, onOpenMobileMenu }) => {
+const GamificationBar: React.FC<GamificationBarProps> = ({ 
+  stats, 
+  currentIncome, 
+  pendingIncome = 0,
+  syncStatus = 'synced',
+  onManualSync,
+  onOpenMobileMenu 
+}) => {
+  const [metricType, setMetricType] = useState<'received' | 'pending'>(() => {
+    return (localStorage.getItem('gamification_metric_type') as 'received' | 'pending') || 'received';
+  });
+
+  const handleToggleMetric = () => {
+    const next = metricType === 'received' ? 'pending' : 'received';
+    setMetricType(next);
+    localStorage.setItem('gamification_metric_type', next);
+  };
+
+  const isPendingMode = metricType === 'pending';
+  const displayedValue = isPendingMode ? pendingIncome : currentIncome;
   const goal = stats.weeklyGoal || 2000;
-  const progressPercentage = Math.min((currentIncome / goal) * 100, 100);
+  const progressPercentage = Math.min((displayedValue / goal) * 100, 100);
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -31,14 +53,32 @@ const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome,
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="relative">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 flex items-center justify-center neon-shadow-primary border border-white/20 transition-all duration-300 hover:scale-105 shrink-0">
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20 transition-all duration-300 hover:scale-105 shrink-0 ${
+              isPendingMode 
+                ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                : 'bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 neon-shadow-primary'
+            }`}>
               <span className="font-black cyber-font text-white text-xs sm:text-base drop-shadow-sm">{stats.level}</span>
             </div>
           </div>
           <div className="hidden sm:block">
-            <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-black">Meta Semanal</p>
+            <button
+              onClick={handleToggleMetric}
+              title="Clique para alternar entre Recebido e Pendente"
+              className="group flex items-center gap-1.5 text-left cursor-pointer focus:outline-none"
+            >
+              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 group-hover:text-slate-300 transition-colors font-black flex items-center gap-1">
+                Meta Semanal 
+                <span className={`text-[8px] px-1 py-0.2 rounded font-black tracking-normal uppercase transition-colors ${
+                  isPendingMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                }`}>
+                  {isPendingMode ? 'Pendente' : 'Recebido'}
+                </span>
+                <RefreshCw size={8} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+              </p>
+            </button>
             <p className="text-[11px] md:text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary-color)] animate-pulse"></span>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPendingMode ? 'bg-amber-400' : 'bg-[var(--primary-color)]'}`}></span>
               {Math.round(progressPercentage)}% Concluído
             </p>
           </div>
@@ -47,18 +87,60 @@ const GamificationBar: React.FC<GamificationBarProps> = ({ stats, currentIncome,
         <div className="flex-1 flex flex-col gap-1 min-w-0">
           <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-color)]/90 transition-all duration-1000 ease-out shadow-[0_0_12px_var(--primary-shadow)]"
+              className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                isPendingMode 
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]'
+                  : 'bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-color)]/90 shadow-[0_0_12px_var(--primary-shadow)]'
+              }`}
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
-          <div className="flex justify-between text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider cyber-font">
-            <span className="text-emerald-400 truncate">R$ {currentIncome.toLocaleString('pt-BR')}</span>
+          <div className="flex justify-between items-center text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider cyber-font">
+            <button
+              onClick={handleToggleMetric}
+              className={`flex items-center gap-1 transition-all cursor-pointer hover:opacity-80 active:scale-95 group truncate ${
+                isPendingMode ? 'text-amber-400' : 'text-emerald-400'
+              }`}
+              title="Clique para alternar entre Recebido e Pendente"
+            >
+              <span className="truncate">
+                {isPendingMode ? 'Pendente: ' : 'Recebido: '}
+                R$ {displayedValue.toLocaleString('pt-BR')}
+              </span>
+              <RefreshCw size={8} className="text-slate-500 group-hover:text-slate-300 transition-transform group-hover:rotate-180" />
+            </button>
             <span className="text-slate-500 truncate ml-1">Meta: R$ {goal.toLocaleString('pt-BR')}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4 ml-4">
+      <div className="flex items-center gap-2 md:gap-3.5 ml-4">
+        {/* DB Sync Live Status Badge */}
+        {onManualSync && (
+          <button
+            onClick={onManualSync}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-102 active:scale-95"
+            title="Conexão com Banco de Dados. Clique para sincronizar agora."
+          >
+            {syncStatus === 'syncing' ? (
+              <>
+                <Loader2 size={11} className="animate-spin text-cyan-400" />
+                <span className="text-cyan-400 font-mono">Syncing</span>
+              </>
+            ) : syncStatus === 'error' ? (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                <span className="text-rose-400 font-mono">Reconectar</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <span className="text-emerald-400 font-mono">Sync DB</span>
+              </>
+            )}
+          </button>
+        )}
+
         <div className="hidden xs:flex items-center gap-1.5 md:gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)] transition-all hover:bg-amber-500/15">
           <Flame size={14} className="text-amber-400 fill-amber-400/30 animate-pulse" />
           <span className="text-[10px] md:text-xs font-black text-amber-400 cyber-font">{stats.streak}D STREAK</span>
