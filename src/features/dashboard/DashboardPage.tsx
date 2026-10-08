@@ -353,10 +353,22 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const updateInvoice = useCallback(async (updated: Invoice) => {
+    const todayIso = new Date().toISOString();
+    const todayDate = todayIso.split('T')[0];
+
+    // Se o status mudou para Pago, garantir que paidAt seja gravado com a data/hora de hoje
+    // Se mudou para Pendente, zerar paidAt
+    let invoiceWithPaymentDate: Invoice = { ...updated };
+    if (updated.status === 'Pago') {
+      invoiceWithPaymentDate.paidAt = updated.paidAt || todayIso;
+    } else if (updated.status === 'Pendente') {
+      invoiceWithPaymentDate.paidAt = null;
+    }
+
     // 1. Optimistic update
     setState(prev => {
-      const nextInvoices = prev.invoices.map(i => i.id === updated.id ? updated : i);
-      const invoiceTasks = prev.tasks.filter(t => t.invoiceId === updated.id);
+      const nextInvoices = prev.invoices.map(i => i.id === invoiceWithPaymentDate.id ? invoiceWithPaymentDate : i);
+      const invoiceTasks = prev.tasks.filter(t => t.invoiceId === invoiceWithPaymentDate.id);
       const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
       const taskIds = new Set(invoiceTasks.map(t => t.id));
 
@@ -368,17 +380,17 @@ const DashboardPage: React.FC = () => {
             let newStatus = tx.status;
             let newDate = tx.date;
 
-            if (updated.customValue !== undefined && updated.customValue !== null) {
-              const scale = calculatedTotal > 0 ? (Number(updated.customValue) / calculatedTotal) : 1;
+            if (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null) {
+              const scale = calculatedTotal > 0 ? (Number(invoiceWithPaymentDate.customValue) / calculatedTotal) : 1;
               newValue = Number(((Number(task.value) || 0) * scale).toFixed(2));
             } else {
               newValue = Number(task.value) || 0;
             }
 
-            if (updated.status === 'Pago' && tx.status !== 'Pago') {
+            if (invoiceWithPaymentDate.status === 'Pago' && tx.status !== 'Pago') {
               newStatus = 'Pago';
-              newDate = new Date().toISOString();
-            } else if (updated.status === 'Pendente' && tx.status === 'Pago') {
+              newDate = todayDate;
+            } else if (invoiceWithPaymentDate.status === 'Pendente' && tx.status === 'Pago') {
               newStatus = 'Pendente';
             }
 
@@ -388,7 +400,7 @@ const DashboardPage: React.FC = () => {
         return tx;
       });
 
-      const nextTasks = updated.status === 'Pago'
+      const nextTasks = invoiceWithPaymentDate.status === 'Pago'
         ? prev.tasks.map(t => taskIds.has(t.id) && t.status !== 'Concluído' ? { ...t, status: 'Concluído' as Status } : t)
         : prev.tasks;
 
@@ -401,7 +413,7 @@ const DashboardPage: React.FC = () => {
     });
 
     try {
-      const result = await db.invoices.update(updated.id, updated);
+      const result = await db.invoices.update(invoiceWithPaymentDate.id, invoiceWithPaymentDate);
 
       setState(prev => {
         const nextState = { ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) };
@@ -428,7 +440,7 @@ const DashboardPage: React.FC = () => {
 
               if (result.status === 'Pago' && tx.status !== 'Pago') {
                 newStatus = 'Pago';
-                newDate = new Date().toISOString();
+                newDate = todayDate;
               } else if (result.status === 'Pendente' && tx.status === 'Pago') {
                 newStatus = 'Pendente';
               }
@@ -499,28 +511,7 @@ const DashboardPage: React.FC = () => {
 
   const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
     try {
-      let finalInvoiceId = task.invoiceId;
-
-      if (!finalInvoiceId) {
-        const existingInvoice = state.invoices.find(
-          inv => inv.clientId === task.clientId && inv.title.trim().toLowerCase() === 'outros'
-        );
-
-        if (existingInvoice) {
-          finalInvoiceId = existingInvoice.id;
-        } else {
-          const newInvoiceId = await addInvoice({
-            clientId: task.clientId,
-            title: 'Outros',
-            status: 'Pendente',
-            notes: 'Pasta automática para demandas sem nota vinculada',
-            createdAt: new Date().toISOString()
-          });
-          if (newInvoiceId) {
-            finalInvoiceId = newInvoiceId;
-          }
-        }
-      }
+      const finalInvoiceId = task.invoiceId;
 
       const initialStatus = task.status;
       // If task is created as Concluído, we'll create it as Pendente first and trigger the payment confirmation modal to set it correctly
@@ -557,28 +548,7 @@ const DashboardPage: React.FC = () => {
 
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'>) => {
     try {
-      let finalInvoiceId = updatedTask.invoiceId;
-
-      if (!finalInvoiceId) {
-        const existingInvoice = state.invoices.find(
-          inv => inv.clientId === updatedTask.clientId && inv.title.trim().toLowerCase() === 'outros'
-        );
-
-        if (existingInvoice) {
-          finalInvoiceId = existingInvoice.id;
-        } else {
-          const newInvoiceId = await addInvoice({
-            clientId: updatedTask.clientId,
-            title: 'Outros',
-            status: 'Pendente',
-            notes: 'Pasta automática para demandas sem nota vinculada',
-            createdAt: new Date().toISOString()
-          });
-          if (newInvoiceId) {
-            finalInvoiceId = newInvoiceId;
-          }
-        }
-      }
+      const finalInvoiceId = updatedTask.invoiceId;
 
       const taskBefore = state.tasks.find(t => t.id === taskId);
       const isConcluding = taskBefore && taskBefore.status !== 'Concluído' && updatedTask.status === 'Concluído';

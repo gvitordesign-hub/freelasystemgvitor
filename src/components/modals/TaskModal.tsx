@@ -237,13 +237,22 @@ const TaskModal: React.FC<TaskModalProps> = ({
       return;
     }
 
-    if (isAddingNewInvoice && newInvoiceTitle.trim()) {
+    if (isAddingNewInvoice) {
+      if (!newInvoiceTitle.trim()) {
+        alert('Por favor, informe o título da nova nota para este cliente.');
+        return;
+      }
       finalInvoiceId = await onQuickAddInvoice({
         clientId: finalClientId,
         title: newInvoiceTitle.trim(),
         createdAt: new Date().toISOString(),
         status: 'Pendente'
       });
+    }
+
+    if (!finalInvoiceId) {
+      alert('A seleção ou criação de uma Nota de Cobrança é obrigatória para este projeto.');
+      return;
     }
 
     const dateObj = new Date(formData.date + 'T12:00:00');
@@ -462,7 +471,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <FileText size={12} className="text-emerald-400" />
-                  Vincular Nota de Cobrança
+                  Nota de Cobrança <span className="text-rose-400">*</span>
                 </label>
                 <button
                   type="button"
@@ -475,7 +484,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
               </div>
               {isAddingNewInvoice ? (
                 <input
-                  required={isAddingNewInvoice}
+                  required
                   placeholder="Título da Nova Nota *"
                   value={newInvoiceTitle}
                   onChange={e => setNewInvoiceTitle(e.target.value)}
@@ -483,11 +492,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 />
               ) : (
                 <select
+                  required
                   value={formData.invoiceId}
                   onChange={e => setFormData({ ...formData, invoiceId: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
                 >
-                  <option value="">Nenhuma (Pasta Geral / Avulsa)</option>
+                  <option value="">Selecione a nota do cliente *</option>
                   {filteredInvoices.map(inv => (
                     <option key={inv.id} value={inv.id}>
                       {inv.title} {inv.status === 'Pago' ? '(Pago)' : '(Pendente)'}

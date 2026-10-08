@@ -260,12 +260,12 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
       if (editingTotal) {
          handleSaveTotal();
       }
-      onUpdateInvoice({ ...currentInvoice, status: 'Pago' });
+      onUpdateInvoice({ ...currentInvoice, status: 'Pago', paidAt: new Date().toISOString() });
    };
 
    const handleReopenInvoice = () => {
       if (!currentInvoice) return;
-      onUpdateInvoice({ ...currentInvoice, status: 'Pendente' });
+      onUpdateInvoice({ ...currentInvoice, status: 'Pendente', paidAt: null });
    };
 
    const masterPaidTotal = useMemo(() => {
@@ -348,9 +348,14 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                               <span className="text-xs font-bold truncate max-w-[130px]">{inv.title}</span>
                               {inv.status === 'Pago' ? <CheckCircle2 size={12} className="text-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
                            </div>
-                           <div className="flex items-center justify-between text-[9px] uppercase tracking-tight">
-                              <span>{new Date(inv.createdAt).toLocaleDateString('pt-BR')}</span>
-                              <span className={`font-mono font-bold ${inv.status === 'Pago' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                           <div className="flex items-center justify-between text-[9px] uppercase tracking-tight mt-1">
+                              <div className="flex flex-col text-left">
+                                 <span className="opacity-70">Criada: {new Date(inv.createdAt).toLocaleDateString('pt-BR')}</span>
+                                 {inv.status === 'Pago' && inv.paidAt && (
+                                    <span className="text-emerald-400 font-bold">Pago: {new Date(inv.paidAt).toLocaleDateString('pt-BR')}</span>
+                                 )}
+                              </div>
+                              <span className={`font-mono font-bold text-right ${inv.status === 'Pago' ? 'text-emerald-400' : 'text-amber-400'}`}>
                                  R$ {invTotal.toLocaleString('pt-BR')}
                               </span>
                            </div>
@@ -481,6 +486,22 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                            <div>
                               <span className="text-[10px] font-black text-[var(--primary-color)] uppercase tracking-widest mb-1 block">Detalhamento da Nota</span>
                               <h3 className="text-3xl font-black text-white">{currentInvoice?.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                 <span className="text-[10px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
+                                    Criada em: <strong className="text-slate-200">{currentInvoice ? new Date(currentInvoice.createdAt).toLocaleDateString('pt-BR') : ''}</strong>
+                                 </span>
+                                 {currentInvoice?.status === 'Pago' && (
+                                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                                       <CheckCircle2 size={12} className="text-emerald-400" />
+                                       Recebido em: {currentInvoice.paidAt ? new Date(currentInvoice.paidAt).toLocaleDateString('pt-BR') : 'Hoje'}
+                                       {currentInvoice.paidAt && (
+                                          <span className="text-[9px] uppercase tracking-wider text-emerald-300 font-bold ml-1 opacity-90">
+                                             ({new Date(currentInvoice.paidAt).toLocaleString('pt-BR', { month: 'short', year: 'numeric' })})
+                                          </span>
+                                       )}
+                                    </span>
+                                 )}
+                              </div>
                            </div>
                            <div className="text-left sm:text-right flex flex-col sm:items-end gap-2">
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total da Nota</span>

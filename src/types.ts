@@ -58,6 +58,7 @@ export interface Invoice {
   status: 'Pago' | 'Pendente';
   notes?: string;
   customValue?: number | null;
+  paidAt?: string | null;
 }
 
 export interface Album {

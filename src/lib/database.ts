@@ -315,6 +315,7 @@ export const db = {
                 ...i,
                 clientId: i.client_id,
                 createdAt: i.created_at,
+                paidAt: i.paid_at ?? null,
                 customValue: i.custom_value !== undefined && i.custom_value !== null
                     ? Number(i.custom_value)
                     : (customValueCache[i.id] ?? null)
@@ -332,13 +333,17 @@ export const db = {
             if (invoice.customValue !== undefined && invoice.customValue !== null) {
                 payload.custom_value = invoice.customValue;
             }
+            if (invoice.paidAt !== undefined) {
+                payload.paid_at = invoice.paidAt;
+            }
 
             let insertedData: any = null;
             const { data, error } = await supabase.from('invoices').insert(payload).select().single();
 
             if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.code === '42703') {
+                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.message?.includes('paid_at') || error.code === '42703') {
                     delete payload.custom_value;
+                    delete payload.paid_at;
                     const retry = await supabase.from('invoices').insert(payload).select().single();
                     if (retry.error) throw retry.error;
                     insertedData = retry.data;
@@ -360,6 +365,7 @@ export const db = {
                 ...insertedData,
                 clientId: insertedData.client_id,
                 createdAt: insertedData.created_at,
+                paidAt: insertedData.paid_at ?? invoice.paidAt ?? null,
                 customValue: insertedData.custom_value !== undefined && insertedData.custom_value !== null
                     ? Number(insertedData.custom_value)
                     : (invoice.customValue !== undefined ? invoice.customValue : (customValueCache[insertedData.id] ?? null))
@@ -378,6 +384,9 @@ export const db = {
             const createdAt = invoice.createdAt ?? invoice.created_at;
             if (createdAt !== undefined) transformed.created_at = createdAt;
 
+            const paidAt = invoice.paidAt !== undefined ? invoice.paidAt : invoice.paid_at;
+            if (paidAt !== undefined) transformed.paid_at = paidAt;
+
             const customValue = invoice.customValue !== undefined ? invoice.customValue : invoice.custom_value;
             if (customValue !== undefined) transformed.custom_value = customValue;
 
@@ -385,8 +394,9 @@ export const db = {
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
 
             if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.code === '42703') {
+                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.message?.includes('paid_at') || error.code === '42703') {
                     delete transformed.custom_value;
+                    delete transformed.paid_at;
                     const retry = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
                     if (retry.error) throw retry.error;
                     updatedData = retry.data;
@@ -408,6 +418,7 @@ export const db = {
                 ...updatedData,
                 clientId: updatedData.client_id,
                 createdAt: updatedData.created_at,
+                paidAt: updatedData.paid_at ?? paidAt ?? null,
                 customValue: updatedData.custom_value !== undefined && updatedData.custom_value !== null
                     ? Number(updatedData.custom_value)
                     : (customValue !== undefined ? customValue : (customValueCache[id] ?? null))

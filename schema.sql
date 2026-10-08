@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   status TEXT DEFAULT 'Pendente', -- 'Pago', 'Pendente'
   notes TEXT,
   custom_value DECIMAL(12, 2) DEFAULT NULL,
+  paid_at TIMESTAMPTZ DEFAULT NULL,
   user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
