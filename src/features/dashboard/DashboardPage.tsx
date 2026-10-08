@@ -344,7 +344,12 @@ const DashboardPage: React.FC = () => {
   const addInvoice = useCallback(async (invoice: Omit<Invoice, 'id'>) => {
     try {
       const newInvoice = await db.invoices.create(invoice);
-      setState(prev => ({ ...prev, invoices: [...prev.invoices, newInvoice] }));
+      setState(prev => {
+        if (prev.invoices.some(i => i.id === newInvoice.id)) {
+          return prev;
+        }
+        return { ...prev, invoices: [...prev.invoices, newInvoice] };
+      });
       return newInvoice.id;
     } catch (e) {
       console.error('Error adding invoice:', e);
@@ -522,17 +527,20 @@ const DashboardPage: React.FC = () => {
       };
       const newTask = await db.tasks.create(taskToCreate);
 
-      setState(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+      setState(prev => {
+        if (prev.tasks.some(t => t.id === newTask.id)) {
+          return prev;
+        }
+        return { ...prev, tasks: [...prev.tasks, newTask] };
+      });
 
       if (initialStatus === 'Concluído') {
         setPendingPaymentTask(newTask);
       }
-
-      fetchData();
     } catch (e) {
       console.error('Error adding task:', e);
     }
-  }, [fetchData, state.invoices, addInvoice]);
+  }, []);
 
   const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
     try {

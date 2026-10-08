@@ -48,6 +48,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   onQuickAddInvoice
 }) => {
   const isEditMode = !!editingTask;
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingNewClient, setIsAddingNewClient] = useState(false);
   const [isAddingNewInvoice, setIsAddingNewInvoice] = useState(false);
   const [newClientData, setNewClientData] = useState({ name: '', company: '' });
@@ -217,6 +218,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     // Check for holiday
     if (activeHoliday) {
@@ -224,61 +226,76 @@ const TaskModal: React.FC<TaskModalProps> = ({
       return;
     }
 
-    let finalClientId = formData.clientId;
-    let finalInvoiceId = formData.invoiceId;
+    setIsSubmitting(true);
 
-    if (isAddingNewClient) {
-      if (!newClientData.name.trim()) return alert('Preencha ao menos o nome do cliente.');
-      finalClientId = await onQuickAddClient(newClientData);
-    }
+    try {
+      let finalClientId = formData.clientId;
+      let finalInvoiceId = formData.invoiceId;
 
-    if (!finalClientId) {
-      alert('Selecione ou cadastre um cliente para o projeto.');
-      return;
-    }
+      if (isAddingNewClient) {
+        if (!newClientData.name.trim()) {
+          alert('Preencha ao menos o nome do cliente.');
+          setIsSubmitting(false);
+          return;
+        }
+        finalClientId = await onQuickAddClient(newClientData);
+      }
 
-    if (isAddingNewInvoice) {
-      if (!newInvoiceTitle.trim()) {
-        alert('Por favor, informe o título da nova nota para este cliente.');
+      if (!finalClientId) {
+        alert('Selecione ou cadastre um cliente para o projeto.');
+        setIsSubmitting(false);
         return;
       }
-      finalInvoiceId = await onQuickAddInvoice({
+
+      if (isAddingNewInvoice) {
+        if (!newInvoiceTitle.trim()) {
+          alert('Por favor, informe o título da nova nota para este cliente.');
+          setIsSubmitting(false);
+          return;
+        }
+        finalInvoiceId = await onQuickAddInvoice({
+          clientId: finalClientId,
+          title: newInvoiceTitle.trim(),
+          createdAt: new Date().toISOString(),
+          status: 'Pendente'
+        });
+      }
+
+      if (!finalInvoiceId) {
+        alert('A seleção ou criação de uma Nota de Cobrança é obrigatória para este projeto.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const dateObj = new Date(formData.date + 'T12:00:00');
+      const dayNames: DayOfWeek[] = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const derivedDay = dayNames[dateObj.getDay()];
+
+      const taskData: Omit<Task, 'id'> = {
+        title: formData.title,
         clientId: finalClientId,
-        title: newInvoiceTitle.trim(),
-        createdAt: new Date().toISOString(),
-        status: 'Pendente'
-      });
+        invoiceId: finalInvoiceId || undefined,
+        value: parseFloat(formData.value) || 0,
+        day: derivedDay,
+        date: formData.date,
+        status: formData.status as any,
+        category: formData.category,
+        briefing: formData.briefing || undefined,
+        position: editingTask?.position || 0,
+        deliverables: deliverables.length > 0 ? deliverables : undefined
+      };
+
+      if (isEditMode && onUpdate && editingTask) {
+        await onUpdate(editingTask.id, taskData);
+      } else {
+        await onSubmit(taskData);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Error submitting task:', err);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (!finalInvoiceId) {
-      alert('A seleção ou criação de uma Nota de Cobrança é obrigatória para este projeto.');
-      return;
-    }
-
-    const dateObj = new Date(formData.date + 'T12:00:00');
-    const dayNames: DayOfWeek[] = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const derivedDay = dayNames[dateObj.getDay()];
-
-    const taskData: Omit<Task, 'id'> = {
-      title: formData.title,
-      clientId: finalClientId,
-      invoiceId: finalInvoiceId || undefined,
-      value: parseFloat(formData.value) || 0,
-      day: derivedDay,
-      date: formData.date,
-      status: formData.status as any,
-      category: formData.category,
-      briefing: formData.briefing || undefined,
-      position: editingTask?.position || 0,
-      deliverables: deliverables.length > 0 ? deliverables : undefined
-    };
-
-    if (isEditMode && onUpdate && editingTask) {
-      onUpdate(editingTask.id, taskData);
-    } else {
-      onSubmit(taskData);
-    }
-    onClose();
   };
 
   return (
@@ -808,10 +825,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
           <button
             type="submit"
-            className="w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl transition-all neon-shadow-primary uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer"
+            disabled={isSubmitting}
+            className={`w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl transition-all neon-shadow-primary uppercase tracking-widest text-xs flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <Check size={16} />
-            {isEditMode ? 'Salvar Alterações no Projeto' : 'Confirmar Demanda de Projeto'}
+            {isSubmitting ? 'Processando...' : (isEditMode ? 'Salvar Alterações no Projeto' : 'Confirmar Demanda de Projeto')}
           </button>
         </form>
       </div>
