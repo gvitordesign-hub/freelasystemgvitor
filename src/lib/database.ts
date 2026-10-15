@@ -27,6 +27,33 @@ const setDeliverablesCache = (taskId: string, deliverables: any[]) => {
     } catch {}
 };
 
+const DELIVERABLES_MARKER = '<!--GV_DELIVERABLES:';
+const DELIVERABLES_END_MARKER = '-->';
+
+export const injectDeliverablesIntoBriefing = (briefing?: string, deliverables?: any[]): string => {
+    const clean = (briefing || '').replace(/\n?<!--GV_DELIVERABLES:[\s\S]*?-->/g, '').trim();
+    if (!deliverables || deliverables.length === 0) return clean;
+    const json = JSON.stringify(deliverables);
+    return clean ? `${clean}\n${DELIVERABLES_MARKER}${json}${DELIVERABLES_END_MARKER}` : `${DELIVERABLES_MARKER}${json}${DELIVERABLES_END_MARKER}`;
+};
+
+export const extractDeliverablesFromBriefing = (briefing?: string): any[] | null => {
+    if (!briefing) return null;
+    const match = briefing.match(/<!--GV_DELIVERABLES:([\s\S]*?)-->/);
+    if (!match) return null;
+    try {
+        const parsed = JSON.parse(match[1]);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+export const cleanBriefing = (briefing?: string): string => {
+    if (!briefing) return '';
+    return briefing.replace(/\n?<!--GV_DELIVERABLES:[\s\S]*?-->/g, '').trim();
+};
+
 const getCustomValueCache = (): Record<string, number | null> => {
     try {
         return JSON.parse(localStorage.getItem('invoice_custom_values_cache') || '{}');
@@ -109,16 +136,28 @@ export const db = {
             const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('position', { ascending: true });
             if (error) throw error;
             const deliverablesCache = getDeliverablesCache();
-            return data.map(t => ({
-                ...t,
-                clientId: t.client_id,
-                invoiceId: t.invoice_id,
-                addToPortfolio: t.add_to_portfolio,
-                position: t.position || 0,
-                deliverables: (Array.isArray(t.deliverables) && t.deliverables.length > 0)
+            return data.map(t => {
+                const briefingDelivs = extractDeliverablesFromBriefing(t.briefing);
+                const finalDeliverables = (Array.isArray(t.deliverables) && t.deliverables.length > 0)
                     ? t.deliverables
-                    : (deliverablesCache[t.id] || [])
-            })) as Task[];
+                    : (briefingDelivs && briefingDelivs.length > 0)
+                    ? briefingDelivs
+                    : (deliverablesCache[t.id] || []);
+
+                if (finalDeliverables.length > 0 && !deliverablesCache[t.id]) {
+                    setDeliverablesCache(t.id, finalDeliverables);
+                }
+
+                return {
+                    ...t,
+                    clientId: t.client_id,
+                    invoiceId: t.invoice_id,
+                    addToPortfolio: t.add_to_portfolio,
+                    position: t.position || 0,
+                    briefing: cleanBriefing(t.briefing),
+                    deliverables: finalDeliverables
+                };
+            }) as Task[];
         },
         async create(task: Omit<Task, 'id'>) {
             const userId = await getUserId();
@@ -144,9 +183,12 @@ export const db = {
             const { data, error } = await supabase.from('tasks').insert(payload).select().single();
 
             if (error) {
-                // If deliverables column doesn't exist yet on Supabase, retry without it
+                // If deliverables column doesn't exist yet on Supabase, retry without it and encode in briefing
                 if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
                     delete payload.deliverables;
+                    if (task.deliverables && task.deliverables.length > 0) {
+                        payload.briefing = injectDeliverablesIntoBriefing(payload.briefing, task.deliverables);
+                    }
                     const retry = await supabase.from('tasks').insert(payload).select().single();
                     if (retry.error) throw retry.error;
                     insertedData = retry.data;
@@ -164,15 +206,17 @@ export const db = {
             }
 
             const deliverablesCache = getDeliverablesCache();
+            const briefingDelivs = extractDeliverablesFromBriefing(insertedData.briefing);
             return {
                 ...insertedData,
                 clientId: insertedData.client_id,
                 invoiceId: insertedData.invoice_id,
                 addToPortfolio: insertedData.add_to_portfolio,
                 position: insertedData.position,
-                deliverables: Array.isArray(insertedData.deliverables) && insertedData.deliverables.length > 0
+                briefing: cleanBriefing(insertedData.briefing),
+                deliverables: (Array.isArray(insertedData.deliverables) && insertedData.deliverables.length > 0)
                     ? insertedData.deliverables
-                    : (task.deliverables || deliverablesCache[insertedData.id] || [])
+                    : (task.deliverables || briefingDelivs || deliverablesCache[insertedData.id] || [])
             } as Task;
         },
         async update(id: string, task: Partial<Task>) {
@@ -185,17 +229,40 @@ export const db = {
             if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
             if (task.deliverables !== undefined) { transformed.deliverables = task.deliverables; }
 
+            // Strip undefined properties
+            Object.keys(transformed).forEach(k => {
+                if (transformed[k] === undefined) {
+                    delete transformed[k];
+                }
+            });
+
             let updatedData: any = null;
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
 
             if (error) {
                 if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
                     delete transformed.deliverables;
-                    const retry = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-                    if (retry.error) throw retry.error;
-                    updatedData = retry.data;
+
+                    // Persist deliverables into briefing metadata and local cache
                     if (task.deliverables !== undefined) {
                         setDeliverablesCache(id, task.deliverables);
+
+                        let currentBriefing = transformed.briefing;
+                        if (currentBriefing === undefined) {
+                            const { data: existing } = await supabase.from('tasks').select('briefing').eq('id', id).eq('user_id', userId).single();
+                            currentBriefing = existing?.briefing || '';
+                        }
+                        transformed.briefing = injectDeliverablesIntoBriefing(currentBriefing, task.deliverables);
+                    }
+
+                    if (Object.keys(transformed).length > 0) {
+                        const retry = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
+                        if (retry.error) throw retry.error;
+                        updatedData = retry.data;
+                    } else {
+                        const { data: existing, error: fetchErr } = await supabase.from('tasks').select('*').eq('id', id).eq('user_id', userId).single();
+                        if (fetchErr) throw fetchErr;
+                        updatedData = existing;
                     }
                 } else {
                     throw error;
@@ -208,15 +275,17 @@ export const db = {
             }
 
             const deliverablesCache = getDeliverablesCache();
+            const briefingDelivs = extractDeliverablesFromBriefing(updatedData.briefing);
             return {
                 ...updatedData,
                 clientId: updatedData.client_id,
                 invoiceId: updatedData.invoice_id,
                 addToPortfolio: updatedData.add_to_portfolio,
                 position: updatedData.position,
-                deliverables: Array.isArray(updatedData.deliverables) && updatedData.deliverables.length > 0
+                briefing: cleanBriefing(updatedData.briefing),
+                deliverables: (Array.isArray(updatedData.deliverables) && updatedData.deliverables.length > 0)
                     ? updatedData.deliverables
-                    : (task.deliverables || deliverablesCache[id] || [])
+                    : (task.deliverables || briefingDelivs || deliverablesCache[id] || [])
             } as Task;
         },
         async delete(id: string) {

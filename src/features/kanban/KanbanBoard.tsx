@@ -23,6 +23,8 @@ interface KanbanBoardProps {
   onDeleteTask: (taskId: string) => void;
   onMoveTask: (taskId: string, day: DayOfWeek, date?: string, position?: number) => void;
   onUpdateTask?: (id: string, task: Partial<Task>) => void;
+  currentWeekStart?: Date;
+  onWeekChange?: (weekStart: Date) => void;
 }
 
 type ViewMode = 'kanban' | 'diario' | 'mensal';
@@ -38,7 +40,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onEditTask, 
   onDeleteTask, 
   onMoveTask,
-  onUpdateTask
+  onUpdateTask,
+  currentWeekStart: currentWeekStartProp,
+  onWeekChange
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos');
@@ -49,7 +53,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [dropIndicator, setDropIndicator] = useState<{ id: string, position: 'top' | 'bottom' } | null>(null);
 
   const handleToggleDeliverable = (task: Task, deliverableId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!task.deliverables || !onUpdateTask) return;
 
     const updatedDeliverables = task.deliverables.map(d =>
@@ -202,7 +209,20 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return date;
   };
 
-  const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
+  const [internalWeekStart, setInternalWeekStart] = useState(() => currentWeekStartProp || getStartOfWeek(new Date()));
+
+  useEffect(() => {
+    if (currentWeekStartProp) {
+      setInternalWeekStart(currentWeekStartProp);
+    }
+  }, [currentWeekStartProp]);
+
+  const currentWeekStart = currentWeekStartProp || internalWeekStart;
+
+  const changeWeek = (newDate: Date) => {
+    setInternalWeekStart(newDate);
+    onWeekChange?.(newDate);
+  };
 
   // Generate 7 days from currentWeekStart
   const weekDates = useMemo(() => {
@@ -218,17 +238,17 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const nextWeek = () => {
     const next = new Date(currentWeekStart);
     next.setDate(next.getDate() + 7);
-    setCurrentWeekStart(next);
+    changeWeek(next);
   };
 
   const prevWeek = () => {
     const prev = new Date(currentWeekStart);
     prev.setDate(prev.getDate() - 7);
-    setCurrentWeekStart(prev);
+    changeWeek(prev);
   };
 
   const resetToToday = () => {
-    setCurrentWeekStart(getStartOfWeek(new Date()));
+    changeWeek(getStartOfWeek(new Date()));
   };
 
   // Filtered tasks based on active statusFilter
@@ -960,6 +980,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                       {task.deliverables.map(d => (
                                         <div
                                           key={d.id}
+                                          role="button"
+                                          tabIndex={0}
+                                          onPointerDown={(e) => e.stopPropagation()}
+                                          onMouseDown={(e) => e.stopPropagation()}
                                           onClick={(e) => handleToggleDeliverable(task, d.id, e)}
                                           className="flex items-center justify-between gap-1.5 py-0.5 px-1 rounded-lg hover:bg-slate-800/60 cursor-pointer group/item transition-colors"
                                         >

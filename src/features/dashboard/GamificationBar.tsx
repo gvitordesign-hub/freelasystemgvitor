@@ -10,6 +10,7 @@ interface GamificationBarProps {
   syncStatus?: 'synced' | 'syncing' | 'error';
   onManualSync?: () => void;
   onOpenMobileMenu?: () => void;
+  weekLabel?: string;
 }
 
 const GamificationBar: React.FC<GamificationBarProps> = ({ 
@@ -18,7 +19,8 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
   pendingIncome = 0,
   syncStatus = 'synced',
   onManualSync,
-  onOpenMobileMenu 
+  onOpenMobileMenu,
+  weekLabel
 }) => {
   const [metricType, setMetricType] = useState<'received' | 'pending'>(() => {
     return (localStorage.getItem('gamification_metric_type') as 'received' | 'pending') || 'received';
@@ -67,8 +69,13 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
               title="Clique para alternar entre Recebido e Pendente"
               className="group flex items-center gap-1.5 text-left cursor-pointer focus:outline-none"
             >
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 group-hover:text-slate-300 transition-colors font-black flex items-center gap-1">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 group-hover:text-slate-300 transition-colors font-black flex items-center gap-1.5">
                 Meta Semanal 
+                {weekLabel && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded font-black text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 tracking-wider">
+                    {weekLabel}
+                  </span>
+                )}
                 <span className={`text-[8px] px-1 py-0.2 rounded font-black tracking-normal uppercase transition-colors ${
                   isPendingMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                 }`}>

@@ -128,6 +128,85 @@ const DashboardPage: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+  });
+
+  const { weeklyIncome, weeklyPendingIncome, weekLabel } = useMemo(() => {
+    const start = new Date(selectedWeekStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(selectedWeekStart);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+
+    const weekDateStrings = new Set<string>();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(selectedWeekStart);
+      d.setDate(d.getDate() + i);
+      weekDateStrings.add(d.toLocaleDateString('en-CA'));
+    }
+
+    const isCurrentCalendarWeek = (() => {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const nowDay = now.getDay();
+      const diff = (nowDay === 0 ? -6 : 1) - nowDay;
+      const thisMonday = new Date(now);
+      thisMonday.setDate(thisMonday.getDate() + diff);
+      return thisMonday.getTime() === start.getTime();
+    })();
+
+    // 1. Transactions in this week (type === 'Entrada')
+    const weekTransactions = state.transactions.filter(t => {
+      if (t.type !== 'Entrada') return false;
+      if (!t.date) return false;
+      const dateOnly = t.date.split('T')[0];
+      return weekDateStrings.has(dateOnly);
+    });
+
+    const txReceived = weekTransactions
+      .filter(t => t.status === 'Pago')
+      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+
+    const txPending = weekTransactions
+      .filter(t => t.status === 'Pendente')
+      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+
+    // 2. Tasks in this week
+    const linkedTxTaskIds = new Set(state.transactions.filter(tx => tx.taskId && tx.type === 'Entrada').map(tx => tx.taskId));
+
+    const weekTasks = state.tasks.filter(t => {
+      if (t.date) {
+        return weekDateStrings.has(t.date.split('T')[0]);
+      }
+      if (isCurrentCalendarWeek && t.day) {
+        return true;
+      }
+      return false;
+    });
+
+    const tasksReceived = weekTasks
+      .filter(t => t.status === 'Concluído' && !linkedTxTaskIds.has(t.id))
+      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+
+    const tasksPending = weekTasks
+      .filter(t => t.status !== 'Concluído' && !linkedTxTaskIds.has(t.id))
+      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+
+    const startLabel = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
+    const endLabel = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
+
+    return {
+      weeklyIncome: txReceived + tasksReceived,
+      weeklyPendingIncome: txPending + tasksPending,
+      weekLabel: `${startLabel} - ${endLabel}`
+    };
+  }, [selectedWeekStart, state.transactions, state.tasks]);
 
   const monthlyIncome = useMemo(() => {
     const now = new Date();
@@ -554,17 +633,26 @@ const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'>) => {
+  const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'> | Partial<Task>) => {
     try {
-      const finalInvoiceId = updatedTask.invoiceId;
-
       const taskBefore = state.tasks.find(t => t.id === taskId);
-      const isConcluding = taskBefore && taskBefore.status !== 'Concluído' && updatedTask.status === 'Concluído';
+      if (!taskBefore) return;
 
-      const taskToSave = { ...updatedTask, invoiceId: finalInvoiceId || undefined };
+      const mergedTask = { ...taskBefore, ...updatedTask };
+      const finalInvoiceId = mergedTask.invoiceId;
+
+      const isConcluding = taskBefore.status !== 'Concluído' && mergedTask.status === 'Concluído';
+
+      const taskToSave: Partial<Task> = { ...mergedTask, invoiceId: finalInvoiceId || undefined };
       if (isConcluding) {
         taskToSave.status = taskBefore.status;
       }
+
+      // Optimistic state update: UI responds immediately
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t => t.id === taskId ? { ...t, ...updatedTask } : t)
+      }));
 
       const result = await db.tasks.update(taskId, taskToSave);
 
@@ -574,14 +662,14 @@ const DashboardPage: React.FC = () => {
         // Sync linked transaction if it exists
         const linkedTx = prev.transactions.find(tx => tx.taskId === taskId && tx.type === 'Entrada');
         if (linkedTx) {
-          const needsSync = linkedTx.value !== updatedTask.value ||
-            linkedTx.description !== `Serviço: ${updatedTask.title}`;
+          const needsSync = linkedTx.value !== mergedTask.value ||
+            linkedTx.description !== `Serviço: ${mergedTask.title}`;
 
           if (needsSync) {
             db.transactions.update(linkedTx.id, {
-              value: updatedTask.value,
-              description: `Serviço: ${updatedTask.title}`,
-              category: updatedTask.category || linkedTx.category
+              value: mergedTask.value,
+              description: `Serviço: ${mergedTask.title}`,
+              category: mergedTask.category || linkedTx.category
             }).catch(e => console.error('Error syncing transaction:', e));
 
             return {
@@ -589,7 +677,7 @@ const DashboardPage: React.FC = () => {
               tasks: nextTasks,
               transactions: prev.transactions.map(tx =>
                 tx.id === linkedTx.id
-                  ? { ...tx, value: updatedTask.value, description: `Serviço: ${updatedTask.title}`, category: updatedTask.category || tx.category }
+                  ? { ...tx, value: mergedTask.value, description: `Serviço: ${mergedTask.title}`, category: mergedTask.category || tx.category }
                   : tx
               )
             };
@@ -601,12 +689,11 @@ const DashboardPage: React.FC = () => {
       if (isConcluding) {
         setPendingPaymentTask(result);
       }
-
-      fetchData();
     } catch (e) {
       console.error('Error updating task:', e);
+      fetchData(true);
     }
-  }, [state.tasks, state.invoices, addInvoice, fetchData]);
+  }, [state.tasks, state.transactions, fetchData]);
 
   const deleteTask = useCallback(async (taskId: string) => {
     try {
@@ -921,6 +1008,8 @@ const DashboardPage: React.FC = () => {
           tasks={state.tasks}
           clients={state.clients}
           holidays={state.holidays}
+          currentWeekStart={selectedWeekStart}
+          onWeekChange={setSelectedWeekStart}
           onUpdateStatus={updateTaskStatus}
           onAddTask={() => setIsTaskModalOpen(true)}
           onAddQuickTask={() => setIsQuickTaskModalOpen(true)}
@@ -1023,8 +1112,9 @@ const DashboardPage: React.FC = () => {
         {!isPublicView && (
           <GamificationBar 
             stats={state.stats} 
-            currentIncome={monthlyIncome} 
-            pendingIncome={monthlyPendingIncome}
+            currentIncome={weeklyIncome} 
+            pendingIncome={weeklyPendingIncome}
+            weekLabel={weekLabel}
             syncStatus={syncStatus}
             onManualSync={() => fetchData()}
             onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
