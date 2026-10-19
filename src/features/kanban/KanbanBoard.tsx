@@ -361,7 +361,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'Pendente' ? 'bg-rose-400 animate-pulse' : 'bg-rose-500/70'}`} />
         <span>Pendentes</span>
         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
-          statusFilter === 'Pendente' ? 'bg-rose-500/30 text-rose-200' : 'bg-slate-800 text-slate-400'
+          statusFilter === 'Pendente'
+            ? 'bg-rose-500/30 text-rose-200'
+            : 'bg-slate-800 text-slate-400'
         }`}>
           {counts.pendente}
         </span>
@@ -381,7 +383,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <Clock size={11} className={statusFilter === 'Em Andamento' ? 'text-blue-400 animate-spin' : 'text-blue-400/70'} />
         <span>Em Andamento</span>
         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
-          statusFilter === 'Em Andamento' ? 'bg-blue-500/30 text-blue-200' : 'bg-slate-800 text-slate-400'
+          statusFilter === 'Em Andamento'
+            ? 'bg-blue-500/30 text-blue-200'
+            : 'bg-slate-800 text-slate-400'
         }`}>
           {counts.emAndamento}
         </span>
@@ -401,7 +405,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <CheckCircle2 size={11} className={statusFilter === 'Concluído' ? 'text-emerald-400' : 'text-emerald-400/70'} />
         <span>Concluídos</span>
         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
-          statusFilter === 'Concluído' ? 'bg-emerald-500/30 text-emerald-200' : 'bg-slate-800 text-slate-400'
+          statusFilter === 'Concluído'
+            ? 'bg-emerald-500/30 text-emerald-200'
+            : 'bg-slate-800 text-slate-400'
         }`}>
           {counts.concluido}
         </span>
@@ -683,7 +689,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
                   <div className="flex gap-2">
                     <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
-                      isQuick ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-300 border-slate-700'
+                      isQuick
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
                     }`}>
                       {task.category}
                     </span>
@@ -701,21 +709,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 <div className="flex gap-1.5 md:gap-2 items-center">
                   <button
                     onClick={() => setSelectedTask(task)}
-                    className="p-3 rounded-2xl bg-slate-800/80 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
+                    className="p-3 rounded-2xl bg-slate-800/80 text-cyan-400/70 hover:text-cyan-300 hover:bg-cyan-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
                     title="Detalhes"
                   >
                     <Maximize2 size={18} />
                   </button>
                   <button
                     onClick={() => onEditTask(task)}
-                    className="p-3 rounded-2xl bg-slate-800/80 text-slate-400 hover:text-blue-400 hover:bg-blue-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
+                    className="p-3 rounded-2xl bg-slate-800/80 text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
                     title="Editar"
                   >
                     <Pencil size={18} />
                   </button>
                   <button
                     onClick={() => setTaskToDelete(task)}
-                    className="p-3 rounded-2xl bg-slate-800/80 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
+                    className="p-3 rounded-2xl bg-slate-800/80 text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/15 active:scale-90 transition-all cursor-pointer border border-slate-700/60"
                     title="Excluir"
                   >
                     <Trash2 size={18} />
@@ -724,9 +732,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   <button
                     onClick={() => onUpdateStatus(task.id, task.status === 'Concluído' ? 'Pendente' : 'Concluído')}
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center active:scale-90 transition-all cursor-pointer ${
-                      task.status === 'Concluído' 
-                        ? 'bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)]' 
-                        : 'bg-slate-800 text-slate-400 hover:bg-emerald-500/20 hover:text-emerald-400 border border-slate-700/60'
+                      task.status === 'Concluído'
+                        ? 'bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)]'
+                        : 'bg-slate-800 text-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-300 border border-slate-700/60'
                     }`}
                   >
                     <CheckCircle2 size={22} />
@@ -1035,21 +1043,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 <div className="flex gap-1 items-center">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                                    className="p-1.5 rounded-lg transition-colors text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 cursor-pointer"
+                                    className="p-1.5 rounded-lg transition-colors text-cyan-400/70 hover:text-cyan-300 hover:bg-cyan-500/15 cursor-pointer"
                                     title="Expandir"
                                   >
                                     <Maximize2 size={13} />
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
-                                    className="p-1.5 rounded-lg transition-colors text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+                                    className="p-1.5 rounded-lg transition-colors text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/15 cursor-pointer"
                                     title="Editar"
                                   >
                                     <Pencil size={13} />
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setTaskToDelete(task); }}
-                                    className="p-1.5 rounded-lg transition-colors text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                    className="p-1.5 rounded-lg transition-colors text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/15 cursor-pointer"
                                     title="Excluir"
                                   >
                                     <Trash2 size={13} />
@@ -1057,13 +1065,17 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                   <div className="w-px h-4 bg-slate-800 mx-1"></div>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Em Andamento'); }}
-                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Em Andamento' ? 'bg-blue-500/20 text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Em Andamento'
+                                      ? 'bg-blue-500/20 text-blue-400'
+                                      : 'text-slate-500 hover:text-slate-300'}`}
                                   >
                                     <Circle size={13} />
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, 'Concluído'); }}
-                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Concluído' ? 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-slate-500 hover:text-slate-300'}`}
+                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${task.status === 'Concluído'
+                                      ? 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                                      : 'text-slate-500 hover:text-slate-300'}`}
                                   >
                                     <CheckCircle2 size={13} />
                                   </button>

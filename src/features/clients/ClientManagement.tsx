@@ -505,7 +505,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 <button
                   type="button"
                   onClick={() => handleEdit(client)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors border border-transparent hover:border-blue-500/20 cursor-pointer"
+                  className="p-2 rounded-xl text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/15 transition-colors border border-transparent hover:border-blue-500/20 cursor-pointer"
                   title="Editar Cliente"
                   aria-label="Editar Cliente"
                 >
@@ -514,7 +514,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDelete(client)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer"
+                  className="p-2 rounded-xl text-rose-400/70 hover:text-rose-300 hover:bg-rose-500/15 transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer"
                   title="Excluir Cliente"
                   aria-label="Excluir Cliente"
                 >
@@ -725,7 +725,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                       <button 
                         type="button"
                         onClick={() => handleEdit(client)}
-                        className="p-2 text-slate-400 hover:text-blue-400 transition-colors rounded-xl hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 cursor-pointer"
+                        className="p-2 text-blue-400/70 hover:text-blue-300 transition-colors rounded-xl hover:bg-blue-500/15 border border-transparent hover:border-blue-500/20 cursor-pointer"
                         title="Editar Cliente"
                         aria-label="Editar Cliente"
                       >
@@ -734,7 +734,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                       <button 
                         type="button"
                         onClick={() => handleDelete(client)}
-                        className="p-2 text-slate-400 hover:text-rose-400 transition-colors rounded-xl hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 cursor-pointer"
+                        className="p-2 text-rose-400/70 hover:text-rose-300 transition-colors rounded-xl hover:bg-rose-500/15 border border-transparent hover:border-rose-500/20 cursor-pointer"
                         title="Excluir Cliente"
                         aria-label="Excluir Cliente"
                       >

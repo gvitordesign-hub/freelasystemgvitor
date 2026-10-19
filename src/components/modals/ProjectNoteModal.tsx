@@ -66,12 +66,28 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    const [editingTotal, setEditingTotal] = useState(false);
    const [localTotal, setLocalTotal] = useState('');
    const [showIndividualPrices, setShowIndividualPrices] = useState(false);
+   const [localNotes, setLocalNotes] = useState('');
 
    const clientInvoices = useMemo(() => invoices.filter(i => i.clientId === client.id), [invoices, client.id]);
 
    const currentInvoice = useMemo(() =>
       selectedInvoiceId ? clientInvoices.find(i => i.id === selectedInvoiceId) : null
       , [clientInvoices, selectedInvoiceId]);
+
+   useEffect(() => {
+      setLocalNotes(currentInvoice?.notes || '');
+   }, [currentInvoice?.id]);
+
+   useEffect(() => {
+      if (!currentInvoice) return;
+      if (localNotes === (currentInvoice.notes || '')) return;
+
+      const timer = setTimeout(() => {
+         onUpdateInvoice({ ...currentInvoice, notes: localNotes });
+      }, 400);
+
+      return () => clearTimeout(timer);
+   }, [localNotes, currentInvoice, onUpdateInvoice]);
 
    const invoiceTasks = useMemo(() =>
       tasks.filter(t => t.invoiceId === selectedInvoiceId)
@@ -175,7 +191,7 @@ ${taskLines || '  _(Nenhuma demanda finalizada nesta nota)_'}
 
 💰 *TOTAL A PAGAR:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
 ${localPix ? `🔑 *CHAVE PIX:* \`${localPix}\`` : ''}
-${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : ''}
+${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes || currentInvoice.notes}_` : ''}
 
 🙏 _Agradecemos pela parceria! Qualquer dúvida, estamos à disposição._
       `.trim();
@@ -528,7 +544,7 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                                     <button
                                        type="button"
                                        onClick={handleSaveTotal}
-                                       className="p-2 bg-emerald-500 text-slate-950 rounded-xl hover:bg-emerald-400 transition-all font-bold cursor-pointer"
+                                       className="p-2 bg-emerald-500 text-emerald-950 rounded-xl hover:bg-emerald-400 transition-all font-black cursor-pointer"
                                        title="Salvar valor"
                                     >
                                        <Check size={16} />
@@ -646,9 +662,14 @@ ${currentInvoice.notes ? `\n📝 *Observações:* _${currentInvoice.notes}_` : '
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-600 uppercase flex items-center gap-2"><PenLine size={12} /> Observações Específicas</label>
                            <textarea
-                              value={currentInvoice?.notes || ''}
-                              onChange={e => onUpdateInvoice({ ...currentInvoice!, notes: e.target.value })}
-                              className="w-full h-24 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 outline-none focus:border-[var(--primary-color)] transition-all resize-none"
+                              value={localNotes}
+                              onChange={e => setLocalNotes(e.target.value)}
+                              onBlur={() => {
+                                 if (currentInvoice && localNotes !== (currentInvoice.notes || '')) {
+                                    onUpdateInvoice({ ...currentInvoice, notes: localNotes });
+                                 }
+                              }}
+                              className="w-full h-24 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 outline-none focus:border-[var(--primary-color)] transition-all resize-none shadow-inner"
                               placeholder="Ex: Pagamento 50/50, descontos aplicados..."
                            />
                         </div>

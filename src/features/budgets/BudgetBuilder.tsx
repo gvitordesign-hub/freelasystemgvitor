@@ -183,12 +183,14 @@ Qualquer dúvida, estou à disposição!
       }
     });
 
+    const todayDate = new Date().toISOString().split('T')[0];
+
     const tasks: Omit<Task, 'id'>[] = activeBudget.items.map(item => ({
       title: item.description,
       clientId: finalClientId,
       value: item.unitValue * item.quantity,
       day: 'Segunda' as DayOfWeek,
-      date: new Date().toISOString(),
+      date: todayDate,
       status: 'Pendente',
       category: 'Serviço',
       position: 0
@@ -198,7 +200,7 @@ Qualquer dúvida, estou à disposição!
       description: `Projeto: ${selectedClient?.company || selectedClient?.name}`,
       value: total,
       type: 'Entrada',
-      date: new Date().toISOString(),
+      date: todayDate,
       status: 'Pendente',
       category: 'Serviço'
     };

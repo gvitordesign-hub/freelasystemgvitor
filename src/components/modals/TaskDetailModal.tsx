@@ -26,8 +26,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                             <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] ${
                                     task.category === 'Demanda Rápida' 
-                                        ? 'bg-amber-500 text-slate-950' 
-                                        : 'bg-[var(--primary-color)] text-slate-950'
+                                        ? 'bg-amber-500 text-amber-950 font-black' 
+                                        : 'bg-[var(--primary-color)] text-white font-black'
                                 }`}>
                                     {task.category === 'Demanda Rápida' ? '⚡ Demanda Rápida' : task.category}
                                 </span>
@@ -144,7 +144,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, client, onClose
                                             onClick={() => onToggleDeliverable && onToggleDeliverable(item.id)}
                                             className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all text-left group cursor-pointer ${
                                                 item.completed
-                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-slate-300'
+                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
                                                     : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
                                             }`}
                                         >

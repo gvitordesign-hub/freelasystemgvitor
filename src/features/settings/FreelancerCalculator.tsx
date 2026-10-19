@@ -187,7 +187,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
               key={i}
               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
                 step === i
-                  ? 'bg-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110'
+                  ? 'bg-emerald-500 text-emerald-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110'
                   : step > i
                   ? 'bg-emerald-500/50 text-white'
                   : 'bg-slate-800 text-slate-500 border border-slate-700'
@@ -271,7 +271,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                 className="space-y-6"
               >
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-purple-400 flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     <DollarSign size={20} /> Etapa 2: Custos de Manutenção
                   </h3>
                   <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs font-bold border border-purple-500/30">
@@ -532,7 +532,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
               step === 4 
                 ? 'opacity-0 cursor-default' 
-                : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                : 'bg-emerald-500 text-emerald-950 font-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
             }`}
           >
             Próximo <ChevronRight size={18} />

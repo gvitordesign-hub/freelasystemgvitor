@@ -25,10 +25,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                             <LayoutDashboard size={22} className="text-white" />
                         </div>
                         <div className="flex flex-col items-start">
-                            <span className="text-2xl font-black tracking-tighter text-white leading-none">FRELLA<span className="text-purple-500">SYSTEM</span></span>
+                            <span className="text-2xl font-black tracking-tighter text-white leading-none">FRELLA<span className="text-[var(--primary-color)]">SYSTEM</span></span>
                         </div>
                     </div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">{title}</h1>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">{title}</h1>
                     <p className="text-sm text-slate-500 mt-2">{subtitle}</p>
                 </div>
 

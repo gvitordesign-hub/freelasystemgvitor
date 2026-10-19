@@ -649,7 +649,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveDeliverable(item.id)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-rose-400/60 hover:text-rose-300 hover:bg-rose-500/15 rounded-lg transition-colors"
                         title="Remover peça"
                       >
                         <Trash2 size={13} />

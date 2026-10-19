@@ -22,20 +22,10 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
   onOpenMobileMenu,
   weekLabel
 }) => {
-  const [metricType, setMetricType] = useState<'received' | 'pending'>(() => {
-    return (localStorage.getItem('gamification_metric_type') as 'received' | 'pending') || 'received';
-  });
-
-  const handleToggleMetric = () => {
-    const next = metricType === 'received' ? 'pending' : 'received';
-    setMetricType(next);
-    localStorage.setItem('gamification_metric_type', next);
-  };
-
-  const isPendingMode = metricType === 'pending';
-  const displayedValue = isPendingMode ? pendingIncome : currentIncome;
   const goal = stats.weeklyGoal || 2000;
-  const progressPercentage = Math.min((displayedValue / goal) * 100, 100);
+  const receivedPercentage = Math.min((currentIncome / goal) * 100, 100);
+  const pendingPercentage = Math.min((pendingIncome / goal) * 100, Math.max(0, 100 - receivedPercentage));
+  const totalPercentage = Math.min(((currentIncome + pendingIncome) / goal) * 100, 100);
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -55,67 +45,66 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="relative">
-            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20 transition-all duration-300 hover:scale-105 shrink-0 ${
-              isPendingMode 
-                ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-                : 'bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-color)]/80 neon-shadow-primary'
-            }`}>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20 transition-all duration-300 hover:scale-105 shrink-0 bg-gradient-to-br from-emerald-600/80 to-[var(--primary-color)] neon-shadow-primary">
               <span className="font-black cyber-font text-white text-xs sm:text-base drop-shadow-sm">{stats.level}</span>
             </div>
           </div>
           <div className="hidden sm:block">
-            <button
-              onClick={handleToggleMetric}
-              title="Clique para alternar entre Recebido e Pendente"
-              className="group flex items-center gap-1.5 text-left cursor-pointer focus:outline-none"
-            >
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 group-hover:text-slate-300 transition-colors font-black flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-left">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-black flex items-center gap-1.5">
                 Meta Semanal 
                 {weekLabel && (
                   <span className="text-[8px] px-1.5 py-0.5 rounded font-black text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 tracking-wider">
                     {weekLabel}
                   </span>
                 )}
-                <span className={`text-[8px] px-1 py-0.2 rounded font-black tracking-normal uppercase transition-colors ${
-                  isPendingMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                }`}>
-                  {isPendingMode ? 'Pendente' : 'Recebido'}
-                </span>
-                <RefreshCw size={8} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
               </p>
-            </button>
+            </div>
             <p className="text-[11px] md:text-xs font-bold text-slate-200 transition-colors flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPendingMode ? 'bg-amber-400' : 'bg-[var(--primary-color)]'}`}></span>
-              {Math.round(progressPercentage)}% Concluído
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-emerald-400">{Math.round(receivedPercentage)}% Recebido</span>
+              {pendingIncome > 0 && (
+                <span className="text-amber-400 text-[10px] font-bold">
+                  (+{Math.round((pendingIncome / goal) * 100)}% Pendente)
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col gap-1 min-w-0">
-          <div className="h-2 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                isPendingMode 
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]'
-                  : 'bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-color)]/90 shadow-[0_0_12px_var(--primary-shadow)]'
-              }`}
-              style={{ width: `${progressPercentage}%` }}
-            />
+          {/* Dual Segmented Progress Bar: Green (Recebido) + Amber (Pendente) */}
+          <div className="h-2.5 w-full bg-slate-900/90 rounded-full overflow-hidden border border-slate-800/80 p-0.5 flex relative">
+            {receivedPercentage > 0 && (
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] rounded-l-full transition-all duration-700 ease-out shrink-0"
+                style={{ width: `${receivedPercentage}%` }}
+                title={`Recebido: R$ ${currentIncome.toLocaleString('pt-BR')} (${Math.round(receivedPercentage)}%)`}
+              />
+            )}
+            {pendingPercentage > 0 && (
+              <div
+                className={`h-full bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-700 ease-out shrink-0 ${
+                  receivedPercentage === 0 ? 'rounded-l-full' : ''
+                } ${totalPercentage >= 100 ? 'rounded-r-full' : ''}`}
+                style={{ width: `${pendingPercentage}%` }}
+                title={`Pendente: R$ ${pendingIncome.toLocaleString('pt-BR')} (${Math.round(pendingPercentage)}%)`}
+              />
+            )}
           </div>
           <div className="flex justify-between items-center text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider cyber-font">
-            <button
-              onClick={handleToggleMetric}
-              className={`flex items-center gap-1 transition-all cursor-pointer hover:opacity-80 active:scale-95 group truncate ${
-                isPendingMode ? 'text-amber-400' : 'text-emerald-400'
-              }`}
-              title="Clique para alternar entre Recebido e Pendente"
-            >
-              <span className="truncate">
-                {isPendingMode ? 'Pendente: ' : 'Recebido: '}
-                R$ {displayedValue.toLocaleString('pt-BR')}
+            <div className="flex items-center gap-2 truncate">
+              <span className="text-emerald-400 flex items-center gap-1 font-bold truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                Recebido: R$ {currentIncome.toLocaleString('pt-BR')}
               </span>
-              <RefreshCw size={8} className="text-slate-500 group-hover:text-slate-300 transition-transform group-hover:rotate-180" />
-            </button>
+              {pendingIncome > 0 && (
+                <span className="text-amber-400 flex items-center gap-1 font-bold truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                  Pendente: R$ {pendingIncome.toLocaleString('pt-BR')}
+                </span>
+              )}
+            </div>
             <span className="text-slate-500 truncate ml-1">Meta: R$ {goal.toLocaleString('pt-BR')}</span>
           </div>
         </div>

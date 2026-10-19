@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-[#0a0c10] text-slate-200 flex items-center justify-center p-4 selection:bg-rose-500 selection:text-white">
+        <div className="min-h-screen bg-[#0a0c10] text-slate-100 flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
             {/* Glow accent */}
             <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />

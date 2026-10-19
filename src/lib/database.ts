@@ -161,13 +161,14 @@ export const db = {
         },
         async create(task: Omit<Task, 'id'>) {
             const userId = await getUserId();
+            const dateStr = task.date ? (task.date.includes('T') ? task.date.split('T')[0] : task.date) : undefined;
             const payload: any = {
                 title: task.title,
                 client_id: task.clientId,
                 invoice_id: task.invoiceId,
                 value: task.value,
                 day: task.day,
-                date: task.date,
+                date: dateStr,
                 status: task.status,
                 category: task.category,
                 briefing: task.briefing,
@@ -228,6 +229,9 @@ export const db = {
             if (task.invoiceId !== undefined) { transformed.invoice_id = task.invoiceId; delete transformed.invoiceId; }
             if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
             if (task.deliverables !== undefined) { transformed.deliverables = task.deliverables; }
+            if (transformed.date && transformed.date.includes('T')) {
+                transformed.date = transformed.date.split('T')[0];
+            }
 
             // Strip undefined properties
             Object.keys(transformed).forEach(k => {
@@ -618,7 +622,7 @@ export const db = {
             if (error) throw error;
             return data.map(b => ({ ...b, clientId: b.client_id, discountType: b.discount_type, downPayment: b.down_payment, validityDays: b.validity_days, createdAt: b.created_at })) as Budget[];
         },
-        async create(budget: Omit<Budget, 'id'>) {
+        async create(budget: Omit<Budget, 'id' | 'createdAt'> & { createdAt?: string }) {
             const userId = await getUserId();
             const { data, error } = await supabase.from('budgets').insert({
                 client_id: budget.clientId,
@@ -631,6 +635,19 @@ export const db = {
                 status: budget.status,
                 user_id: userId
             }).select().single();
+            if (error) throw error;
+            return { ...data, clientId: data.client_id, discountType: data.discount_type, downPayment: data.down_payment, validityDays: data.validity_days, createdAt: data.created_at } as Budget;
+        },
+        async update(id: string, budget: Partial<Budget>) {
+            const userId = await getUserId();
+            const transformed: any = { ...budget };
+            delete transformed.id;
+            delete transformed.user_id;
+            if (budget.clientId !== undefined) { transformed.client_id = budget.clientId; delete transformed.clientId; }
+            if (budget.discountType !== undefined) { transformed.discount_type = budget.discountType; delete transformed.discountType; }
+            if (budget.downPayment !== undefined) { transformed.down_payment = budget.downPayment; delete transformed.downPayment; }
+            if (budget.validityDays !== undefined) { transformed.validity_days = budget.validityDays; delete transformed.validityDays; }
+            const { data, error } = await supabase.from('budgets').update(transformed).eq('id', id).eq('user_id', userId).select().single();
             if (error) throw error;
             return { ...data, clientId: data.client_id, discountType: data.discount_type, downPayment: data.down_payment, validityDays: data.validity_days, createdAt: data.created_at } as Budget;
         },
@@ -647,19 +664,19 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('albums').select('*').eq('user_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
-            return data.map(a => ({ ...a, coverImage: a.cover_image, createdAt: a.created_at })) as Album[];
+            return data.map(a => ({ ...a, coverImage: a.cover_image, createdAt: a.created_at, assets: a.assets || [] })) as Album[];
         },
         async create(album: Omit<Album, 'id'>) {
             const userId = await getUserId();
-            const { data, error } = await supabase.from('albums').insert({
+            const payload: any = {
                 title: album.title,
                 category: album.category,
                 cover_image: album.coverImage,
-                assets: album.assets,
                 user_id: userId
-            }).select().single();
+            };
+            const { data, error } = await supabase.from('albums').insert(payload).select().single();
             if (error) throw error;
-            return { ...data, coverImage: data.cover_image, createdAt: data.created_at } as Album;
+            return { ...data, coverImage: data.cover_image, createdAt: data.created_at, assets: album.assets || [] } as Album;
         }
     },
 
@@ -688,7 +705,7 @@ export const db = {
                 description: h.description,
                 user_id: userId
             }));
-            const { data, error } = await supabase.from('holidays').insert(rows).select();
+            const { data, error } = await supabase.from('holidays').upsert(rows, { onConflict: 'date,user_id' }).select();
             if (error) throw error;
             return data as Holiday[];
         },

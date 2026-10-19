@@ -390,7 +390,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('today') }))}
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('today')
-                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                    ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
                 }`}
               >
@@ -401,7 +401,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('tomorrow') }))}
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('tomorrow')
-                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                    ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
                 }`}
               >
@@ -412,7 +412,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('friday') }))}
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('friday')
-                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                    ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
                 }`}
               >
@@ -423,7 +423,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('nextMonday') }))}
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('nextMonday')
-                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                    ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
                 }`}
               >
@@ -471,9 +471,9 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
 
           <button 
             type="submit" 
-            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
-            <Zap size={16} className="fill-slate-950" />
+            <Zap size={16} className="fill-amber-950" />
             Adicionar Lembrete Rápido
           </button>
         </form>

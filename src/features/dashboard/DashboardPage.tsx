@@ -194,16 +194,12 @@ const DashboardPage: React.FC = () => {
       .filter(t => t.status === 'Concluído' && !linkedTxTaskIds.has(t.id))
       .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
-    const tasksPending = weekTasks
-      .filter(t => t.status !== 'Concluído' && !linkedTxTaskIds.has(t.id))
-      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-
     const startLabel = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
     const endLabel = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
 
     return {
       weeklyIncome: txReceived + tasksReceived,
-      weeklyPendingIncome: txPending + tasksPending,
+      weeklyPendingIncome: txPending,
       weekLabel: `${startLabel} - ${endLabel}`
     };
   }, [selectedWeekStart, state.transactions, state.tasks]);
@@ -870,10 +866,23 @@ const DashboardPage: React.FC = () => {
 
   const handleBudgetApprove = useCallback(async (budget: Budget, tasks: Omit<Task, 'id'>[], transaction: Omit<Transaction, 'id'>) => {
     try {
+      // 0. Persist Budget to Supabase
+      const savedBudget = await db.budgets.create({
+        clientId: budget.clientId,
+        items: budget.items,
+        discount: budget.discount,
+        discountType: budget.discountType,
+        downPayment: budget.downPayment,
+        validityDays: budget.validityDays,
+        terms: budget.terms,
+        status: 'Approved',
+        createdAt: budget.createdAt || new Date().toISOString()
+      });
+
       // 1. Create Invoice
       const newInvoice = await db.invoices.create({
         clientId: budget.clientId,
-        title: `Orçamento Aprovado: ${new Date().toLocaleDateString()}`,
+        title: `Orçamento Aprovado: ${new Date().toLocaleDateString('pt-BR')}`,
         status: 'Pendente',
         notes: '',
         createdAt: new Date().toISOString()
@@ -887,7 +896,7 @@ const DashboardPage: React.FC = () => {
 
       setState(prev => ({
         ...prev,
-        budgets: [...prev.budgets, budget],
+        budgets: [...prev.budgets, savedBudget],
         invoices: [...prev.invoices, newInvoice],
         tasks: [...prev.tasks, ...newTasks],
         transactions: [...prev.transactions, newTransaction]

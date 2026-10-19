@@ -99,7 +99,7 @@ export interface DeliverableItem {
 export interface Task {
   id: string;
   title: string;
-  clientId: string;
+  clientId?: string;
   invoiceId?: string;
   value: number;
   day: DayOfWeek;

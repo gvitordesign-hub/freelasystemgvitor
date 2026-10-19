@@ -196,7 +196,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
         href={`https://wa.me/${stats.whatsapp}`}
         target="_blank"
         rel="noreferrer"
-        className="fixed md:hidden bottom-8 right-8 bg-white text-black p-4 rounded-full shadow-2xl z-40 animate-bounce"
+        className="fixed md:hidden bottom-8 right-8 bg-white text-black p-4 rounded-full shadow-2xl z-40 hover:scale-105 active:scale-95 transition-transform duration-300"
       >
         <MessageCircle size={24} />
       </a>

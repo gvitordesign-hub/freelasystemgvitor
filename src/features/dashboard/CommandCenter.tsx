@@ -384,7 +384,9 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                       {task.category === 'Demanda Rápida' ? 'Lembrete' : `R$ ${task.value.toLocaleString('pt-BR')}`}
                     </p>
                     <p className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full mt-1 inline-block ${
-                      task.status === 'Em Andamento' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700/50'
+                      task.status === 'Em Andamento'
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700/50'
                     }`}>
                       {task.status}
                     </p>
