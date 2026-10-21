@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, Clock, Search, Plus, ArrowUpRight, ArrowDownRight, PencilLine, ExternalLink, ChevronLeft, ChevronRight, Calendar, BarChart3 } from 'lucide-react';
 import { Transaction, Task, TransactionType, Client, Invoice } from '@/types';
 import FinancialReportModal from '@/components/modals/FinancialReportModal';
+import { isSameMonthAndYear, formatDateBR } from '@/utils/dateUtils';
 
 interface FinanceDashboardProps {
   transactions: Transaction[];
@@ -30,10 +31,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ transactions, tasks
 
   const monthYearLabel = viewDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
 
-  const filteredByMonth = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d.getMonth() === viewDate.getMonth() && d.getFullYear() === viewDate.getFullYear();
-  });
+  const filteredByMonth = transactions.filter(t => isSameMonthAndYear(t.date, viewDate));
 
   const filteredTransactions = filteredByMonth.filter(t =>
     t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -240,12 +238,15 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ transactions, tasks
             <tbody className="divide-y divide-slate-800">
               {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => {
                 const linkedTask = tx.taskId ? tasks.find(t => t.id === tx.taskId) : null;
-                const client = linkedTask ? clients.find(c => c.id === linkedTask.clientId) : null;
+                const linkedInvoice = tx.invoiceId ? invoices.find(i => i.id === tx.invoiceId) : null;
+                const client = linkedTask 
+                  ? clients.find(c => c.id === linkedTask.clientId) 
+                  : (linkedInvoice ? clients.find(c => c.id === linkedInvoice.clientId) : null);
 
                 return (
                   <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors group">
                     <td className="px-6 py-4 text-sm text-slate-400 font-mono">
-                      {new Date(tx.date).toLocaleDateString('pt-BR')}
+                      {formatDateBR(tx.date)}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-200">
                       <div className="flex items-center gap-3">
@@ -279,24 +280,22 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ transactions, tasks
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         {linkedTask && (
-                          <>
-                            <button
-                              onClick={() => onEditTask(linkedTask)}
-                              title="Editar Demanda"
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all"
-                            >
-                              <PencilLine size={14} />
-                            </button>
-                            {client && (
-                              <button
-                                onClick={() => onViewClientNote(client)}
-                                title="Ver Nota do Cliente"
-                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-[var(--primary-color)] hover:brightness-125 rounded-lg transition-all"
-                              >
-                                <ExternalLink size={14} />
-                              </button>
-                            )}
-                          </>
+                          <button
+                            onClick={() => onEditTask(linkedTask)}
+                            title="Editar Demanda"
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all"
+                          >
+                            <PencilLine size={14} />
+                          </button>
+                        )}
+                        {client && (
+                          <button
+                            onClick={() => onViewClientNote(client)}
+                            title="Ver Nota do Cliente"
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-[var(--primary-color)] hover:brightness-125 rounded-lg transition-all"
+                          >
+                            <ExternalLink size={14} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -320,6 +319,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({ transactions, tasks
           transactions={transactions}
           clients={clients}
           tasks={tasks}
+          invoices={invoices}
           onClose={() => setShowReportModal(false)}
         />
       )}

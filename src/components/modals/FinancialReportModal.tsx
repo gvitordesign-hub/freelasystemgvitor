@@ -14,12 +14,14 @@ import {
     FileText,
     Search
 } from 'lucide-react';
-import { Transaction, Client, Task } from '../../types';
+import { Transaction, Client, Task, Invoice } from '../../types';
+import { formatDateBR } from '@/utils/dateUtils';
 
 interface FinancialReportModalProps {
     transactions: Transaction[];
     clients: Client[];
     tasks: Task[];
+    invoices?: Invoice[];
     onClose: () => void;
 }
 
@@ -27,6 +29,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
     transactions,
     clients,
     tasks,
+    invoices = [],
     onClose
 }) => {
     const [startDate, setStartDate] = useState(() => {
@@ -38,14 +41,13 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
     });
 
     const filteredTransactions = useMemo(() => {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        const startStr = startDate.split('T')[0];
+        const endStr = endDate.split('T')[0];
 
         return transactions.filter(t => {
-            const d = new Date(t.date);
-            return d >= start && d <= end;
-        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const txDate = (t.date || '').split('T')[0];
+            return txDate >= startStr && txDate <= endStr;
+        }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }, [transactions, startDate, endDate]);
 
     const stats = useMemo(() => {
@@ -92,12 +94,22 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
         window.print();
     };
 
-    const getClientName = (taskId?: string) => {
-        if (!taskId) return 'Geral';
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) return 'Geral';
-        const client = clients.find(c => c.id === task.clientId);
-        return client ? client.name : 'Cliente Externo';
+    const getClientName = (tx: Transaction) => {
+        if (tx.taskId) {
+            const task = tasks.find(t => t.id === tx.taskId);
+            if (task) {
+                const client = clients.find(c => c.id === task.clientId);
+                if (client) return client.name;
+            }
+        }
+        if (tx.invoiceId) {
+            const invoice = invoices.find(i => i.id === tx.invoiceId);
+            if (invoice) {
+                const client = clients.find(c => c.id === invoice.clientId);
+                if (client) return client.name;
+            }
+        }
+        return 'Geral';
     };
 
     return (
@@ -266,13 +278,13 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                                             {filteredTransactions.map((tx) => (
                                                 <tr key={tx.id} className="text-xs hover:bg-slate-800/30 print:text-slate-900">
                                                     <td className="px-6 py-4 font-mono text-slate-400 print:text-slate-600">
-                                                        {new Date(tx.date).toLocaleDateString('pt-BR')}
+                                                        {formatDateBR(tx.date)}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">
                                                             <span className="font-bold text-slate-200 print:text-slate-900">{tx.description}</span>
                                                             <span className="text-[9px] text-slate-500 uppercase tracking-tighter font-black">
-                                                                {getClientName(tx.taskId)} • {tx.category}
+                                                                {getClientName(tx)} • {tx.category}
                                                             </span>
                                                         </div>
                                                     </td>

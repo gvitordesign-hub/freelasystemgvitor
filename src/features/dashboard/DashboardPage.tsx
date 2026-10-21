@@ -9,6 +9,7 @@ import GamificationBar from '@/features/dashboard/GamificationBar';
 import Sidebar from '@/features/dashboard/Sidebar';
 import { DashboardTab } from '@/features/dashboard/types';
 import SystemLoader from '@/components/common/SystemLoader';
+import { getLocalDateString, isSameMonthAndYear } from '@/utils/dateUtils';
 
 // Code-splitting: features e modais só são carregados quando usados
 const KanbanBoard = lazy(() => import('@/features/kanban/KanbanBoard'));
@@ -27,6 +28,118 @@ const TransactionModal = lazy(() => import('@/components/modals/TransactionModal
 const SuspenseFallback: React.FC = () => (
   <SystemLoader compact message="Carregando módulo..." fullScreen={false} />
 );
+
+/**
+ * Auto-healing: reconcilia notas marcadas como pagas com as transações do fluxo de caixa.
+ * Garante que se uma nota está 'Pago', transações 'Pago' com os valores proporcionais corretos
+ * existam no fluxo de caixa, sincronizando banco e interface sem perdas.
+ */
+const reconcileInvoicesAndTransactions = async (
+  invoices: Invoice[],
+  tasks: Task[],
+  transactions: Transaction[],
+  clients: Client[]
+): Promise<Transaction[]> => {
+  let currentTransactions = [...transactions];
+  const todayDate = getLocalDateString(new Date());
+
+  for (const inv of invoices) {
+    if (inv.status === 'Pago') {
+      const invTasks = tasks.filter(t => t.invoiceId === inv.id);
+      const calculatedTotal = invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
+      const invoiceTotal = (inv.customValue !== undefined && inv.customValue !== null)
+        ? Number(inv.customValue)
+        : calculatedTotal;
+      const paymentDate = inv.paidAt ? inv.paidAt.split('T')[0] : todayDate;
+      const client = clients.find(c => c.id === inv.clientId);
+
+      if (invTasks.length > 0 && calculatedTotal > 0) {
+        for (const task of invTasks) {
+          let expectedValue = Number(task.value) || 0;
+          if (inv.customValue !== undefined && inv.customValue !== null && calculatedTotal > 0) {
+            expectedValue = Number((expectedValue * (Number(inv.customValue) / calculatedTotal)).toFixed(2));
+          }
+
+          const existingTx = currentTransactions.find(tx => tx.taskId === task.id && tx.type === 'Entrada');
+          if (existingTx) {
+            if (existingTx.status !== 'Pago' || Math.abs(existingTx.value - expectedValue) > 0.01) {
+              const updatedTx: Transaction = {
+                ...existingTx,
+                status: 'Pago',
+                value: expectedValue,
+                date: existingTx.date || paymentDate,
+                invoiceId: inv.id
+              };
+              currentTransactions = currentTransactions.map(t => t.id === existingTx.id ? updatedTx : t);
+              db.transactions.update(existingTx.id, {
+                status: 'Pago',
+                value: expectedValue,
+                date: existingTx.date || paymentDate,
+                invoiceId: inv.id
+              }).catch(e => console.error('Error reconciling tx in DB:', e));
+            }
+          } else if (expectedValue > 0) {
+            try {
+              const newTx = await db.transactions.create({
+                description: `Serviço: ${task.title}`,
+                value: expectedValue,
+                type: 'Entrada',
+                date: paymentDate,
+                status: 'Pago',
+                category: task.category || 'Serviço',
+                taskId: task.id,
+                invoiceId: inv.id
+              });
+              currentTransactions = [...currentTransactions, newTx];
+            } catch (err) {
+              console.error('Error auto-creating reconciled tx:', err);
+            }
+          }
+        }
+      } else if (invoiceTotal > 0) {
+        const existingTx = currentTransactions.find(tx => 
+          (tx.invoiceId === inv.id || (!tx.taskId && tx.description.includes(inv.title))) && tx.type === 'Entrada'
+        );
+
+        if (existingTx) {
+          if (existingTx.status !== 'Pago' || Math.abs(existingTx.value - invoiceTotal) > 0.01) {
+            const updatedTx: Transaction = {
+              ...existingTx,
+              status: 'Pago',
+              value: invoiceTotal,
+              date: existingTx.date || paymentDate,
+              invoiceId: inv.id
+            };
+            currentTransactions = currentTransactions.map(t => t.id === existingTx.id ? updatedTx : t);
+            db.transactions.update(existingTx.id, {
+              status: 'Pago',
+              value: invoiceTotal,
+              date: existingTx.date || paymentDate,
+              invoiceId: inv.id
+            }).catch(e => console.error('Error reconciling invoice tx in DB:', e));
+          }
+        } else {
+          try {
+            const newTx = await db.transactions.create({
+              description: `Nota: ${inv.title}${client ? ` (${client.company || client.name})` : ''}`,
+              value: invoiceTotal,
+              type: 'Entrada',
+              date: paymentDate,
+              status: 'Pago',
+              category: 'Serviço',
+              invoiceId: inv.id
+            });
+            currentTransactions = [...currentTransactions, newTx];
+          } catch (err) {
+            console.error('Error auto-creating reconciled invoice tx:', err);
+          }
+        }
+      }
+    }
+  }
+
+  return currentTransactions;
+};
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -66,12 +179,22 @@ const DashboardPage: React.FC = () => {
         db.holidays.list()
       ]);
 
+      const clients = clientsRes.status === 'fulfilled' ? clientsRes.value : [];
+      const tasks = tasksRes.status === 'fulfilled' ? tasksRes.value : [];
+      const rawTransactions = transactionsRes.status === 'fulfilled' ? transactionsRes.value : [];
+      const invoices = invoicesRes.status === 'fulfilled' ? invoicesRes.value : [];
+
+      // Auto-reconcile paid invoices and cash flow
+      const reconciledTransactions = (invoices.length > 0)
+        ? await reconcileInvoicesAndTransactions(invoices, tasks, rawTransactions, clients)
+        : rawTransactions;
+
       setState(prev => ({
-        clients: clientsRes.status === 'fulfilled' ? clientsRes.value : prev.clients,
-        tasks: tasksRes.status === 'fulfilled' ? tasksRes.value : prev.tasks,
-        transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value : prev.transactions,
+        clients: clientsRes.status === 'fulfilled' ? clients : prev.clients,
+        tasks: tasksRes.status === 'fulfilled' ? tasks : prev.tasks,
+        transactions: transactionsRes.status === 'fulfilled' ? reconciledTransactions : prev.transactions,
         services: servicesRes.status === 'fulfilled' ? servicesRes.value : prev.services,
-        invoices: invoicesRes.status === 'fulfilled' ? invoicesRes.value : prev.invoices,
+        invoices: invoicesRes.status === 'fulfilled' ? invoices : prev.invoices,
         reminders: remindersRes.status === 'fulfilled' ? remindersRes.value : prev.reminders,
         budgets: budgetsRes.status === 'fulfilled' ? budgetsRes.value : prev.budgets,
         albums: albumsRes.status === 'fulfilled' ? albumsRes.value : prev.albums,
@@ -93,29 +216,86 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Real-time synchronization with connection resilience
+  // Continuous real-time synchronization:
+  // 1. Supabase WebSockets (multi-table channels)
+  // 2. Heartbeat polling every 10 seconds
+  // 3. Window focus / visibilitychange / online events
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public' },
-        () => {
-          fetchData(true);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setSyncStatus('synced');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setSyncStatus('error');
-        }
-      });
+    let isSubscribed = true;
+    let reconnectTimeout: any = null;
+
+    const setupRealtime = () => {
+      const channel = supabase
+        .channel(`gvitor-sync-${user.id}-${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings' }, () => {
+          if (isSubscribed) fetchData(true);
+        })
+        .subscribe((status) => {
+          if (!isSubscribed) return;
+          if (status === 'SUBSCRIBED') {
+            setSyncStatus('synced');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setSyncStatus('error');
+            // Auto-reconnect after 4 seconds
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = setTimeout(() => {
+              if (isSubscribed) {
+                supabase.removeChannel(channel);
+                setupRealtime();
+                fetchData(true);
+              }
+            }, 4000);
+          }
+        });
+
+      return channel;
+    };
+
+    const activeChannel = setupRealtime();
+
+    // 2. Heartbeat background polling (every 10s while tab is visible)
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && isSubscribed) {
+        fetchData(true);
+      }
+    }, 10000);
+
+    // 3. Tab visibility, window focus, network reconnect listeners
+    const handleSyncEvent = () => {
+      if (document.visibilityState === 'visible' && isSubscribed) {
+        fetchData(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleSyncEvent);
+    window.addEventListener('focus', handleSyncEvent);
+    window.addEventListener('online', handleSyncEvent);
 
     return () => {
-      supabase.removeChannel(channel);
+      isSubscribed = false;
+      clearTimeout(reconnectTimeout);
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleSyncEvent);
+      window.removeEventListener('focus', handleSyncEvent);
+      window.removeEventListener('online', handleSyncEvent);
+      supabase.removeChannel(activeChannel);
     };
   }, [user, fetchData]);
 
@@ -206,25 +386,15 @@ const DashboardPage: React.FC = () => {
 
   const monthlyIncome = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
     return state.transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'Entrada' && t.status === 'Pago' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      })
+      .filter(t => t.type === 'Entrada' && t.status === 'Pago' && isSameMonthAndYear(t.date, now))
       .reduce((acc, curr) => acc + curr.value, 0);
   }, [state.transactions]);
 
   const monthlyPendingIncome = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
     return state.transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'Entrada' && t.status === 'Pendente' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      })
+      .filter(t => t.type === 'Entrada' && t.status === 'Pendente' && isSameMonthAndYear(t.date, now))
       .reduce((acc, curr) => acc + curr.value, 0);
   }, [state.transactions]);
 
@@ -434,10 +604,8 @@ const DashboardPage: React.FC = () => {
 
   const updateInvoice = useCallback(async (updated: Invoice) => {
     const todayIso = new Date().toISOString();
-    const todayDate = todayIso.split('T')[0];
+    const todayDate = getLocalDateString(new Date());
 
-    // Se o status mudou para Pago, garantir que paidAt seja gravado com a data/hora de hoje
-    // Se mudou para Pendente, zerar paidAt
     let invoiceWithPaymentDate: Invoice = { ...updated };
     if (updated.status === 'Pago') {
       invoiceWithPaymentDate.paidAt = updated.paidAt || todayIso;
@@ -445,149 +613,173 @@ const DashboardPage: React.FC = () => {
       invoiceWithPaymentDate.paidAt = null;
     }
 
-    // 1. Optimistic update
-    setState(prev => {
-      const nextInvoices = prev.invoices.map(i => i.id === invoiceWithPaymentDate.id ? invoiceWithPaymentDate : i);
-      const invoiceTasks = prev.tasks.filter(t => t.invoiceId === invoiceWithPaymentDate.id);
-      const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
-      const taskIds = new Set(invoiceTasks.map(t => t.id));
+    const paymentDate = invoiceWithPaymentDate.paidAt ? invoiceWithPaymentDate.paidAt.split('T')[0] : todayDate;
 
-      const nextTransactions = prev.transactions.map(tx => {
-        if (tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada') {
-          const task = invoiceTasks.find(t => t.id === tx.taskId);
-          if (task) {
-            let newValue = tx.value;
-            let newStatus = tx.status;
-            let newDate = tx.date;
+    // Snapshot existing data for calculations
+    const client = state.clients.find(c => c.id === invoiceWithPaymentDate.clientId);
+    const invoiceTasks = state.tasks.filter(t => t.invoiceId === invoiceWithPaymentDate.id);
+    const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+    const invoiceTotal = (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null)
+      ? Number(invoiceWithPaymentDate.customValue)
+      : calculatedTotal;
+    const taskIds = new Set(invoiceTasks.map(t => t.id));
 
-            if (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null) {
-              const scale = calculatedTotal > 0 ? (Number(invoiceWithPaymentDate.customValue) / calculatedTotal) : 1;
-              newValue = Number(((Number(task.value) || 0) * scale).toFixed(2));
-            } else {
-              newValue = Number(task.value) || 0;
-            }
+    // Prepare synchronized transactions
+    interface TxAction {
+      isNew: boolean;
+      tx: Transaction;
+    }
+    const txActions: TxAction[] = [];
 
-            if (invoiceWithPaymentDate.status === 'Pago' && tx.status !== 'Pago') {
-              newStatus = 'Pago';
-              newDate = todayDate;
-            } else if (invoiceWithPaymentDate.status === 'Pendente' && tx.status === 'Pago') {
-              newStatus = 'Pendente';
-            }
+    if (invoiceWithPaymentDate.status === 'Pago') {
+      if (invoiceTasks.length > 0 && calculatedTotal > 0) {
+        for (const task of invoiceTasks) {
+          let val = Number(task.value) || 0;
+          if (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null && calculatedTotal > 0) {
+            val = Number((val * (Number(invoiceWithPaymentDate.customValue) / calculatedTotal)).toFixed(2));
+          }
 
-            return { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente', date: newDate };
+          const existingTx = state.transactions.find(tx => tx.taskId === task.id && tx.type === 'Entrada');
+          if (existingTx) {
+            txActions.push({
+              isNew: false,
+              tx: {
+                ...existingTx,
+                value: val,
+                status: 'Pago',
+                date: existingTx.date || paymentDate,
+                invoiceId: invoiceWithPaymentDate.id
+              }
+            });
+          } else if (val > 0) {
+            txActions.push({
+              isNew: true,
+              tx: {
+                id: 'opt-' + task.id + '-' + Date.now(),
+                description: `Serviço: ${task.title}`,
+                value: val,
+                type: 'Entrada',
+                date: paymentDate,
+                status: 'Pago',
+                category: task.category || 'Serviço',
+                taskId: task.id,
+                invoiceId: invoiceWithPaymentDate.id
+              }
+            });
           }
         }
-        return tx;
-      });
+      } else if (invoiceTotal > 0) {
+        const existingTx = state.transactions.find(tx => 
+          (tx.invoiceId === invoiceWithPaymentDate.id || (!tx.taskId && tx.description.includes(invoiceWithPaymentDate.title))) && tx.type === 'Entrada'
+        );
 
+        if (existingTx) {
+          txActions.push({
+            isNew: false,
+            tx: {
+              ...existingTx,
+              value: invoiceTotal,
+              status: 'Pago',
+              date: existingTx.date || paymentDate,
+              invoiceId: invoiceWithPaymentDate.id
+            }
+          });
+        } else {
+          txActions.push({
+            isNew: true,
+            tx: {
+              id: 'opt-inv-' + invoiceWithPaymentDate.id + '-' + Date.now(),
+              description: `Nota: ${invoiceWithPaymentDate.title}${client ? ` (${client.company || client.name})` : ''}`,
+              value: invoiceTotal,
+              type: 'Entrada',
+              date: paymentDate,
+              status: 'Pago',
+              category: 'Serviço',
+              invoiceId: invoiceWithPaymentDate.id
+            }
+          });
+        }
+      }
+    } else if (invoiceWithPaymentDate.status === 'Pendente') {
+      // Revert any linked transactions to Pendente
+      state.transactions.forEach(tx => {
+        const isLinkedToTask = tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada';
+        const isLinkedToInv = (tx.invoiceId === invoiceWithPaymentDate.id || (!tx.taskId && tx.description.includes(invoiceWithPaymentDate.title))) && tx.type === 'Entrada';
+        if (isLinkedToTask || isLinkedToInv) {
+          txActions.push({
+            isNew: false,
+            tx: { ...tx, status: 'Pendente' }
+          });
+        }
+      });
+    }
+
+    // 1. Synchronous Optimistic Update
+    setState(prev => {
+      const nextInvoices = prev.invoices.map(i => i.id === invoiceWithPaymentDate.id ? invoiceWithPaymentDate : i);
       const nextTasks = invoiceWithPaymentDate.status === 'Pago'
         ? prev.tasks.map(t => taskIds.has(t.id) && t.status !== 'Concluído' ? { ...t, status: 'Concluído' as Status } : t)
         : prev.tasks;
 
+      const txActionMap = new Map(txActions.map(a => [a.tx.id, a.tx]));
+      const updatedExisting = prev.transactions.map(tx => txActionMap.get(tx.id) || tx);
+      const newTransactions = txActions.filter(a => a.isNew).map(a => a.tx);
+
       return {
         ...prev,
         invoices: nextInvoices,
-        transactions: nextTransactions,
-        tasks: nextTasks
+        tasks: nextTasks,
+        transactions: [...updatedExisting, ...newTransactions]
       };
     });
 
+    // 2. Asynchronous DB Persistence
     try {
-      const result = await db.invoices.update(invoiceWithPaymentDate.id, invoiceWithPaymentDate);
+      // A. Update invoice in DB
+      await db.invoices.update(invoiceWithPaymentDate.id, invoiceWithPaymentDate);
 
-      setState(prev => {
-        const nextState = { ...prev, invoices: prev.invoices.map(i => i.id === result.id ? result : i) };
-
-        const invoiceTasks = prev.tasks.filter(t => t.invoiceId === result.id);
-        const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
-        const taskIds = new Set(invoiceTasks.map(t => t.id));
-
-        let txUpdated = false;
-        const newTransactions = prev.transactions.map(tx => {
-          if (tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada') {
-            const task = invoiceTasks.find(t => t.id === tx.taskId);
-            if (task) {
-              let newValue = tx.value;
-              let newStatus = tx.status;
-              let newDate = tx.date;
-
-              if (result.customValue !== undefined && result.customValue !== null) {
-                const scale = calculatedTotal > 0 ? (Number(result.customValue) / calculatedTotal) : 1;
-                newValue = Number(((Number(task.value) || 0) * scale).toFixed(2));
-              } else {
-                newValue = Number(task.value) || 0;
-              }
-
-              if (result.status === 'Pago' && tx.status !== 'Pago') {
-                newStatus = 'Pago';
-                newDate = todayDate;
-              } else if (result.status === 'Pendente' && tx.status === 'Pago') {
-                newStatus = 'Pendente';
-              }
-
-              if (newValue !== tx.value || newStatus !== tx.status || newDate !== tx.date) {
-                txUpdated = true;
-                const newTx = { ...tx, value: newValue, status: newStatus as 'Pago' | 'Pendente', date: newDate };
-                db.transactions.update(tx.id, { value: newValue, status: newStatus, date: newDate }).catch(console.error);
-                return newTx;
-              }
-            }
-          }
-          return tx;
-        });
-
-        if (txUpdated) {
-          nextState.transactions = newTransactions;
+      // B. If Pago, mark tasks Concluído in DB
+      if (invoiceWithPaymentDate.status === 'Pago' && invoiceTasks.length > 0) {
+        const tasksToComplete = invoiceTasks.filter(t => t.status !== 'Concluído');
+        if (tasksToComplete.length > 0) {
+          await Promise.all(tasksToComplete.map(t => db.tasks.update(t.id, { status: 'Concluído' })));
         }
-
-        return nextState;
-      });
-
-      if (result.status === 'Pago') {
-        setState(prev => {
-          const currentTasks = prev.tasks.filter(t => t.invoiceId === result.id);
-          const calculatedTotal = currentTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
-
-          currentTasks.forEach(task => {
-            if (task.status !== 'Concluído') {
-              db.tasks.update(task.id, { status: 'Concluído' }).catch(console.error);
-            }
-          });
-
-          const existingTxTaskIds = new Set(prev.transactions.filter(tx => tx.taskId && tx.type === 'Entrada').map(tx => tx.taskId));
-          const tasksWithoutTx = currentTasks.filter(t => !existingTxTaskIds.has(t.id) && (Number(t.value) || 0) > 0);
-
-          tasksWithoutTx.forEach(async (task) => {
-            try {
-              let val = Number(task.value) || 0;
-              if (result.customValue !== undefined && result.customValue !== null && calculatedTotal > 0) {
-                val = Number((val * (Number(result.customValue) / calculatedTotal)).toFixed(2));
-              }
-              const createdTx = await db.transactions.create({
-                description: `Serviço: ${task.title}`,
-                value: val,
-                type: 'Entrada',
-                date: new Date().toISOString().split('T')[0],
-                status: 'Pago',
-                category: 'Serviço',
-                taskId: task.id
-              });
-              setState(s => ({
-                ...s,
-                transactions: [...s.transactions.filter(t => t.id !== createdTx.id), createdTx]
-              }));
-            } catch (err) {
-              console.error('Error creating transaction for task:', err);
-            }
-          });
-
-          return prev;
-        });
       }
+
+      // C. Persist all transaction changes
+      await Promise.all(
+        txActions.map(async (action) => {
+          if (action.isNew) {
+            return await db.transactions.create({
+              description: action.tx.description,
+              value: action.tx.value,
+              type: action.tx.type,
+              date: action.tx.date,
+              status: action.tx.status,
+              category: action.tx.category,
+              taskId: action.tx.taskId,
+              invoiceId: action.tx.invoiceId
+            });
+          } else {
+            return await db.transactions.update(action.tx.id, {
+              value: action.tx.value,
+              status: action.tx.status,
+              date: action.tx.date,
+              description: action.tx.description,
+              category: action.tx.category,
+              invoiceId: action.tx.invoiceId
+            });
+          }
+        })
+      );
+
+      // D. Silent sync from DB to guarantee absolute synchronization
+      fetchData(true);
     } catch (e) {
-      console.error('Error updating invoice:', e);
+      console.error('Error updating invoice and syncing transactions:', e);
+      fetchData(true);
     }
-  }, []);
+  }, [state.clients, state.tasks, state.transactions, fetchData]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
     try {

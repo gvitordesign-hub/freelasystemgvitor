@@ -121,6 +121,7 @@ export interface Transaction {
   status: 'Pago' | 'Pendente';
   category: string;
   taskId?: string;
+  invoiceId?: string;
 }
 
 export interface SocialLink {

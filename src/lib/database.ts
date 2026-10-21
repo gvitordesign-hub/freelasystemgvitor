@@ -305,12 +305,16 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
             if (error) throw error;
-            return data.map(t => ({ ...t, taskId: t.task_id })) as Transaction[];
+            return data.map(t => ({ 
+                ...t, 
+                taskId: t.task_id,
+                invoiceId: t.invoice_id 
+            })) as Transaction[];
         },
         async create(tx: Omit<Transaction, 'id'>) {
             const userId = await getUserId();
             const dateStr = tx.date ? (tx.date.includes('T') ? tx.date.split('T')[0] : tx.date) : new Date().toISOString().split('T')[0];
-            const { data, error } = await supabase.from('transactions').insert({
+            const payload: any = {
                 description: tx.description,
                 value: tx.value,
                 type: tx.type,
@@ -319,9 +323,33 @@ export const db = {
                 category: tx.category,
                 task_id: tx.taskId,
                 user_id: userId
-            }).select().single();
-            if (error) throw error;
-            return { ...data, taskId: data.task_id } as Transaction;
+            };
+            if (tx.invoiceId) {
+                payload.invoice_id = tx.invoiceId;
+            }
+
+            let insertedData: any = null;
+            const { data, error } = await supabase.from('transactions').insert(payload).select().single();
+
+            if (error) {
+                // If invoice_id column does not exist yet in Postgres, retry without it gracefully
+                if (error.code === 'PGRST204' || error.message?.includes('invoice_id') || error.code === '42703') {
+                    delete payload.invoice_id;
+                    const retry = await supabase.from('transactions').insert(payload).select().single();
+                    if (retry.error) throw retry.error;
+                    insertedData = retry.data;
+                } else {
+                    throw error;
+                }
+            } else {
+                insertedData = data;
+            }
+
+            return { 
+                ...insertedData, 
+                taskId: insertedData.task_id,
+                invoiceId: insertedData.invoice_id ?? tx.invoiceId
+            } as Transaction;
         },
         async update(id: string, tx: Partial<Transaction>) {
             const userId = await getUserId();
@@ -329,12 +357,39 @@ export const db = {
             delete transformed.id;
             delete transformed.user_id;
             if (tx.taskId !== undefined) { transformed.task_id = tx.taskId; delete transformed.taskId; }
+            if (tx.invoiceId !== undefined) { transformed.invoice_id = tx.invoiceId; delete transformed.invoiceId; }
             if (transformed.date && transformed.date.includes('T')) {
                 transformed.date = transformed.date.split('T')[0];
             }
+
+            // Strip undefined properties
+            Object.keys(transformed).forEach(k => {
+                if (transformed[k] === undefined) {
+                    delete transformed[k];
+                }
+            });
+
+            let updatedData: any = null;
             const { data, error } = await supabase.from('transactions').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-            if (error) throw error;
-            return { ...data, taskId: data.task_id } as Transaction;
+
+            if (error) {
+                if (error.code === 'PGRST204' || error.message?.includes('invoice_id') || error.code === '42703') {
+                    delete transformed.invoice_id;
+                    const retry = await supabase.from('transactions').update(transformed).eq('id', id).eq('user_id', userId).select().single();
+                    if (retry.error) throw retry.error;
+                    updatedData = retry.data;
+                } else {
+                    throw error;
+                }
+            } else {
+                updatedData = data;
+            }
+
+            return { 
+                ...updatedData, 
+                taskId: updatedData.task_id,
+                invoiceId: updatedData.invoice_id ?? tx.invoiceId
+            } as Transaction;
         },
         async delete(id: string) {
             const userId = await getUserId();

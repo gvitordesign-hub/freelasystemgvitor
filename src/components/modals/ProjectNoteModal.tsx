@@ -273,10 +273,18 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
    const handleMarkAsPaid = () => {
       if (!currentInvoice) return;
+      const targetInvoice: Invoice = { ...currentInvoice };
       if (editingTotal) {
-         handleSaveTotal();
+         const parsed = parseCurrency(localTotal);
+         const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
+         if (isNaN(parsed) || localTotal.trim() === '' || Math.abs(parsed - calculatedTotal) < 0.001) {
+            targetInvoice.customValue = null;
+         } else {
+            targetInvoice.customValue = parsed;
+         }
+         setEditingTotal(false);
       }
-      onUpdateInvoice({ ...currentInvoice, status: 'Pago', paidAt: new Date().toISOString() });
+      onUpdateInvoice({ ...targetInvoice, status: 'Pago', paidAt: new Date().toISOString() });
    };
 
    const handleReopenInvoice = () => {

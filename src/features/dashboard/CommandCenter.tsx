@@ -14,6 +14,7 @@ import { XP_PER_LEVEL } from '@/constants';
 import FocusWidget from '@/features/dashboard/FocusWidget';
 import OverdueAlert from '@/features/dashboard/OverdueAlert';
 import { DashboardTab } from './types';
+import { isSameMonthAndYear, isSameDay, getDateParts } from '@/utils/dateUtils';
 
 interface CommandCenterProps {
   stats: UserStats;
@@ -53,19 +54,16 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   const monthlyIncome = useMemo(() => {
     const now = new Date();
     return transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'Entrada' && t.status === 'Pago' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      })
+      .filter(t => t.type === 'Entrada' && t.status === 'Pago' && isSameMonthAndYear(t.date, now))
       .reduce((acc, curr) => acc + curr.value, 0);
   }, [transactions]);
 
   const annualIncome = useMemo(() => {
-    const now = new Date();
+    const nowYear = new Date().getFullYear();
     return transactions
       .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'Entrada' && t.status === 'Pago' && d.getFullYear() === now.getFullYear();
+        const { year } = getDateParts(t.date);
+        return t.type === 'Entrada' && t.status === 'Pago' && year === nowYear;
       })
       .reduce((acc, curr) => acc + curr.value, 0);
   }, [transactions]);
@@ -78,13 +76,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         const label = d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase();
-        const periodTransactions = transactions.filter(t => {
-          const td = new Date(t.date);
-          return t.type === 'Entrada' &&
-            td.getDate() === d.getDate() &&
-            td.getMonth() === d.getMonth() &&
-            td.getFullYear() === d.getFullYear();
-        });
+        const periodTransactions = transactions.filter(t => t.type === 'Entrada' && isSameDay(t.date, d));
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);
         const pending = periodTransactions.filter(t => t.status === 'Pendente').reduce((acc, curr) => acc + curr.value, 0);
@@ -95,12 +87,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const label = d.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
-        const periodTransactions = transactions.filter(t => {
-          const td = new Date(t.date);
-          return t.type === 'Entrada' &&
-            td.getMonth() === d.getMonth() &&
-            td.getFullYear() === d.getFullYear();
-        });
+        const periodTransactions = transactions.filter(t => t.type === 'Entrada' && isSameMonthAndYear(t.date, d));
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);
         const pending = periodTransactions.filter(t => t.status === 'Pendente').reduce((acc, curr) => acc + curr.value, 0);
@@ -109,12 +96,12 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       }
     } else {
       const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+      const nowYear = now.getFullYear();
       for (let i = 0; i < 12; i++) {
         const periodTransactions = transactions.filter(t => {
-          const td = new Date(t.date);
-          return t.type === 'Entrada' &&
-            td.getFullYear() === now.getFullYear() &&
-            td.getMonth() === i;
+          if (t.type !== 'Entrada') return false;
+          const { year, month } = getDateParts(t.date);
+          return year === nowYear && month === i;
         });
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);

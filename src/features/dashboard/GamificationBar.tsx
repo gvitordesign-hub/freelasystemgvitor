@@ -115,8 +115,8 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
         {onManualSync && (
           <button
             onClick={onManualSync}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-102 active:scale-95"
-            title="Conexão com Banco de Dados. Clique para sincronizar agora."
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-102 active:scale-95"
+            title="Sincronização contínua ativa. Clique para sincronizar agora."
           >
             {syncStatus === 'syncing' ? (
               <>
@@ -131,7 +131,7 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
             ) : (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="text-emerald-400 font-mono">Sync DB</span>
+                <span className="text-emerald-400 font-mono">Ao Vivo</span>
               </>
             )}
           </button>
