@@ -618,6 +618,30 @@ const DashboardPage: React.FC = () => {
     }
   }, [toast, fetchData]);
 
+  /** Abatimento: pagamento parcial; entra no caixa e a nota segue pendente. */
+  const addAbatement = useCallback(async (invoice: Invoice, amount: number, date: string, method: string) => {
+    try {
+      const client = stateRef.current.clients.find(c => c.id === invoice.clientId);
+      const label = client ? (client.company || client.name) : '';
+      const newTx = await db.transactions.create({
+        description: `Abatimento: ${invoice.title}${label ? ` (${label})` : ''}`,
+        value: amount,
+        type: 'Entrada',
+        date,
+        status: 'Pago',
+        category: 'Serviço',
+        invoiceId: invoice.id,
+        method,
+        abatement: true
+      });
+      setState(prev => ({ ...prev, transactions: [...prev.transactions, newTx] }));
+      toast.success('Abatimento registrado no caixa. A nota segue pendente.');
+    } catch (e) {
+      console.error('Error adding abatement:', e);
+      toast.error(errorMessage(e, 'Não foi possível registrar o abatimento.'));
+    }
+  }, [toast]);
+
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'> | Partial<Task>) => {
     try {
       const taskBefore = state.tasks.find(t => t.id === taskId);
@@ -1211,6 +1235,9 @@ const DashboardPage: React.FC = () => {
           client={selectedClientForInvoice}
           tasks={state.tasks.filter(t => t.clientId === selectedClientForInvoice.id)}
           invoices={state.invoices}
+          abatements={state.transactions.filter(t => t.abatement && t.invoiceId)}
+          onAddAbatement={addAbatement}
+          onDeleteAbatement={deleteTransaction}
           pixKey={state.stats.pixKey || ''}
           onUpdateInvoice={updateInvoice}
           onDeleteInvoice={deleteInvoice}

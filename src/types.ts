@@ -123,6 +123,7 @@ export interface Transaction {
   taskId?: string;
   invoiceId?: string;
   method?: string; // forma de pagamento (PIX, transferência...)
+  abatement?: boolean; // pagamento parcial de uma nota (nota segue pendente)
 }
 
 export interface SocialLink {

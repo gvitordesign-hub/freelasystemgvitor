@@ -7,9 +7,14 @@ export const PAYMENT_METHODS = ['PIX', 'Transferência', 'Dinheiro', 'Cartão', 
 export interface ReceiptResult {
   date: string; // YYYY-MM-DD (data local)
   method: string;
+  amount?: number; // só quando o valor é digitável (abatimento)
 }
 
 interface ReceiptModalProps {
+  /** valor digitável (abatimento): `amount` vira o valor sugerido e `maxAmount` o teto */
+  editableAmount?: boolean;
+  maxAmount?: number;
+  heading?: string;
   title: string;        // ex.: nome da nota ou da tarefa
   amount: number;
   /** o que será lançado, para a prévia (ex.: "2 lançamentos") */
@@ -20,11 +25,23 @@ interface ReceiptModalProps {
 }
 
 /** Único ponto de "Registrar recebimento": data, forma de pagamento e prévia do lançamento no caixa. */
-const ReceiptModal: React.FC<ReceiptModalProps> = ({ title, amount, detail, confirmLabel = 'Registrar recebimento', onConfirm, onClose }) => {
+const ReceiptModal: React.FC<ReceiptModalProps> = ({ title, amount: initialAmount, detail, confirmLabel = 'Registrar recebimento', editableAmount, maxAmount, heading = 'Registrar recebimento', onConfirm, onClose }) => {
   const today = getLocalDateString();
   const [date, setDate] = useState(today);
   const [method, setMethod] = useState('PIX');
   const [busy, setBusy] = useState(false);
+  const [amountText, setAmountText] = useState(editableAmount ? '' : String(initialAmount));
+
+  const parsed = (() => {
+    const clean = amountText.trim().replace(/[^0-9.,]/g, '');
+    if (!clean) return NaN;
+    if (clean.includes('.') && clean.includes(',')) return parseFloat(clean.replace(/\./g, '').replace(',', '.'));
+    if (clean.includes(',')) return parseFloat(clean.replace(',', '.'));
+    return parseFloat(clean);
+  })();
+  const amount = editableAmount ? (isNaN(parsed) ? 0 : Math.round(parsed * 100) / 100) : initialAmount;
+  const overMax = editableAmount && maxAmount !== undefined && amount > maxAmount + 0.001;
+  const invalidAmount = editableAmount && (amount <= 0 || overMax);
 
   const brl = amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -32,7 +49,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ title, amount, detail, conf
     <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Registrar recebimento</h2>
+          <h2 className="text-lg font-bold text-white">{heading}</h2>
           <button onClick={onClose} aria-label="Fechar" className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl cursor-pointer">
             <X size={20} />
           </button>
@@ -41,9 +58,26 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ title, amount, detail, conf
         <div className="p-5 space-y-5">
           <div>
             <p className="text-sm text-slate-400">{title}</p>
-            <p className="text-3xl font-bold text-emerald-400 mt-1 tabular-nums flex items-center gap-1">
-              <DollarSign size={24} className="shrink-0" />{brl.replace('R$', '').trim()}
-            </p>
+            {editableAmount ? (
+              <label className="block mt-2">
+                <span className="block text-xs font-semibold text-slate-400 mb-1.5">
+                  Valor recebido{maxAmount !== undefined && ` (restante: ${maxAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`}
+                </span>
+                <input
+                  autoFocus
+                  inputMode="decimal"
+                  value={amountText}
+                  onChange={e => setAmountText(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-bold text-emerald-400 tabular-nums outline-none focus:border-emerald-500"
+                />
+                {overMax && <span className="block text-xs text-rose-400 mt-1">O abatimento não pode passar do restante da nota.</span>}
+              </label>
+            ) : (
+              <p className="text-3xl font-bold text-emerald-400 mt-1 tabular-nums flex items-center gap-1">
+                <DollarSign size={24} className="shrink-0" />{brl.replace('R$', '').trim()}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -83,8 +117,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ title, amount, detail, conf
               Cancelar
             </button>
             <button
-              disabled={!date || busy}
-              onClick={() => { setBusy(true); onConfirm({ date, method }); }}
+              disabled={!date || busy || invalidAmount}
+              onClick={() => { setBusy(true); onConfirm({ date, method, amount: editableAmount ? amount : undefined }); }}
               className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold cursor-pointer"
             >
               {confirmLabel}

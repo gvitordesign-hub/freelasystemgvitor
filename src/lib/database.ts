@@ -231,6 +231,7 @@ export const db = {
                 task_id: tx.taskId,
                 invoice_id: tx.invoiceId,
                 method: tx.method,
+                abatement: tx.abatement,
                 user_id: userId
             };
             Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);

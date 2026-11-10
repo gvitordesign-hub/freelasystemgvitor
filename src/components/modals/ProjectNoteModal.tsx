@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, ChevronLeft, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2, ExternalLink, Printer, Clock } from 'lucide-react';
-import { Client, Task, Invoice } from '../../types';
+import { Client, Task, Invoice, Transaction } from '../../types';
 import ReceiptModal, { ReceiptResult } from './ReceiptModal';
 import { useToast } from '@/context/ToastContext';
 
@@ -8,6 +8,9 @@ interface ProjectNoteModalProps {
    client: Client;
    tasks: Task[];
    invoices: Invoice[];
+   abatements: Transaction[];
+   onAddAbatement: (invoice: Invoice, amount: number, date: string, method: string) => void;
+   onDeleteAbatement: (id: string) => void;
    pixKey: string;
    onUpdateInvoice: (invoice: Invoice, opts?: { method?: string }) => void;
    onDeleteInvoice: (id: string) => void;
@@ -53,8 +56,11 @@ const openWhatsAppWeb = (text: string) => {
 const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({ 
    client, 
    tasks, 
-   invoices, 
-   pixKey, 
+   invoices,
+   abatements,
+   onAddAbatement,
+   onDeleteAbatement,
+   pixKey,
    onUpdateInvoice, 
    onDeleteInvoice, 
    onUpdatePix, 
@@ -62,6 +68,9 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
 }) => {
    const toast = useToast();
    const [showReceipt, setShowReceipt] = useState(false);
+   const [showAbatement, setShowAbatement] = useState(false);
+   const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+   const abatedOf = (invId: string) => abatements.filter(a => a.invoiceId === invId).reduce((s, a) => s + (Number(a.value) || 0), 0);
    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
    const [mobileView, setMobileView] = useState<'list' | 'detail'>('detail');
    const [copied, setCopied] = useState(false);
@@ -193,7 +202,9 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
 🚀 *Demandas Concluídas:*
 ${taskLines || '  _(Nenhuma demanda finalizada nesta nota)_'}
 
-💰 *TOTAL A PAGAR:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
+${abatedOf(currentInvoice.id) > 0 && currentInvoice.status === 'Pendente'
+   ? `💰 *TOTAL DA NOTA:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n➖ *Já pago (abatido):* R$ ${abatedOf(currentInvoice.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *RESTANTE A PAGAR:* *R$ ${Math.max(total - abatedOf(currentInvoice.id), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`
+   : `💰 *TOTAL A PAGAR:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`}
 ${localPix ? `🔑 *CHAVE PIX:* \`${localPix}\`` : ''}
 ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes || currentInvoice.notes}_` : ''}
 
@@ -211,7 +222,8 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
             ? inv.customValue
             : invTasks.reduce((a, c) => a + c.value, 0);
          
-         grandTotal += total;
+         const abated = inv.status === 'Pendente' ? abatedOf(inv.id) : 0;
+         grandTotal += Math.max(total - abated, 0);
 
          const taskLines = invTasks.map(t => {
             const isQuick = t.category === 'Demanda Rápida';
@@ -231,7 +243,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
             return mainLine;
          }).join('\n');
 
-         return `📌 *NOTA: ${inv.title.toUpperCase()}*\n${taskLines || '  _(Sem demandas concluídas)_'}\n💵 *Subtotal:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`;
+         return `📌 *NOTA: ${inv.title.toUpperCase()}*\n${taskLines || '  _(Sem demandas concluídas)_'}\n💵 *Subtotal:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*${abated > 0 ? `\n➖ *Já pago (abatido):* R$ ${abated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *Restante:* *R$ ${Math.max(total - abated, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*` : ''}`;
       }).join('\n\n');
 
       const header = `📑 *RELATÓRIO DE COBRANÇA MASTER* 📑\n👤 *Cliente:* *${companyName}*\n\n`;
@@ -305,16 +317,19 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
    };
 
    const masterPaidTotal = useMemo(() => {
+      // notas quitadas + abatimentos já recebidos de notas pendentes
       return clientInvoices
-         .filter(i => i.status === 'Pago')
          .reduce((acc, inv) => {
+            if (inv.status === 'Pendente') {
+               return acc + abatements.filter(a => a.invoiceId === inv.id).reduce((s, a) => s + (Number(a.value) || 0), 0);
+            }
             const invTasks = tasks.filter(t => t.invoiceId === inv.id);
             const val = inv.customValue !== undefined && inv.customValue !== null
                ? Number(inv.customValue)
                : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
             return acc + val;
          }, 0);
-   }, [clientInvoices, tasks]);
+   }, [clientInvoices, tasks, abatements]);
 
    const masterPendingTotal = useMemo(() => {
       const invPending = clientInvoices
@@ -324,11 +339,12 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
             const val = inv.customValue !== undefined && inv.customValue !== null
                ? Number(inv.customValue)
                : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-            return acc + val;
+            const abated = abatements.filter(a => a.invoiceId === inv.id).reduce((s, a) => s + (Number(a.value) || 0), 0);
+            return acc + Math.max(val - abated, 0);
          }, 0);
       const unassignedSum = unassignedTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
       return invPending + unassignedSum;
-   }, [clientInvoices, tasks, unassignedTasks]);
+   }, [clientInvoices, tasks, unassignedTasks, abatements]);
 
    const masterGrandTotal = masterPaidTotal + masterPendingTotal;
 
@@ -345,16 +361,37 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
       }
       return currentInvoice?.customValue ?? invoiceCalculatedTotal;
    })();
+   const currentAbated = currentInvoice ? abatedOf(currentInvoice.id) : 0;
+   const currentAbatements = currentInvoice ? abatements.filter(a => a.invoiceId === currentInvoice.id) : [];
+   const remainingAmount = Math.max((Number(receiptAmount) || 0) - currentAbated, 0);
 
    return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
          {showReceipt && currentInvoice && (
             <ReceiptModal
                title={`Nota: ${currentInvoice.title}`}
-               amount={Number(receiptAmount) || 0}
-               detail={invoiceTasks.length > 0 ? `Um lançamento por demanda (${invoiceTasks.length}), somando o total da nota.` : undefined}
+               amount={remainingAmount}
+               detail={currentAbated > 0
+                  ? `Já foram abatidos ${brl(currentAbated)}; só o restante entra no caixa.`
+                  : invoiceTasks.length > 0 ? `Um lançamento por demanda (${invoiceTasks.length}), somando o total da nota.` : undefined}
                onConfirm={confirmPaid}
                onClose={() => setShowReceipt(false)}
+            />
+         )}
+         {showAbatement && currentInvoice && (
+            <ReceiptModal
+               heading="Abater valor da nota"
+               title={`Nota: ${currentInvoice.title}`}
+               amount={remainingAmount}
+               editableAmount
+               maxAmount={remainingAmount}
+               confirmLabel="Registrar abatimento"
+               detail="A nota continua pendente com o valor original; o restante a pagar diminui."
+               onConfirm={(r) => {
+                  onAddAbatement(currentInvoice, r.amount || 0, r.date, r.method);
+                  setShowAbatement(false);
+               }}
+               onClose={() => setShowAbatement(false)}
             />
          )}
          <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[92dvh] max-h-[92dvh] rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95">
@@ -410,6 +447,9 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                               </div>
                               <span className={`font-mono font-bold text-right ${inv.status === 'Pago' ? 'text-emerald-400' : 'text-amber-400'}`}>
                                  R$ {invTotal.toLocaleString('pt-BR')}
+                                 {inv.status === 'Pendente' && abatedOf(inv.id) > 0 && (
+                                    <span className="block text-[11px] font-medium text-slate-400 normal-case">restam {brl(Math.max(invTotal - abatedOf(inv.id), 0))}</span>
+                                 )}
                               </span>
                            </div>
                         </button>
@@ -654,6 +694,53 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                            </div>
                         </div>
 
+                        {(currentInvoice?.status === 'Pendente' || currentAbatements.length > 0) && (
+                           <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 space-y-3">
+                              <div className="flex items-center justify-between gap-3 flex-wrap">
+                                 <div className="text-sm">
+                                    <span className="text-slate-400">Abatido: </span>
+                                    <strong className="text-emerald-400 tabular-nums">{brl(currentAbated)}</strong>
+                                    {currentInvoice?.status === 'Pendente' && (
+                                       <>
+                                          <span className="text-slate-600 mx-2">·</span>
+                                          <span className="text-slate-400">Restante: </span>
+                                          <strong className="text-amber-400 tabular-nums">{brl(remainingAmount)}</strong>
+                                       </>
+                                    )}
+                                 </div>
+                                 {currentInvoice?.status === 'Pendente' && remainingAmount > 0 && (
+                                    <button
+                                       onClick={() => setShowAbatement(true)}
+                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                    >
+                                       <DollarSign size={12} /> Abater valor
+                                    </button>
+                                 )}
+                              </div>
+                              {currentAbatements.length > 0 && (
+                                 <ul className="divide-y divide-slate-800 text-xs">
+                                    {currentAbatements.map(a => (
+                                       <li key={a.id} className="flex items-center justify-between py-2 gap-3">
+                                          <span className="text-slate-400">
+                                             {new Date(`${a.date.split('T')[0]}T12:00:00`).toLocaleDateString('pt-BR')}{a.method ? ` · ${a.method}` : ''}
+                                          </span>
+                                          <span className="flex items-center gap-3">
+                                             <strong className="text-emerald-400 tabular-nums">{brl(Number(a.value) || 0)}</strong>
+                                             <button
+                                                onClick={() => { if (confirm(`Remover o abatimento de ${brl(Number(a.value) || 0)}? Ele sai do Fluxo de Caixa.`)) onDeleteAbatement(a.id); }}
+                                                className="text-slate-500 hover:text-rose-400 cursor-pointer"
+                                                aria-label="Remover abatimento"
+                                             >
+                                                <Trash2 size={13} />
+                                             </button>
+                                          </span>
+                                       </li>
+                                    ))}
+                                 </ul>
+                              )}
+                           </div>
+                        )}
+
                         <div className="space-y-3">
                            {invoiceTasks.map(t => (
                               <div key={t.id} className="p-5 bg-slate-800/40 border border-slate-700 rounded-[1.5rem] flex flex-col gap-3">
@@ -846,7 +933,14 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                   )}
                </div>
                <div className="text-right bg-slate-50 p-4 border border-slate-300 rounded-xl min-w-[220px]">
-                  <p className="text-[11px] font-black uppercase text-slate-500">Valor Total a Pagar</p>
+                  {selectedInvoiceId && currentInvoice?.status === 'Pendente' && currentAbated > 0 && (
+                     <div className="mb-2 pb-2 border-b border-slate-200 text-xs text-slate-600 space-y-0.5">
+                        <p>Abatido: <strong>{brl(currentAbated)}</strong></p>
+                        <p className="font-black uppercase text-slate-500 text-[11px] pt-1">Restante a pagar</p>
+                        <p className="text-lg font-black text-slate-900">{brl(remainingAmount)}</p>
+                     </div>
+                  )}
+                  <p className="text-[11px] font-black uppercase text-slate-500">Valor Total {selectedInvoiceId && currentAbated > 0 && currentInvoice?.status === 'Pendente' ? 'da Nota' : 'a Pagar'}</p>
                   <p className="text-2xl font-black text-slate-900 mt-1">
                      R$ {
                         selectedInvoiceId

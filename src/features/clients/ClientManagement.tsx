@@ -94,7 +94,12 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
         if (inv.status === 'Pago') {
           invoicePaid += invTotal;
         } else {
-          invoicePending += invTotal;
+          // abatimentos: parte já recebida de uma nota ainda pendente
+          const abated = transactions
+            .filter(tx => tx.abatement && tx.invoiceId === inv.id)
+            .reduce((s, tx) => s + (Number(tx.value) || 0), 0);
+          invoicePaid += abated;
+          invoicePending += Math.max(invTotal - abated, 0);
         }
       });
 
@@ -118,7 +123,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
 
       // 3. Direct client transactions not linked to invoice tasks
       const directTransactions = transactions.filter(t => 
-        t.type === 'Entrada' && 
+        t.type === 'Entrada' && !t.abatement &&
         (!t.taskId || (!tasksInInvoices.has(t.taskId) && !unassignedTasks.some(ut => ut.id === t.taskId))) &&
         (client.name && t.description.toLowerCase().includes(client.name.toLowerCase()))
       );
