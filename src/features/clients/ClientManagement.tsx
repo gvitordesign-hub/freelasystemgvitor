@@ -239,7 +239,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-            Nexus <span className="text-[var(--primary-color)]">CRM</span>
+            Clientes
           </h1>
           <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-wide mt-1">Seus clientes e parceiros</p>
         </div>
