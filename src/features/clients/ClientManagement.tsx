@@ -238,10 +238,10 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
     <div className="p-4 md:p-8 animate-reveal max-w-7xl mx-auto space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black cyber-font text-white uppercase tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
             Nexus <span className="text-[var(--primary-color)]">CRM</span>
           </h1>
-          <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mt-1">Sua rede neural de parceiros e negócios</p>
+          <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-wide mt-1">Seus clientes e parceiros</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-stretch md:self-auto">
@@ -305,7 +305,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
               setFormData({ name: '', company: '', contact: '', xp: 0, status: 'Ativo' });
               setShowForm(!showForm);
             }}
-            className="bg-[var(--primary-color)] hover:brightness-110 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-[0_4px_16px_var(--primary-shadow)] flex items-center gap-2 active:scale-95 cursor-pointer"
+            className="bg-[var(--primary-color)] hover:brightness-110 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[11px] tracking-wide transition-all shadow-[0_4px_16px_var(--primary-shadow)] flex items-center gap-2 active:scale-95 cursor-pointer"
           >
             <UserPlus size={16} />
             {showForm ? 'Fechar' : 'Novo Cliente'}
@@ -317,7 +317,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
         <button
           onClick={() => setStatusFilter('Todos')}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
             statusFilter === 'Todos' 
               ? 'bg-[var(--primary-color)]/20 border-[var(--primary-color)] text-[var(--primary-color)] shadow-[0_0_12px_var(--primary-shadow)]' 
               : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -327,7 +327,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
         </button>
         <button
           onClick={() => setStatusFilter('Inadimplentes')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
             statusFilter === 'Inadimplentes'
               ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.25)]'
               : 'bg-rose-950/20 border-rose-500/30 text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/40'
@@ -338,7 +338,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
         </button>
         <button
           onClick={() => setStatusFilter('Ativo')}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
             statusFilter === 'Ativo'
               ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
               : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -348,7 +348,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
         </button>
         <button
           onClick={() => setStatusFilter('Prospect')}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
             statusFilter === 'Prospect'
               ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
               : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -358,7 +358,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
         </button>
         <button
           onClick={() => setStatusFilter('Inativo')}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
             statusFilter === 'Inativo'
               ? 'bg-slate-700 border-slate-600 text-slate-200'
               : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -388,10 +388,10 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 {editingClient ? <Edit2 size={26} /> : <UserPlus size={26} />}
               </div>
               <div>
-                <h3 className="text-xl font-black cyber-font text-white uppercase tracking-tight">
+                <h3 className="text-xl font-black text-white tracking-tight">
                   {editingClient ? 'Ajustar Módulo Cliente' : 'Integrar Novo Cliente'}
                 </h3>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-wide mt-0.5">
                   {editingClient ? `ID: ${editingClient.id.slice(0, 8)}...` : 'Estabelecer conexão com nova entidade'}
                 </p>
               </div>
@@ -400,7 +400,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Protocolo Nome</label>
+                  <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">Nome</label>
                   <input
                     required
                     type="text"
@@ -411,7 +411,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Corporação / Empresa</label>
+                  <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">Empresa</label>
                   <input
                     type="text"
                     value={formData.company}
@@ -424,7 +424,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Frequência de Contato</label>
+                  <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">Frequência de Contato</label>
                   <input
                     type="text"
                     value={formData.contact}
@@ -434,16 +434,16 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Nível de Acesso (Status)</label>
+                  <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">Status</label>
                   <div className="relative">
                     <select
                       value={formData.status}
                       onChange={e => setFormData({ ...formData, status: e.target.value })}
                       className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl px-4 py-3.5 text-xs text-slate-100 focus:outline-none focus:border-[var(--primary-color)] transition-all appearance-none shadow-inner cursor-pointer"
                     >
-                      <option value="Ativo">Ativo (Sincronizado)</option>
-                      <option value="Inativo">Inativo (Offline)</option>
-                      <option value="Prospect">Prospecção (Syncing)</option>
+                      <option value="Ativo">Ativo</option>
+                      <option value="Inativo">Inativo</option>
+                      <option value="Prospect">Prospecção</option>
                     </select>
                     <ChevronRight size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none rotate-90" />
                   </div>
@@ -455,15 +455,15 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
               <button 
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="flex-1 bg-slate-800/60 hover:bg-slate-800 text-slate-400 font-black py-3.5 rounded-2xl transition-all border border-slate-700 uppercase text-[10px] tracking-widest cursor-pointer"
+                className="flex-1 bg-slate-800/60 hover:bg-slate-800 text-slate-400 font-black py-3.5 rounded-2xl transition-all border border-slate-700 uppercase text-[11px] tracking-wide cursor-pointer"
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
-                className="flex-[2] bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-3.5 rounded-2xl transition-all shadow-[0_4px_16px_var(--primary-shadow)] uppercase text-[10px] tracking-[0.15em] cursor-pointer"
+                className="flex-[2] bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-3.5 rounded-2xl transition-all shadow-[0_4px_16px_var(--primary-shadow)] uppercase text-[11px] tracking-wide cursor-pointer"
               >
-                {editingClient ? 'Finalizar Protocolo' : 'Completar Integração'}
+                {editingClient ? 'Salvar alterações' : 'Cadastrar cliente'}
               </button>
             </div>
           </form>
@@ -524,7 +524,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
 
               {/* Inadimplência Signal Badge on Card Header */}
               {financials.isOverdue && (
-                <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-xl text-[9px] font-black uppercase tracking-wider animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+                <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-xl text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(244,63,94,0.3)]">
                   <AlertTriangle size={13} className="text-rose-400" />
                   Inadimplente ({financials.overdueInvoicesCount} nota{financials.overdueInvoicesCount > 1 ? 's' : ''})
                 </div>
@@ -540,7 +540,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-white group-hover:text-[var(--primary-color)] transition-colors">{client.name}</h3>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest mt-0.5">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-black uppercase tracking-wide mt-0.5">
                     <Building2 size={12} className="text-slate-500" />
                     {client.company || 'Sem empresa'}
                   </div>
@@ -559,15 +559,15 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-3 shadow-inner">
                   <div className="flex items-center gap-2 mb-1">
                     <DollarSign size={12} className="text-[var(--primary-color)]" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Financeiro</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wide">Financeiro</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex flex-col">
                       <div className="flex items-center gap-1 mb-1">
                         <CheckCircle2 size={10} className="text-emerald-400" />
-                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Pago</span>
+                        <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wide">Pago</span>
                       </div>
-                      <span className="text-xs md:text-sm font-black text-emerald-400 cyber-font">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
+                      <span className="text-xs md:text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
                     </div>
                     <div className={`border rounded-xl p-3 flex flex-col ${
                       financials.isOverdue 
@@ -580,20 +580,20 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                         ) : (
                           <Clock size={10} className={financials.pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'} />
                         )}
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${
+                        <span className={`text-[11px] font-black uppercase tracking-wide ${
                           financials.isOverdue ? 'text-rose-300' : financials.pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'
                         }`}>
                           {financials.isOverdue ? 'Em Atraso' : 'Pendente'}
                         </span>
                       </div>
-                      <span className={`text-xs md:text-sm font-black cyber-font ${
+                      <span className={`text-xs md:text-sm font-black ${
                         financials.isOverdue ? 'text-rose-300' : financials.pendingTotal > 0 ? 'text-amber-300' : 'text-slate-500'
                       }`}>
                         R$ {financials.pendingTotal.toLocaleString('pt-BR')}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-[8px] font-bold uppercase tracking-wider px-1">
+                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider px-1">
                     <span className="text-slate-400">{financials.activeTasks} demanda{financials.activeTasks !== 1 ? 's' : ''} ativa{financials.activeTasks !== 1 ? 's' : ''}</span>
                     {financials.pendingInvoices > 0 && (
                       <span className={`px-2 py-0.5 rounded-md ${
@@ -608,13 +608,13 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={13} className="text-emerald-400" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">XP: <span className="text-white cyber-font">{client.xp || 0}</span></span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wide">XP: <span className="text-white">{client.xp || 0}</span></span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className={`w-2 h-2 rounded-full ${
                       financials.isOverdue ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : client.status === 'Inativo' ? 'bg-rose-400' : 'bg-emerald-500'
                     }`} />
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${financials.isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
+                    <span className={`text-[11px] font-black uppercase tracking-wide ${financials.isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
                       {financials.isOverdue ? 'Inadimplente' : (client.status || 'Ativo')}
                     </span>
                   </div>
@@ -624,7 +624,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
               <div className="mt-5 pt-4 border-t border-slate-800/80 flex justify-end">
                 <button
                   onClick={() => onViewInvoice(client)}
-                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--primary-color)] hover:brightness-125 transition-all group/btn cursor-pointer"
+                  className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-[var(--primary-color)] hover:brightness-125 transition-all group/btn cursor-pointer"
                 >
                   Ver Projetos
                   <ChevronRight size={13} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -639,12 +639,12 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-950/60 border-b border-slate-800">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidade</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Corporação</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Pago</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Pendente</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide">Identidade</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide">Empresa</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Pago</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Pendente</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-center">Status</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-xs">
@@ -677,33 +677,33 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-100">{client.name}</span>
                           {financials.isOverdue && (
-                            <span className="bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[8px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                            <span className="bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[11px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
                               <AlertTriangle size={10} /> Inadimplente
                             </span>
                           )}
                         </div>
-                        <span className="text-[9px] text-slate-400 font-bold cyber-font">XP: {client.xp || 0}</span>
+                        <span className="text-[11px] text-slate-400 font-bold">XP: {client.xp || 0}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-300">{client.company || '—'}</td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-sm font-black text-emerald-400 cyber-font">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
+                    <span className="text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className={`text-sm font-black cyber-font ${
+                    <span className={`text-sm font-black ${
                       financials.isOverdue ? 'text-rose-400' : financials.pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'
                     }`}>
                       R$ {financials.pendingTotal.toLocaleString('pt-BR')}
                     </span>
                     {financials.pendingInvoices > 0 && (
-                      <div className={`text-[8px] font-bold mt-0.5 ${financials.isOverdue ? 'text-rose-400 font-black' : 'text-amber-400/80'}`}>
+                      <div className={`text-[11px] font-bold mt-0.5 ${financials.isOverdue ? 'text-rose-400 font-black' : 'text-amber-400/80'}`}>
                         {financials.pendingInvoices} nota{financials.pendingInvoices !== 1 ? 's' : ''}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                    <span className={`text-[11px] font-black uppercase tracking-wide px-3 py-1 rounded-full ${
                       financials.isOverdue
                         ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                         : client.status === 'Inativo' ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'
@@ -753,7 +753,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
       {filteredClients.length === 0 && (
         <div className="py-20 bg-slate-900/40 border-2 border-dashed border-slate-800/70 rounded-[3rem] flex flex-col items-center justify-center text-slate-500">
           <Users size={56} className="mb-4 opacity-30 text-[var(--primary-color)]" />
-          <p className="text-lg font-black uppercase tracking-widest cyber-font text-slate-300">
+          <p className="text-lg font-black uppercase tracking-wide text-slate-300">
             {statusFilter === 'Inadimplentes' ? 'Nenhum Cliente Inadimplente' : searchTerm ? 'Nenhum Cliente Encontrado' : 'Nenhum Cliente Detectado'}
           </p>
           <p className="text-xs font-bold uppercase tracking-tight mt-1 text-slate-500">

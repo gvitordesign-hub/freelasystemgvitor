@@ -54,7 +54,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
       <div className="fixed top-4 left-4 z-[100] pointer-events-none">
         <button
           onClick={selectedAlbum ? () => setSelectedAlbum(null) : onBack}
-          className="pointer-events-auto bg-white/10 backdrop-blur-md border border-white/10 text-white/50 hover:text-white px-4 py-2 rounded-full flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all"
+          className="pointer-events-auto bg-white/10 backdrop-blur-md border border-white/10 text-white/50 hover:text-white px-4 py-2 rounded-full flex items-center gap-2 text-[11px] font-black uppercase tracking-wide transition-all"
         >
           <ChevronLeft size={14} /> {selectedAlbum ? 'Voltar' : 'Admin'}
         </button>
@@ -62,7 +62,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
 
       {/* Cabeçalho Inspirado */}
       <nav className="w-full px-6 md:px-12 py-8 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-white/40">
+        <div className="flex gap-8 text-[11px] font-black uppercase tracking-wide text-white/40">
           <button onClick={() => { setSelectedAlbum(null); window.scrollTo(0, 0); }} className="hover:text-white transition-colors">Início</button>
           <a href={`https://wa.me/${stats.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">WhatsApp</a>
         </div>
@@ -71,7 +71,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
           {stats.portfolioLogo ? (
             <img src={stats.portfolioLogo} className="h-full object-contain max-w-[200px]" alt="Brand Logo" />
           ) : (
-            <span className="text-2xl font-black cyber-font tracking-tighter">GVITOR DESIGN</span>
+            <span className="text-2xl font-black tracking-tighter">GVITOR DESIGN</span>
           )}
         </div>
 
@@ -95,7 +95,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
               <button
                 key={cat}
                 onClick={() => setActiveFilter(cat)}
-                className={`text-[10px] font-black uppercase tracking-[0.3em] px-4 py-2 transition-all ${activeFilter === cat ? 'text-white border-b-2 border-white' : 'text-white/30 hover:text-white'
+                className={`text-[11px] font-black uppercase tracking-wide px-4 py-2 transition-all ${activeFilter === cat ? 'text-white border-b-2 border-white' : 'text-white/30 hover:text-white'
                   }`}
               >
                 {cat}
@@ -117,8 +117,8 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-60 transition-opacity" />
                 <div className="absolute bottom-10 left-10 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-                  <span className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] mb-2 block">{album.category}</span>
-                  <h2 className="text-3xl font-bold uppercase">{album.title}</h2>
+                  <span className="text-[11px] font-black uppercase text-white/50 tracking-wide mb-2 block">{album.category}</span>
+                  <h2 className="text-3xl font-bold">{album.title}</h2>
                 </div>
               </div>
             ))}
@@ -127,8 +127,8 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
       ) : (
         <main className="max-w-7xl mx-auto px-6 py-20 animate-in slide-in-from-right-8 duration-500">
           <div className="text-center mb-20">
-            <span className="text-[11px] font-black uppercase tracking-[0.5em] text-white/40 mb-4 block">{selectedAlbum.category}</span>
-            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter">{selectedAlbum.title}</h1>
+            <span className="text-[11px] font-black uppercase tracking-wide text-white/40 mb-4 block">{selectedAlbum.category}</span>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter">{selectedAlbum.title}</h1>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -170,12 +170,12 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
 
       {/* Footer CTA */}
       <footer className="py-32 text-center max-w-2xl mx-auto px-6">
-        <h2 className="text-3xl font-black uppercase tracking-tighter mb-8">Vamos elevar o seu projeto ao próximo nível?</h2>
+        <h2 className="text-3xl font-black tracking-tighter mb-8">Vamos elevar o seu projeto ao próximo nível?</h2>
         <a
           href={`https://wa.me/${stats.whatsapp}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-4 bg-white text-black px-12 py-5 rounded-full font-black uppercase text-xs tracking-widest hover:scale-105 transition-all active:scale-95"
+          className="inline-flex items-center gap-4 bg-white text-black px-12 py-5 rounded-full font-black uppercase text-xs tracking-wide hover:scale-105 transition-all active:scale-95"
         >
           Solicitar Orçamento <MessageCircle size={18} />
         </a>
@@ -185,7 +185,7 @@ const PublicPortfolioView: React.FC<PublicPortfolioViewProps> = ({ stats, albums
               {link.platform.toLowerCase() === 'instagram' ? <Instagram size={16} /> :
                 link.platform.toLowerCase() === 'behance' ? <span className="font-black text-xs uppercase tracking-tighter">Behance</span> :
                   link.platform.toLowerCase() === 'whatsapp' ? <MessageCircle size={16} /> :
-                    <span className="text-[10px] font-bold uppercase tracking-widest">{link.platform}</span>}
+                    <span className="text-[11px] font-bold uppercase tracking-wide">{link.platform}</span>}
             </a>
           ))}
         </div>

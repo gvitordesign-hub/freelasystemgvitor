@@ -48,15 +48,15 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                )}
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                     <div className="w-8 md:w-12 h-1 bg-[var(--primary-color)] rounded-full animate-pulse" />
-                     <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] md:tracking-[0.5em]">Morning Protocol v2.5</span>
+                     <div className="w-8 md:w-12 h-1 bg-[var(--primary-color)] rounded-full" />
+                     <span className="text-[11px] md:text-[11px] font-black text-slate-500 uppercase tracking-wide md:tracking-wide">Resumo do dia</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white cyber-font uppercase tracking-tighter leading-none mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white tracking-tighter leading-none mb-2">
                      BOM DIA, <span className="text-[var(--primary-color)]">{userName.split(' ')[0]}</span>
                   </h1>
-                  <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center gap-2">
+                  <p className="text-[11px] sm:text-[11px] md:text-xs text-slate-400 font-bold uppercase tracking-wide flex items-center gap-2">
                      <span className="w-6 sm:w-8 h-px bg-slate-800"></span>
-                     OPERACIONAL FRELLA INICIADO
+                     Tudo pronto para começar
                   </p>
                </div>
 
@@ -67,7 +67,7 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                      </div>
                      <div>
                         <p className="text-lg font-black text-white">{criticalTasks.length}</p>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Demandas Críticas</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Demandas Críticas</p>
                      </div>
                   </div>
 
@@ -77,7 +77,7 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                      </div>
                      <div>
                         <p className="text-lg font-black text-white">R$ {totalPending.toLocaleString()}</p>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Contas Pendentes</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Contas Pendentes</p>
                      </div>
                   </div>
                </div>
@@ -91,13 +91,13 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                            <Plus size={20} />
                         </div>
                         <div>
-                           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Demanda Rápida</h3>
-                           <p className="text-[9px] text-slate-600 font-bold uppercase">Lançar protocolo</p>
+                           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wide">Demanda Rápida</h3>
+                           <p className="text-[11px] text-slate-600 font-bold uppercase">Nova demanda</p>
                         </div>
                      </div>
                      <button
                         onClick={onQuickAddDemand}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-700"
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-black uppercase text-[11px] tracking-wide flex items-center justify-center gap-2 transition-all border border-slate-700"
                      >
                         Adicionar Demanda
                      </button>
@@ -110,13 +110,13 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
                            <TrendingDown size={20} />
                         </div>
                         <div>
-                           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Despesa Rápida</h3>
-                           <p className="text-[9px] text-slate-600 font-bold uppercase">Lançar saída</p>
+                           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wide">Despesa Rápida</h3>
+                           <p className="text-[11px] text-slate-600 font-bold uppercase">Lançar saída</p>
                         </div>
                      </div>
                      <button
                         onClick={onQuickAddExpense}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-700"
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-black uppercase text-[11px] tracking-wide flex items-center justify-center gap-2 transition-all border border-slate-700"
                      >
                         Adicionar Despesa
                      </button>
@@ -125,12 +125,12 @@ const BriefingModal: React.FC<BriefingModalProps> = ({ userName, criticalTasks, 
 
 
                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-2 md:pt-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase">
-                     <ShieldCheck size={16} /> Protocolos Ativos
+                  <div className="flex items-center gap-2 text-[11px] font-black text-emerald-500 uppercase">
+                     <ShieldCheck size={16} /> Sistema ativo
                   </div>
                   <button
                      onClick={() => onStart()}
-                     className="w-full sm:w-auto bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl"
+                     className="w-full sm:w-auto bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-wide flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
                      Acessar Frella <ArrowRight size={18} />
                   </button>

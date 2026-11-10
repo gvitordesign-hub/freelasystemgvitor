@@ -53,13 +53,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ albums, stats, onUpdateAlbu
     <div className="p-4 md:p-8 space-y-8 animate-reveal pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold cyber-font text-white uppercase">Frella Portfolio System</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Frella Portfolio System</h1>
           <p className="text-slate-400 text-sm">Gerencie sua vitrine pública e identidade visual</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-2xl font-black transition-all neon-shadow-primary text-xs uppercase tracking-widest"
+            className="flex items-center gap-2 bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-2xl font-black transition-all neon-shadow-primary text-xs uppercase tracking-wide"
           >
             <Plus size={18} /> Novo Álbum
           </button>
@@ -70,7 +70,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ albums, stats, onUpdateAlbu
       {isCreating && (
         <form onSubmit={handleCreateAlbum} className="bg-slate-900 border border-[var(--primary-color)]/30 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4">
           <div className="md:col-span-1">
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Título do Álbum</label>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-2">Título do Álbum</label>
             <input
               required
               type="text"
@@ -81,7 +81,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ albums, stats, onUpdateAlbu
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Categoria</label>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-2">Categoria</label>
             <select
               value={newAlbum.category}
               onChange={e => setNewAlbum({ ...newAlbum, category: e.target.value })}
@@ -91,8 +91,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ albums, stats, onUpdateAlbu
             </select>
           </div>
           <div className="flex items-end gap-3">
-            <button type="submit" className="flex-1 bg-[var(--primary-color)] text-white font-bold py-3 rounded-xl uppercase text-[10px] tracking-widest">Confirmar</button>
-            <button type="button" onClick={() => setIsCreating(false)} className="px-4 bg-slate-800 text-slate-400 py-3 rounded-xl font-bold uppercase text-[10px]">Cancelar</button>
+            <button type="submit" className="flex-1 bg-[var(--primary-color)] text-white font-bold py-3 rounded-xl uppercase text-[11px] tracking-wide">Confirmar</button>
+            <button type="button" onClick={() => setIsCreating(false)} className="px-4 bg-slate-800 text-slate-400 py-3 rounded-xl font-bold uppercase text-[11px]">Cancelar</button>
           </div>
         </form>
       )}
@@ -109,8 +109,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ albums, stats, onUpdateAlbu
         {albums.length === 0 && !isCreating && (
           <div className="col-span-full py-20 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center text-slate-600">
             <Briefcase size={48} className="mb-4 opacity-20" />
-            <p className="cyber-font text-xs uppercase font-bold tracking-widest">Nenhum álbum operacional</p>
-            <p className="text-[10px] mt-2">Inicie um novo catálogo clicando em "Novo Álbum"</p>
+            <p className="text-xs uppercase font-bold tracking-wide">Nenhum álbum operacional</p>
+            <p className="text-[11px] mt-2">Inicie um novo catálogo clicando em "Novo Álbum"</p>
           </div>
         )}
       </div>

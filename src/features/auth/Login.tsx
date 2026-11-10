@@ -55,7 +55,7 @@ const Login: React.FC = () => {
                 )}
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email ou Usuário</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">Email ou Usuário</label>
                     <div className="relative group">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -70,8 +70,8 @@ const Login: React.FC = () => {
 
                 <div className="space-y-1">
                     <div className="flex justify-between items-center ml-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha</label>
-                        <a href="#" className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors">Esqueceu a senha?</a>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Senha</label>
+                        <a href="#" className="text-[11px] text-purple-400 hover:text-purple-300 transition-colors">Esqueceu a senha?</a>
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
@@ -118,7 +118,7 @@ const Login: React.FC = () => {
 
                 <div className="relative py-4">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-800"></div></div>
-                    <div className="relative flex justify-center text-[10px] uppercase tracking-widest"><span className="bg-[#0f1115] px-2 text-slate-500">Acesso Rápido</span></div>
+                    <div className="relative flex justify-center text-[11px] uppercase tracking-wide"><span className="bg-[#0f1115] px-2 text-slate-500">Acesso Rápido</span></div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -127,7 +127,7 @@ const Login: React.FC = () => {
                         <span className="text-xs font-medium text-slate-300 group-hover:text-white">Google</span>
                     </button>
                     <button type="button" className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-xl py-2.5 flex items-center justify-center gap-2 transition-all group">
-                        <div className="w-4 h-4 bg-[#0077b5] rounded-sm flex items-center justify-center text-[10px] font-bold text-white">in</div>
+                        <div className="w-4 h-4 bg-[#0077b5] rounded-sm flex items-center justify-center text-[11px] font-bold text-white">in</div>
                         <span className="text-xs font-medium text-slate-300 group-hover:text-white">LinkedIn</span>
                     </button>
                 </div>

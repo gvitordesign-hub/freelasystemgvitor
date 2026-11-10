@@ -82,7 +82,7 @@ const Register: React.FC = () => {
                 )}
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Completo</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">Nome Completo</label>
                     <div className="relative group">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -97,7 +97,7 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail Profissional</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">E-mail Profissional</label>
                     <div className="relative group">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -112,7 +112,7 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Confirmar E-mail</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">Confirmar E-mail</label>
                     <div className="relative group">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -127,7 +127,7 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Senha</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">Senha</label>
                     <div className="relative group">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -143,7 +143,7 @@ const Register: React.FC = () => {
                     {/* Password Strength Indicator */}
                     {password && passwordStrength && (
                         <div className="mt-2 space-y-1.5 px-1">
-                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                            <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-wider">
                                 <span className="text-slate-500 flex items-center gap-1">
                                     {passwordStrength.label === 'Forte' ? <ShieldCheck size={12} className="text-green-500" /> : <Shield size={12} />}
                                     Segurança: <span className={passwordStrength.label === 'Forte' ? 'text-green-500' : passwordStrength.label === 'Média' ? 'text-yellow-500' : 'text-red-500'}>{passwordStrength.label}</span>
@@ -163,7 +163,7 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Confirmar Senha</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide ml-1">Confirmar Senha</label>
                     <div className="relative group">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
                         <input
@@ -176,11 +176,11 @@ const Register: React.FC = () => {
                         />
                     </div>
                     {password !== confirmPassword && confirmPassword.length > 0 && (
-                        <p className="text-[9px] text-red-500 mt-1 ml-1 flex items-center gap-1">
+                        <p className="text-[11px] text-red-500 mt-1 ml-1 flex items-center gap-1">
                             <ShieldAlert size={10} /> As senhas não coincidem
                         </p>
                     )}
-                    <p className="text-[9px] text-slate-500 mt-1 ml-1 flex items-center gap-1"><Info size={10} /> Mínimo de 8 caracteres com letras e números</p>
+                    <p className="text-[11px] text-slate-500 mt-1 ml-1 flex items-center gap-1"><Info size={10} /> Mínimo de 8 caracteres com letras e números</p>
                 </div>
 
                 <div
@@ -190,7 +190,7 @@ const Register: React.FC = () => {
                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all mt-0.5 ${agreedToTerms ? 'bg-purple-500 border-purple-500' : 'border-slate-700 bg-slate-800/50 group-hover:border-purple-500/50'}`}>
                         {agreedToTerms && <CheckCircle2 size={10} className="text-white" />}
                     </div>
-                    <span className="text-[10px] text-slate-400 select-none leading-tight">Eu concordo com os <a href="#" className="text-purple-400 hover:underline">Termos de Serviço</a> e <a href="#" className="text-purple-400 hover:underline">Políticas</a>.</span>
+                    <span className="text-[11px] text-slate-400 select-none leading-tight">Eu concordo com os <a href="#" className="text-purple-400 hover:underline">Termos de Serviço</a> e <a href="#" className="text-purple-400 hover:underline">Políticas</a>.</span>
                 </div>
 
                 <button

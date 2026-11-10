@@ -31,17 +31,17 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onClick, onDelete }) => {
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end p-6 pointer-events-none">
         <div className="transform translate-y-2 group-hover:translate-y-0 transition-all duration-500">
-          <span className="text-[7px] font-black uppercase tracking-[0.3em] text-[var(--primary-color)] bg-[var(--primary-color)]/10 px-2 py-1 rounded-md border border-[var(--primary-color)]/20 mb-3 inline-block backdrop-blur-sm">
+          <span className="text-[11px] font-black uppercase tracking-wide text-[var(--primary-color)] bg-[var(--primary-color)]/10 px-2 py-1 rounded-md border border-[var(--primary-color)]/20 mb-3 inline-block backdrop-blur-sm">
             {album.category}
           </span>
-          <h3 className="text-white font-black text-xl leading-tight uppercase tracking-tighter group-hover:text-[var(--primary-color)] transition-colors mb-2">
+          <h3 className="text-white font-black text-xl leading-tight tracking-tighter group-hover:text-[var(--primary-color)] transition-colors mb-2">
             {album.title}
           </h3>
           <div className="flex items-center gap-4 opacity-60 group-hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-wide">
               <ImageIcon size={12} className="text-[var(--primary-color)]" /> {imagesCount}
             </div>
-            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-wide">
               <Film size={12} className="text-[var(--primary-color)]" /> {videosCount}
             </div>
           </div>

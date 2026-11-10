@@ -62,13 +62,13 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-rose-500/20">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-rose-500/20 flex items-center justify-center">
-              <Bell size={18} className="text-rose-400 animate-pulse" />
+              <Bell size={18} className="text-rose-400" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-rose-300 uppercase tracking-widest">
+              <h3 className="text-sm font-black text-rose-300 uppercase tracking-wide">
                 Alerta de Inadimplência
               </h3>
-              <p className="text-[10px] text-rose-500/70 font-bold uppercase tracking-tight mt-0.5">
+              <p className="text-[11px] text-rose-500/70 font-bold uppercase tracking-tight mt-0.5">
                 {overdueClients.length} cliente{overdueClients.length > 1 ? 's' : ''} com nota{overdueClients.length > 1 ? 's' : ''} há mais de {overdueAlertDays} dias sem pagamento
               </p>
             </div>
@@ -96,13 +96,13 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{client.name}</p>
-                  <p className="text-[10px] text-rose-400/70 font-bold uppercase tracking-wider">
+                  <p className="text-[11px] text-rose-400/70 font-bold uppercase tracking-wider">
                     {clientInvoices.length} nota{clientInvoices.length > 1 ? 's' : ''} pendente{clientInvoices.length > 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black px-3 py-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl uppercase tracking-widest">
+                <span className="text-[11px] font-black px-3 py-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl uppercase tracking-wide">
                   {maxDays}d em atraso
                 </span>
                 <ChevronRight size={16} className="text-rose-500/50 group-hover:text-rose-400 group-hover:translate-x-1 transition-all" />
@@ -113,7 +113,7 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
           {overdueClients.length > 2 && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="w-full text-center py-3 text-[10px] font-black text-rose-500/60 hover:text-rose-400 uppercase tracking-widest transition-colors"
+              className="w-full text-center py-3 text-[11px] font-black text-rose-500/60 hover:text-rose-400 uppercase tracking-wide transition-colors"
             >
               {expanded ? 'Ver menos' : `Ver mais ${overdueClients.length - 2} cliente(s)`}
             </button>

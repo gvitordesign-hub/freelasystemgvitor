@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Target, Palette, Bookmark, Save, Trash2, Sliders, Bell, Calendar, Plus, RefreshCw, Package, Sparkles, DollarSign, Pencil, X, Check, Search, Tag, Layers } from 'lucide-react';
 import { UserStats, ThemeColor, Client, Task, Holiday, Service } from '@/types';
 import FreelancerCalculator from '@/features/settings/FreelancerCalculator';
+import LocalDataMigration from '@/features/settings/LocalDataMigration';
+import { notify } from '@/context/ToastContext';
 
 interface SettingsViewProps {
   stats: UserStats;
@@ -71,7 +73,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
       }
 
       if (allFetchedHolidays.length === 0) {
-        alert('Não foi possível obter os feriados nacionais do Calendário Geral no momento. Verifique sua conexão.');
+        notify.error('Não foi possível obter os feriados nacionais do Calendário Geral no momento. Verifique sua conexão.');
         return;
       }
 
@@ -85,14 +87,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         .filter(h => !existingDates.has(h.date));
 
       if (newHolidays.length === 0) {
-        alert('Tudo em ordem! Todos os feriados nacionais do Calendário Geral já estão sincronizados no seu sistema.');
+        notify.success('Tudo em ordem! Todos os feriados nacionais do Calendário Geral já estão sincronizados no seu sistema.');
       } else {
         await onSyncHolidays(newHolidays);
-        alert(`Sincronizado com sucesso! ${newHolidays.length} feriados nacionais foram importados e vinculados à sua agenda.`);
+        notify.success(`Sincronizado com sucesso! ${newHolidays.length} feriados nacionais foram importados e vinculados à sua agenda.`);
       }
     } catch (error) {
       console.error('Error syncing general calendar:', error);
-      alert('Ocorreu um erro ao tentar sincronizar os feriados. Tente novamente mais tarde.');
+      notify.error('Ocorreu um erro ao tentar sincronizar os feriados. Tente novamente mais tarde.');
     } finally {
       setIsSyncing(false);
     }
@@ -108,16 +110,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     <div className="p-8 max-w-5xl mx-auto space-y-12 pb-20 animate-reveal">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold cyber-font text-white uppercase tracking-tighter">Configurações</h1>
-          <p className="text-slate-400">Personalize os protocolos do seu sistema</p>
+          <h1 className="text-4xl font-bold text-white tracking-tighter">Configurações</h1>
+          <p className="text-slate-400">Personalize o seu sistema</p>
         </div>
         <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center gap-4">
           <Sliders className="text-[var(--primary-color)]" size={20} />
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">v2.5 Estável</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">v2.5 Estável</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <LocalDataMigration />
         {/* Metas Financeiras */}
         <section className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-3">
@@ -126,7 +129,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Semanal</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Semanal</label>
               <input
                 type="number"
                 value={stats.weeklyGoal}
@@ -135,7 +138,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Mensal</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Mensal</label>
               <input
                 type="number"
                 value={stats.monthlyGoal}
@@ -144,7 +147,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Anual</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Anual</label>
               <input
                 type="number"
                 value={stats.annualGoal || 100000}
@@ -163,7 +166,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Demandas/Semana</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Demandas/Semana</label>
               <input
                 type="number"
                 value={stats.taskGoal}
@@ -172,7 +175,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Novos Clientes/Mês</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Novos Clientes/Mês</label>
               <input
                 type="number"
                 value={stats.clientGoal}
@@ -187,7 +190,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <section className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6 lg:col-span-2">
           <h3 className="text-lg font-bold text-white flex items-center gap-3">
             <Palette className="text-[var(--primary-color)]" size={20} />
-            Interface Visual (Acento Neon)
+            Aparência (cor de destaque)
           </h3>
           <div className="flex flex-wrap gap-4">
             {colors.map(color => (
@@ -203,7 +206,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   color === 'emerald' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' :
                     color === 'cyan' ? 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'
                   }`} />
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-300">
                   {color === 'purple' ? 'Púrpura' :
                     color === 'emerald' ? 'Esmeralda' :
                       color === 'cyan' ? 'Ciano' : 'Rosa'}
@@ -241,7 +244,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 key={days}
                 onClick={() => onUpdateStats({ overdueAlertDays: days })}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wide border-2 transition-all ${
                   (stats.overdueAlertDays ?? 30) === days
                     ? 'border-rose-500 bg-rose-500/10 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
                     : 'border-slate-700 bg-slate-800/30 text-slate-500 hover:border-slate-600 hover:text-slate-300'
@@ -252,7 +255,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+          <p className="text-[11px] text-slate-600 font-bold uppercase tracking-wide">
             Configuração atual: alertar após <span className="text-rose-500">{stats.overdueAlertDays ?? 30} dias</span> sem pagamento
           </p>
         </section>
@@ -273,7 +276,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 onClick={handleSyncGeneralCalendar}
                 disabled={isSyncing}
-                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center gap-2 active:scale-95 transition-all self-start sm:self-auto shrink-0 shadow-lg shadow-purple-500/5 disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center gap-2 active:scale-95 transition-all self-start sm:self-auto shrink-0 shadow-lg shadow-purple-500/5 disabled:opacity-50"
               >
                 <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                 {isSyncing ? 'Sincronizando...' : 'Vincular Calendário Geral'}
@@ -283,7 +286,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-950/30 p-5 rounded-2xl border border-slate-800/60">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Data do Feriado</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Data do Feriado</label>
               <input
                 type="date"
                 value={newHolidayDate}
@@ -292,7 +295,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Descrição / Nome</label>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Descrição / Nome</label>
               <input
                 type="text"
                 placeholder="Ex: Ano Novo, Folga..."
@@ -304,7 +307,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               onClick={() => {
                 if (!newHolidayDate || !newHolidayDesc) {
-                  alert('Por favor, preencha a data e a descrição do feriado.');
+                  notify.error('Por favor, preencha a data e a descrição do feriado.');
                   return;
                 }
                 if (onAddHoliday) {
@@ -313,7 +316,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   setNewHolidayDesc('');
                 }
               }}
-              className="bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[var(--primary-shadow)]"
+              className="bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-xl font-black uppercase text-[11px] tracking-wide flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[var(--primary-shadow)]"
             >
               <Plus size={14} />
               Adicionar Dia
@@ -333,7 +336,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   <div key={h.id} className="flex items-center justify-between p-4 bg-slate-800/30 border border-slate-800 rounded-2xl group hover:border-[var(--primary-color)]/30 transition-all">
                     <div>
                       <p className="text-xs font-bold text-slate-200">{h.description}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-tight">{formattedDate} ({formattedWeekDay})</p>
+                      <p className="text-[11px] text-slate-400 font-bold uppercase mt-0.5 tracking-tight">{formattedDate} ({formattedWeekDay})</p>
                     </div>
                     <button
                       onClick={() => onDeleteHoliday && onDeleteHoliday(h.id)}
@@ -373,7 +376,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   setServiceFormData({ name: '', category: 'Design', baseValue: '', description: '' });
                   setIsAddingService(true);
                 }}
-                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[var(--primary-color)]/20 hover:bg-[var(--primary-color)]/30 border border-[var(--primary-color)]/40 text-[var(--primary-color)] flex items-center justify-center gap-2 active:scale-95 transition-all self-start sm:self-auto shrink-0 shadow-lg"
+                className="px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide bg-[var(--primary-color)]/20 hover:bg-[var(--primary-color)]/30 border border-[var(--primary-color)]/40 text-[var(--primary-color)] flex items-center justify-center gap-2 active:scale-95 transition-all self-start sm:self-auto shrink-0 shadow-lg"
               >
                 <Plus size={14} />
                 Novo Serviço no Cardápio
@@ -385,7 +388,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           {isAddingService && (
             <div className="bg-slate-950/60 p-6 rounded-2xl border border-[var(--primary-color)]/30 space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs font-bold cyber-font text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Sparkles size={14} className="text-[var(--primary-color)]" />
                   {editingServiceId ? 'Editar Serviço do Cardápio' : 'Cadastrar Novo Serviço'}
                 </span>
@@ -403,7 +406,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Nome do Serviço / Entregável *
                   </label>
                   <input
@@ -417,7 +420,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Valor Padrão (R$) *
                   </label>
                   <div className="relative">
@@ -435,7 +438,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Categoria
                   </label>
                   <select
@@ -455,7 +458,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                     Descrição ou Observação (Opcional)
                   </label>
                   <input
@@ -483,12 +486,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   onClick={async () => {
                     if (!serviceFormData.name.trim()) {
-                      alert('Por favor, informe o nome do serviço.');
+                      notify.error('Por favor, informe o nome do serviço.');
                       return;
                     }
                     const val = parseFloat(serviceFormData.baseValue);
                     if (isNaN(val) || val < 0) {
-                      alert('Por favor, informe um valor padrão válido.');
+                      notify.error('Por favor, informe um valor padrão válido.');
                       return;
                     }
 
@@ -542,7 +545,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
                     selectedCategory === cat
                       ? 'bg-[var(--primary-color)] text-white shadow-sm'
                       : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 border border-slate-700/50'
@@ -573,7 +576,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-400">Nenhum serviço encontrado no cardápio</p>
-                    <p className="text-[10px] text-slate-600 mt-0.5">Cadastre seus serviços mais comuns para acelerar a criação de projetos.</p>
+                    <p className="text-[11px] text-slate-600 mt-0.5">Cadastre seus serviços mais comuns para acelerar a criação de projetos.</p>
                   </div>
                   {!isAddingService && (
                     <button
@@ -635,14 +638,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                       </div>
                       {service.description && (
-                        <p className="text-[10px] text-slate-400 line-clamp-1">
+                        <p className="text-[11px] text-slate-400 line-clamp-1">
                           {service.description}
                         </p>
                       )}
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 flex items-center gap-1">
                         <Tag size={10} /> Valor Base
                       </span>
                       <span className="text-xs font-black text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
@@ -665,7 +668,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <section className="lg:col-span-2 pt-8 flex justify-center">
           <button
             onClick={clearData}
-            className="flex items-center gap-2 text-rose-500/50 hover:text-rose-500 transition-colors text-xs font-bold uppercase tracking-widest"
+            className="flex items-center gap-2 text-rose-500/50 hover:text-rose-500 transition-colors text-xs font-bold uppercase tracking-wide"
           >
             <Trash2 size={14} />
             Formatar Dados (Reset Total)

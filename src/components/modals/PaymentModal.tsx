@@ -1,15 +1,29 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, XCircle, DollarSign, Award, X } from 'lucide-react';
 import { Task } from '../../types';
+import ReceiptModal, { ReceiptResult } from './ReceiptModal';
 
 interface PaymentModalProps {
   task: Task;
-  onConfirm: (received: boolean) => void;
+  onConfirm: (received: boolean, receipt?: ReceiptResult) => void;
   onClose: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ task, onConfirm, onClose }) => {
+  const [askReceipt, setAskReceipt] = useState(false);
+
+  if (askReceipt) {
+    return (
+      <ReceiptModal
+        title={`Tarefa: ${task.title}`}
+        amount={Number(task.value) || 0}
+        onConfirm={(receipt) => onConfirm(true, receipt)}
+        onClose={() => setAskReceipt(false)}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-slate-900 border border-emerald-500/50 w-full max-w-md rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] overflow-hidden animate-in slide-in-from-bottom-8 duration-300 relative max-h-[92dvh] overflow-y-auto">
@@ -22,17 +36,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ task, onConfirm, onClose })
           <X size={20} />
         </button>
         <div className="p-5 sm:p-8 text-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border-2 border-emerald-500/40 animate-pulse">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border-2 border-emerald-500/40">
             <CheckCircle className="text-emerald-400" size={36} />
           </div>
           
-          <h2 className="text-xl sm:text-2xl font-bold mb-2 cyber-font text-white">Missão Concluída!</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2 text-white">Tarefa concluída!</h2>
           <p className="text-slate-400 text-xs sm:text-sm mb-6 sm:mb-8">
             Você finalizou a tarefa <span className="text-slate-200 font-semibold">"{task.title}"</span>.
           </p>
 
           <div className="bg-slate-800/50 rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-700">
-            <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Confirmação Financeira</p>
+            <p className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Confirmação Financeira</p>
             <div className="flex items-center justify-center gap-2 text-2xl sm:text-3xl font-bold text-emerald-400 mb-2">
               <DollarSign size={22} />
               {task.value.toLocaleString('pt-BR')}
@@ -50,7 +64,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ task, onConfirm, onClose })
             </button>
             
             <button 
-              onClick={() => onConfirm(true)}
+              onClick={() => setAskReceipt(true)}
               className="flex flex-col items-center justify-center p-3.5 sm:p-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl border border-emerald-400/30 transition-all group cursor-pointer touch-target active:scale-95 shadow-lg shadow-emerald-950"
             >
               <DollarSign className="text-white mb-2" size={22} />

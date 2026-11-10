@@ -21,6 +21,7 @@ import {
   Clock 
 } from 'lucide-react';
 import { Client, DayOfWeek, Task, Invoice, Holiday, Service, DeliverableItem } from '../../types';
+import { notify } from '@/context/ToastContext';
 
 interface TaskModalProps {
   clients: Client[];
@@ -222,7 +223,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
     // Check for holiday
     if (activeHoliday) {
-      alert(`Impossível agendar: "${formData.date}" foi configurado como feriado/folga (${activeHoliday.description || 'Feriado'}).`);
+      notify.error(`Impossível agendar: "${formData.date}" foi configurado como feriado/folga (${activeHoliday.description || 'Feriado'}).`);
       return;
     }
 
@@ -234,7 +235,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
       if (isAddingNewClient) {
         if (!newClientData.name.trim()) {
-          alert('Preencha ao menos o nome do cliente.');
+          notify.error('Preencha ao menos o nome do cliente.');
           setIsSubmitting(false);
           return;
         }
@@ -242,14 +243,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
       }
 
       if (!finalClientId) {
-        alert('Selecione ou cadastre um cliente para o projeto.');
+        notify.error('Selecione ou cadastre um cliente para o projeto.');
         setIsSubmitting(false);
         return;
       }
 
       if (isAddingNewInvoice) {
         if (!newInvoiceTitle.trim()) {
-          alert('Por favor, informe o título da nova nota para este cliente.');
+          notify.error('Por favor, informe o título da nova nota para este cliente.');
           setIsSubmitting(false);
           return;
         }
@@ -262,7 +263,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       }
 
       if (!finalInvoiceId) {
-        alert('A seleção ou criação de uma Nota de Cobrança é obrigatória para este projeto.');
+        notify.error('A seleção ou criação de uma Nota de Cobrança é obrigatória para este projeto.');
         setIsSubmitting(false);
         return;
       }
@@ -303,7 +304,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-bold cyber-font text-white uppercase tracking-tighter">
+            <h2 className="text-xl font-bold text-white tracking-tighter">
               {isEditMode ? 'Editar Demanda de Projeto' : 'Nova Demanda de Projeto'}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -317,7 +318,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+            <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wide">
               Título do Projeto / Demanda Mestre *
             </label>
             <input
@@ -334,7 +335,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             {/* Searchable Client Selector */}
             <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-800 relative" ref={clientDropdownRef}>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                   <User size={12} className="text-[var(--primary-color)]" />
                   Cliente *
                 </label>
@@ -344,7 +345,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     setIsAddingNewClient(!isAddingNewClient);
                     if (!isAddingNewClient) setNewClientData({ name: '', company: '' });
                   }}
-                  className="text-[9px] font-black uppercase text-[var(--primary-color)] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-black uppercase text-[var(--primary-color)] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <UserPlus size={11} />
                   {isAddingNewClient ? 'Selecionar da Lista' : '+ Novo'}
@@ -377,13 +378,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   >
                     {selectedClient ? (
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-6 h-6 rounded-lg bg-[var(--primary-color)]/20 text-[var(--primary-color)] font-black flex items-center justify-center text-[10px] shrink-0 border border-[var(--primary-color)]/30">
+                        <div className="w-6 h-6 rounded-lg bg-[var(--primary-color)]/20 text-[var(--primary-color)] font-black flex items-center justify-center text-[11px] shrink-0 border border-[var(--primary-color)]/30">
                           {selectedClient.name.charAt(0)}
                         </div>
                         <div className="truncate">
                           <span className="font-bold text-slate-100">{selectedClient.name}</span>
                           {selectedClient.company && (
-                            <span className="text-[10px] text-slate-400 ml-1.5 font-normal">
+                            <span className="text-[11px] text-slate-400 ml-1.5 font-normal">
                               ({selectedClient.company})
                             </span>
                           )}
@@ -442,13 +443,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-5 h-5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300 flex items-center justify-center shrink-0">
+                                <div className="w-5 h-5 rounded-md bg-slate-800 text-[11px] font-bold text-slate-300 flex items-center justify-center shrink-0">
                                   {c.name.charAt(0)}
                                 </div>
                                 <div className="truncate">
                                   <span className="font-semibold">{c.name}</span>
                                   {c.company && (
-                                    <span className="text-[10px] text-slate-500 ml-1.5">
+                                    <span className="text-[11px] text-slate-500 ml-1.5">
                                       • {c.company}
                                     </span>
                                   )}
@@ -470,7 +471,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                                 setIsClientDropdownOpen(false);
                                 setClientSearchTerm('');
                               }}
-                              className="text-[10px] font-black uppercase text-[var(--primary-color)] hover:underline inline-flex items-center gap-1"
+                              className="text-[11px] font-black uppercase text-[var(--primary-color)] hover:underline inline-flex items-center gap-1"
                             >
                               <Plus size={12} /> Cadastrar "{clientSearchTerm}"
                             </button>
@@ -486,14 +487,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
             {/* Invoice Link */}
             <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-800">
               <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                   <FileText size={12} className="text-emerald-400" />
                   Nota de Cobrança <span className="text-rose-400">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsAddingNewInvoice(!isAddingNewInvoice)}
-                  className="text-[9px] font-black uppercase text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-black uppercase text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle size={11} />
                   {isAddingNewInvoice ? 'Selecionar da Lista' : '+ Nova'}
@@ -530,12 +531,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="text-[var(--primary-color)]" size={18} />
-                <span className="text-xs font-black cyber-font text-white uppercase tracking-wider">
+                <span className="text-xs font-black text-white uppercase tracking-wider">
                   Entregáveis & Peças do Projeto
                 </span>
               </div>
               {deliverables.length > 0 && (
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                   {deliverables.length} {deliverables.length === 1 ? 'peça' : 'peças'} • Total: {deliverablesTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </span>
               )}
@@ -544,7 +545,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             {/* Chips Rápidos do Cardápio de Serviços */}
             {services.length > 0 && (
               <div className="space-y-1.5">
-                <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
                   <Sparkles size={10} className="text-amber-400" />
                   Inserir do Cardápio de Serviços (1 clique):
                 </label>
@@ -558,7 +559,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     >
                       <Plus size={11} className="text-[var(--primary-color)]" />
                       <span>{s.name}</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">
+                      <span className="text-[11px] text-emerald-400 font-mono">
                         R$ {s.baseValue}
                       </span>
                     </button>
@@ -585,7 +586,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[var(--primary-color)]"
               />
               <div className="w-28 relative">
-                <span className="absolute left-2.5 top-2 text-[10px] text-slate-500 font-bold">R$</span>
+                <span className="absolute left-2.5 top-2 text-[11px] text-slate-500 font-bold">R$</span>
                 <input
                   type="number"
                   placeholder="0.00"
@@ -625,7 +626,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     className="flex items-center justify-between gap-3 p-2.5 bg-slate-900/80 rounded-xl border border-slate-800 group hover:border-slate-700 transition-all"
                   >
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <span className="w-5 h-5 rounded-lg bg-slate-800 text-[10px] font-black text-slate-400 flex items-center justify-center shrink-0">
+                      <span className="w-5 h-5 rounded-lg bg-slate-800 text-[11px] font-black text-slate-400 flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <input
@@ -638,7 +639,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="relative w-24">
-                        <span className="absolute left-2 top-1 text-[9px] text-slate-500 font-bold">R$</span>
+                        <span className="absolute left-2 top-1 text-[11px] text-slate-500 font-bold">R$</span>
                         <input
                           type="number"
                           value={item.value}
@@ -667,7 +668,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Categoria Geral</label>
+              <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">Categoria Geral</label>
               <select
                 value={formData.category}
                 onChange={e => setFormData({ ...formData, category: e.target.value })}
@@ -682,12 +683,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
             {/* Enhanced Date Picker Interface */}
             <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-800 space-y-2.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                   <CalendarIcon size={12} className="text-[var(--primary-color)]" />
                   Prazo de Entrega *
                 </label>
                 {formattedDateInfo.dayOfWeek && (
-                  <span className="text-[9px] font-bold text-[var(--primary-color)] uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[var(--primary-color)] uppercase tracking-wider">
                     {formattedDateInfo.dayOfWeek}
                   </span>
                 )}
@@ -698,7 +699,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('today') }))}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                     formData.date === getPresetDate('today')
                       ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] shadow-sm'
                       : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700'
@@ -709,7 +710,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('tomorrow') }))}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                     formData.date === getPresetDate('tomorrow')
                       ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] shadow-sm'
                       : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700'
@@ -720,7 +721,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('friday') }))}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                     formData.date === getPresetDate('friday')
                       ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] shadow-sm'
                       : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700'
@@ -731,7 +732,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('nextMonday') }))}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                     formData.date === getPresetDate('nextMonday')
                       ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] shadow-sm'
                       : 'bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700'
@@ -754,12 +755,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
               {/* Formatted Date Preview & Holiday Warning */}
               {activeHoliday ? (
-                <div className="flex items-center gap-1.5 p-2 bg-rose-500/15 border border-rose-500/30 rounded-xl text-rose-300 text-[10px] font-bold animate-pulse">
+                <div className="flex items-center gap-1.5 p-2 bg-rose-500/15 border border-rose-500/30 rounded-xl text-rose-300 text-[11px] font-bold">
                   <AlertTriangle size={12} className="text-rose-400 shrink-0" />
                   <span>Feriado/Folga: {activeHoliday.description || 'Data Bloqueada'}</span>
                 </div>
               ) : formattedDateInfo.formattedDate ? (
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium px-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium px-1">
                   <Clock size={11} className="text-slate-500" />
                   <span>Agendado para <strong className="text-slate-200">{formattedDateInfo.formattedDate}</strong></span>
                 </div>
@@ -769,11 +770,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              <label className="text-[11px] font-black text-slate-500 uppercase tracking-wide">
                 Valor Total do Projeto (R$) *
               </label>
               {deliverables.length > 0 && (
-                <span className="text-[9px] font-bold text-slate-400">
+                <span className="text-[11px] font-bold text-slate-400">
                   Soma calculada a partir das {deliverables.length} peças
                 </span>
               )}
@@ -789,14 +790,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Status do Projeto</label>
+            <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wide">Status do Projeto</label>
             <div className="flex gap-2">
               {(['Pendente', 'Em Andamento', 'Concluído'] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setFormData({ ...formData, status: s })}
-                  className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                  className={`flex-1 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all border ${
                     formData.status === s
                       ? s === 'Concluído'
                         ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
@@ -813,7 +814,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Briefing / Observações</label>
+            <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wide">Briefing / Observações</label>
             <textarea
               value={formData.briefing}
               onChange={e => setFormData({ ...formData, briefing: e.target.value })}
@@ -826,7 +827,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl transition-all neon-shadow-primary uppercase tracking-widest text-xs flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl transition-all neon-shadow-primary uppercase tracking-wide text-xs flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <Check size={16} />
             {isSubmitting ? 'Processando...' : (isEditMode ? 'Salvar Alterações no Projeto' : 'Confirmar Demanda de Projeto')}

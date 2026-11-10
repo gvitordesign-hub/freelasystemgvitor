@@ -33,7 +33,7 @@ export const SystemLoader: React.FC<SystemLoaderProps> = ({
           </div>
         </div>
 
-        <p className="text-[11px] font-bold text-slate-400 cyber-font tracking-wide uppercase">
+        <p className="text-[11px] font-bold text-slate-400 tracking-wide uppercase">
           {message}
         </p>
       </div>
@@ -125,10 +125,10 @@ export const SystemLoader: React.FC<SystemLoaderProps> = ({
 
       {/* Brand Identity */}
       <div className="flex flex-col items-center gap-1 mb-5">
-        <span className="text-xl font-black cyber-font tracking-tighter text-white leading-none">
+        <span className="text-xl font-black tracking-tighter text-white leading-none">
           FRELLA<span className="text-purple-400">SYSTEM</span>
         </span>
-        <span className="text-[10px] font-black tracking-[0.35em] text-slate-400 uppercase opacity-80">
+        <span className="text-[11px] font-black tracking-wide text-slate-400 uppercase opacity-80">
           WORKSPACE
         </span>
       </div>

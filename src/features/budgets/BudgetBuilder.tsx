@@ -7,6 +7,8 @@ import {
   Calendar, CreditCard, Save, Pencil, X
 } from 'lucide-react';
 import { Client, Service, Budget, BudgetItem, UserStats, Task, Transaction, DayOfWeek } from '../../types';
+import { getLocalDateString } from '../../utils/dateUtils';
+import { notify } from '@/context/ToastContext';
 
 interface BudgetBuilderProps {
   clients: Client[];
@@ -88,8 +90,8 @@ const BudgetBuilder: React.FC<BudgetBuilderProps> = ({
   };
 
   const handleSaveToCatalog = (item: BudgetItem) => {
-    if (!item.description.trim()) return alert('Dê um nome ao serviço primeiro.');
-    if (item.unitValue <= 0) return alert('Defina um valor base para o serviço.');
+    if (!item.description.trim()) return notify.error('Dê um nome ao serviço primeiro.');
+    if (item.unitValue <= 0) return notify.error('Defina um valor base para o serviço.');
 
     onSaveCatalog({
       name: item.description,
@@ -160,18 +162,18 @@ Qualquer dúvida, estou à disposição!
   };
 
   const handleApprove = async () => {
-    if (activeBudget.items.length === 0) return alert('Adicione itens ao orçamento.');
+    if (activeBudget.items.length === 0) return notify.error('Adicione itens ao orçamento.');
 
     let finalClientId = activeBudget.clientId;
 
     if (isAddingNewClient) {
       if (!newClientData.name || !newClientData.company) {
-        return alert('Preencha os dados do novo cliente.');
+        return notify.error('Preencha os dados do novo cliente.');
       }
       finalClientId = await onQuickAddClient(newClientData);
     }
 
-    if (!finalClientId) return alert('Selecione um cliente.');
+    if (!finalClientId) return notify.error('Selecione um cliente.');
 
     activeBudget.items.forEach(item => {
       if (!isItemInCatalog(item.description) && item.description.trim() !== '' && item.unitValue > 0) {
@@ -183,7 +185,7 @@ Qualquer dúvida, estou à disposição!
       }
     });
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = getLocalDateString();
 
     const tasks: Omit<Task, 'id'>[] = activeBudget.items.map(item => ({
       title: item.description,
@@ -214,11 +216,11 @@ Qualquer dúvida, estou à disposição!
       <div className="lg:col-span-7 space-y-6 print:hidden">
         <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-5 sm:p-8 rounded-3xl shadow-xl space-y-6 sm:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-bold cyber-font text-white flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
               <Calculator className="text-[var(--primary-color)]" size={20} />
               Frella Smart Budget
             </h2>
-            <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+            <span className="text-[11px] sm:text-[11px] font-black text-slate-500 uppercase tracking-wide bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
               v2.5
             </span>
           </div>
@@ -226,12 +228,12 @@ Qualquer dúvida, estou à disposição!
           {/* Seleção de Cliente / Novo Cliente */}
           <div className="bg-slate-800/30 p-4 sm:p-6 rounded-2xl border border-slate-700/50 space-y-4">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1 tracking-wider">
+              <label className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1 tracking-wider">
                 <User size={12} className="text-[var(--primary-color)]" /> Cliente da Proposta
               </label>
               <button
                 onClick={() => setIsAddingNewClient(!isAddingNewClient)}
-                className="text-[10px] font-black text-[var(--primary-color)] flex items-center gap-1 hover:brightness-125 transition-all uppercase cursor-pointer"
+                className="text-[11px] font-black text-[var(--primary-color)] flex items-center gap-1 hover:brightness-125 transition-all uppercase cursor-pointer"
               >
                 {isAddingNewClient ? (
                   <><ChevronLeft size={11} /> Lista</>
@@ -278,11 +280,11 @@ Qualquer dúvida, estou à disposição!
                 <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700">
                   <button
                     onClick={() => setActiveBudget({ ...activeBudget, discountType: 'percent' })}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'percent' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'percent' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
                   >Desconto %</button>
                   <button
                     onClick={() => setActiveBudget({ ...activeBudget, discountType: 'fixed' })}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'fixed' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${activeBudget.discountType === 'fixed' ? 'bg-[var(--primary-color)] text-white' : 'text-slate-500'}`}
                   >Desconto R$</button>
                 </div>
               </div>
@@ -292,12 +294,12 @@ Qualquer dúvida, estou à disposição!
           {/* Itens do Orçamento */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                 <Package size={13} className="text-[var(--primary-color)]" /> Itens da Proposta
               </label>
               <button
                 onClick={() => addItem()}
-                className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary-color)] hover:brightness-125 transition-all uppercase cursor-pointer"
+                className="flex items-center gap-1 text-[11px] font-bold text-[var(--primary-color)] hover:brightness-125 transition-all uppercase cursor-pointer"
               >
                 <Plus size={13} /> + Item Avulso
               </button>
@@ -319,7 +321,7 @@ Qualquer dúvida, estou à disposição!
                       </div>
                       <div className="flex items-center justify-between gap-3 sm:contents">
                         <div className="sm:col-span-2 flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase sm:hidden">Qtd:</span>
+                          <span className="text-[11px] font-bold text-slate-500 uppercase sm:hidden">Qtd:</span>
                           <input
                             type="number"
                             value={item.quantity}
@@ -328,7 +330,7 @@ Qualquer dúvida, estou à disposição!
                           />
                         </div>
                         <div className="sm:col-span-3 flex items-center gap-1 text-xs text-emerald-400 font-black">
-                          <span className="text-[9px] text-slate-500 font-bold sm:hidden">R$:</span>
+                          <span className="text-[11px] text-slate-500 font-bold sm:hidden">R$:</span>
                           <input
                             type="number"
                             value={item.unitValue}
@@ -363,13 +365,13 @@ Qualquer dúvida, estou à disposição!
               {/* Seletor do Catálogo Rápido */}
               <div className="bg-slate-900 border-2 border-dashed border-slate-800 p-4 rounded-2xl flex flex-wrap gap-2 relative">
                 <div className="flex justify-between items-center w-full mb-1">
-                  <span className="text-[9px] font-black text-slate-600 uppercase">Puxar do seu Catálogo de Serviços:</span>
+                  <span className="text-[11px] font-black text-slate-600 uppercase">Puxar do seu Catálogo de Serviços:</span>
                 </div>
                 {services.length > 0 ? services.map(s => (
                   <div key={s.id} className="group relative flex items-center">
                     <button
                       onClick={() => addItem(s)}
-                      className="pl-3 pr-8 py-1.5 bg-slate-800 hover:bg-[var(--primary-color)]/20 hover:text-[var(--primary-color)] rounded-lg text-[10px] font-bold text-slate-400 border border-slate-700 transition-all flex items-center gap-2"
+                      className="pl-3 pr-8 py-1.5 bg-slate-800 hover:bg-[var(--primary-color)]/20 hover:text-[var(--primary-color)] rounded-lg text-[11px] font-bold text-slate-400 border border-slate-700 transition-all flex items-center gap-2"
                     >
                       <Package size={12} /> {s.name}
                     </button>
@@ -391,7 +393,7 @@ Qualquer dúvida, estou à disposição!
                     </div>
                   </div>
                 )) : (
-                  <span className="text-[10px] text-slate-600 italic">Nenhum serviço salvo ainda. Use o botão de salvar nos itens avulsos.</span>
+                  <span className="text-[11px] text-slate-600 italic">Nenhum serviço salvo ainda. Use o botão de salvar nos itens avulsos.</span>
                 )}
               </div>
             </div>
@@ -402,14 +404,14 @@ Qualquer dúvida, estou à disposição!
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                  <h2 className="text-lg font-bold cyber-font text-white uppercase tracking-tighter">Editar Serviço do Catálogo</h2>
+                  <h2 className="text-lg font-bold text-white uppercase tracking-tighter">Editar Serviço do Catálogo</h2>
                   <button onClick={() => setEditingService(null)} className="text-slate-500 hover:text-white transition-colors">
                     <X size={20} />
                   </button>
                 </div>
                 <form onSubmit={handleUpdateService} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Nome do Serviço</label>
+                    <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wide">Nome do Serviço</label>
                     <input
                       required
                       type="text"
@@ -419,7 +421,7 @@ Qualquer dúvida, estou à disposição!
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">Valor Base (R$)</label>
+                    <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wide">Valor Base (R$)</label>
                     <input
                       required
                       type="number"
@@ -428,7 +430,7 @@ Qualquer dúvida, estou à disposição!
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-xs outline-none focus:border-[var(--primary-color)]"
                     />
                   </div>
-                  <button type="submit" className="w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-3 rounded-xl transition-all uppercase tracking-widest text-[10px]">
+                  <button type="submit" className="w-full bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-3 rounded-xl transition-all uppercase tracking-wide text-[11px]">
                     Salvar Alterações
                   </button>
                 </form>
@@ -440,11 +442,11 @@ Qualquer dúvida, estou à disposição!
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-800">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Configurações Gerais</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Configurações Gerais</label>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase font-black mb-1 block">Desconto Especial</label>
+                  <label className="text-[11px] text-slate-500 uppercase font-black mb-1 block">Desconto Especial</label>
                   <input
                     type="number"
                     value={activeBudget.discount}
@@ -453,7 +455,7 @@ Qualquer dúvida, estou à disposição!
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase font-black mb-1 block">Validade (Dias)</label>
+                  <label className="text-[11px] text-slate-500 uppercase font-black mb-1 block">Validade (Dias)</label>
                   <input
                     type="number"
                     value={activeBudget.validityDays}
@@ -462,7 +464,7 @@ Qualquer dúvida, estou à disposição!
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase font-black mb-1 block">Chave PIX p/ WhatsApp/PDF</label>
+                  <label className="text-[11px] text-slate-500 uppercase font-black mb-1 block">Chave PIX p/ WhatsApp/PDF</label>
                   <input
                     type="text"
                     value={stats.pixKey || ''}
@@ -475,7 +477,7 @@ Qualquer dúvida, estou à disposição!
             </div>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-2">
                 <CreditCard size={12} /> Entrada / Sinal (%)
               </label>
               <div className="flex items-center gap-4">
@@ -491,8 +493,8 @@ Qualquer dúvida, estou à disposição!
 
               <div className="pt-2">
                 <div className="flex justify-between items-end mb-2">
-                  <label className="text-[9px] text-slate-500 uppercase font-black block">Branding da Proposta</label>
-                  <span className="text-[8px] text-slate-600 font-bold uppercase tracking-tighter">Sugestão: 200x200px (PNG)</span>
+                  <label className="text-[11px] text-slate-500 uppercase font-black block">Branding da Proposta</label>
+                  <span className="text-[11px] text-slate-600 font-bold uppercase tracking-tighter">Sugestão: 200x200px (PNG)</span>
                 </div>
                 <div className="flex flex-col gap-4 bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
                   <div className="flex justify-center">
@@ -520,14 +522,14 @@ Qualquer dúvida, estou à disposição!
                     />
                     <label
                       htmlFor="logo-upload"
-                      className="flex-1 text-center cursor-pointer px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                      className="flex-1 text-center cursor-pointer px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-[11px] font-bold transition-all uppercase tracking-wide flex items-center justify-center gap-2"
                     >
                       <Pencil size={12} /> Alterar Marca
                     </label>
                     {stats.portfolioLogo && (
                       <button
                         onClick={() => onUpdateStats({ portfolioLogo: '' })}
-                        className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest flex items-center gap-2"
+                        className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-[11px] font-bold transition-all uppercase tracking-wide flex items-center gap-2"
                       >
                         <Trash2 size={12} /> Remover
                       </button>
@@ -539,7 +541,7 @@ Qualquer dúvida, estou à disposição!
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Termos e Condições</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">Termos e Condições</label>
             <textarea
               value={activeBudget.terms}
               onChange={e => setActiveBudget({ ...activeBudget, terms: e.target.value })}
@@ -552,14 +554,14 @@ Qualquer dúvida, estou à disposição!
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={generateWhatsAppText}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all neon-shadow-primary uppercase text-xs tracking-widest"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all neon-shadow-primary uppercase text-xs tracking-wide"
           >
             {copied ? <CheckCircle size={18} /> : <MessageCircle size={18} />}
             {copied ? 'Copiado!' : 'Copiar p/ WhatsApp'}
           </button>
           <button
             onClick={handleApprove}
-            className="flex-1 bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all neon-shadow-primary uppercase text-xs tracking-widest"
+            className="flex-1 bg-[var(--primary-color)] hover:brightness-110 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 transition-all neon-shadow-primary uppercase text-xs tracking-wide"
           >
             <Wand2 size={18} /> Aprovar Projeto
           </button>
@@ -573,14 +575,14 @@ Qualquer dúvida, estou à disposição!
             {/* PDF Header */}
             <div className="flex justify-between items-start mb-12">
               <div className="space-y-1">
-                <h1 className="text-2xl font-black cyber-font uppercase tracking-tighter text-[var(--primary-color)]">PROPOSTA</h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">#{activeBudget.createdAt.split('T')[0].replace(/-/g, '')}</p>
+                <h1 className="text-2xl font-black tracking-tighter text-[var(--primary-color)]">PROPOSTA</h1>
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wide">#{activeBudget.createdAt.split('T')[0].replace(/-/g, '')}</p>
               </div>
               <div className="h-9 flex items-center justify-end">
                 {stats.portfolioLogo ? (
                   <img src={stats.portfolioLogo} className="h-full max-w-[140px] object-contain" alt="Logo" />
                 ) : (
-                  <div className="text-xl font-black cyber-font text-slate-900 uppercase">FRELLA<span className="text-[var(--primary-color)]">SYSTEM</span></div>
+                  <div className="text-xl font-black text-slate-900">FRELLA<span className="text-[var(--primary-color)]">SYSTEM</span></div>
                 )}
               </div>
             </div>
@@ -589,21 +591,21 @@ Qualquer dúvida, estou à disposição!
             <div className="space-y-8 flex-1">
               <div className="grid grid-cols-2 gap-8">
                 <div>
-                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Para</h4>
+                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-wide mb-2">Para</h4>
                   <p className="text-sm font-bold">{selectedClient?.name}</p>
                   <p className="text-xs text-slate-500">{selectedClient?.company}</p>
                 </div>
                 <div className="text-right">
-                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">De</h4>
+                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-wide mb-2">De</h4>
                   <p className="text-sm font-bold">{stats.name}</p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Validade: {activeBudget.validityDays} Dias</p>
+                  <p className="text-[11px] text-slate-500 uppercase tracking-tighter">Validade: {activeBudget.validityDays} Dias</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase">
+                    <tr className="border-b border-slate-100 text-[11px] font-black text-slate-400 uppercase">
                       <th className="py-3">Serviço / Item</th>
                       <th className="py-3 text-center">Qtd</th>
                       <th className="py-3 text-right">Total</th>
@@ -642,20 +644,20 @@ Qualquer dúvida, estou à disposição!
               </div>
 
               <div className="bg-slate-50 p-5 rounded-2xl space-y-3">
-                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Condições de Pagamento</h4>
+                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-wide">Condições de Pagamento</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase">Entrada ({activeBudget.downPayment}%)</p>
+                    <p className="text-[11px] text-slate-500 uppercase">Entrada ({activeBudget.downPayment}%)</p>
                     <p className="text-sm font-bold text-emerald-600">R$ {downPaymentValue.toLocaleString('pt-BR')}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase">Saldo Final</p>
+                    <p className="text-[11px] text-slate-500 uppercase">Saldo Final</p>
                     <p className="text-sm font-bold text-slate-700">R$ {(total - downPaymentValue).toLocaleString('pt-BR')}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="text-[10px] text-slate-400 leading-relaxed italic">
+              <div className="text-[11px] text-slate-400 leading-relaxed italic">
                 <span className="font-bold text-slate-500 uppercase tracking-tighter block mb-1">Notas Finais:</span>
                 {activeBudget.terms}
               </div>
@@ -663,17 +665,17 @@ Qualquer dúvida, estou à disposição!
 
             {/* PDF Footer */}
             <div className="pt-12 border-t border-slate-100 flex items-center justify-between">
-              <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Frella Smart Budget Module</div>
+              <div className="text-[11px] font-black text-slate-300 uppercase tracking-wide">Frella Smart Budget Module</div>
               <div className="text-right">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Chave PIX p/ Pagamento</p>
-                <p className="text-[10px] font-bold text-slate-800">{stats.pixKey || 'Solicitar ao profissional'}</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase mb-1">Chave PIX p/ Pagamento</p>
+                <p className="text-[11px] font-bold text-slate-800">{stats.pixKey || 'Solicitar ao profissional'}</p>
               </div>
             </div>
           </div>
 
           <button
             onClick={() => window.print()}
-            className="w-full mt-6 bg-slate-900 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all print:hidden uppercase text-xs tracking-widest border border-slate-700"
+            className="w-full mt-6 bg-slate-900 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all print:hidden uppercase text-xs tracking-wide border border-slate-700"
           >
             <FileText size={18} /> Exportar Proposta PDF
           </button>

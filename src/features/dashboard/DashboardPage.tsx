@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useToast, errorMessage } from '@/context/ToastContext';
+import type { ReceiptResult } from '@/components/modals/ReceiptModal';
 import { Menu, Clock, Loader2, LayoutDashboard, Trophy, DollarSign, Users, Plus } from 'lucide-react';
 import { Client, Task, AppState, Status, UserStats, Transaction, DayOfWeek, Budget, Service, Invoice, Reminder, Holiday } from '@/types';
 import { INITIAL_STATE, XP_PER_TASK, XP_PER_CLIENT, XP_PER_LEVEL, XP_DAILY_BRIEFING } from '@/constants';
@@ -25,134 +28,47 @@ const ProjectNoteModal = lazy(() => import('@/components/modals/ProjectNoteModal
 const BriefingModal = lazy(() => import('@/components/modals/BriefingModal'));
 const TransactionModal = lazy(() => import('@/components/modals/TransactionModal'));
 
+// Cada aba tem seu endereço: atualizar a página (F5) mantém a tela e os links funcionam
+export const TAB_PATHS: Record<DashboardTab, string> = {
+  dashboard: '/dashboard',
+  kanban: '/agenda',
+  finance: '/financeiro',
+  budgets: '/propostas',
+  clients: '/clientes',
+  settings: '/configuracoes'
+};
+const tabFromPath = (pathname: string): DashboardTab => {
+  const hit = (Object.entries(TAB_PATHS) as [DashboardTab, string][]).find(([, path]) => pathname.startsWith(path));
+  return hit ? hit[0] : 'dashboard';
+};
+
 const SuspenseFallback: React.FC = () => (
   <SystemLoader compact message="Carregando módulo..." fullScreen={false} />
 );
 
-/**
- * Auto-healing: reconcilia notas marcadas como pagas com as transações do fluxo de caixa.
- * Garante que se uma nota está 'Pago', transações 'Pago' com os valores proporcionais corretos
- * existam no fluxo de caixa, sincronizando banco e interface sem perdas.
- */
-const reconcileInvoicesAndTransactions = async (
-  invoices: Invoice[],
-  tasks: Task[],
-  transactions: Transaction[],
-  clients: Client[]
-): Promise<Transaction[]> => {
-  let currentTransactions = [...transactions];
-  const todayDate = getLocalDateString(new Date());
-
-  for (const inv of invoices) {
-    if (inv.status === 'Pago') {
-      const invTasks = tasks.filter(t => t.invoiceId === inv.id);
-      const calculatedTotal = invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-      const invoiceTotal = (inv.customValue !== undefined && inv.customValue !== null)
-        ? Number(inv.customValue)
-        : calculatedTotal;
-      const paymentDate = inv.paidAt ? inv.paidAt.split('T')[0] : todayDate;
-      const client = clients.find(c => c.id === inv.clientId);
-
-      if (invTasks.length > 0 && calculatedTotal > 0) {
-        for (const task of invTasks) {
-          let expectedValue = Number(task.value) || 0;
-          if (inv.customValue !== undefined && inv.customValue !== null && calculatedTotal > 0) {
-            expectedValue = Number((expectedValue * (Number(inv.customValue) / calculatedTotal)).toFixed(2));
-          }
-
-          const existingTx = currentTransactions.find(tx => tx.taskId === task.id && tx.type === 'Entrada');
-          if (existingTx) {
-            if (existingTx.status !== 'Pago' || Math.abs(existingTx.value - expectedValue) > 0.01) {
-              const updatedTx: Transaction = {
-                ...existingTx,
-                status: 'Pago',
-                value: expectedValue,
-                date: existingTx.date || paymentDate,
-                invoiceId: inv.id
-              };
-              currentTransactions = currentTransactions.map(t => t.id === existingTx.id ? updatedTx : t);
-              db.transactions.update(existingTx.id, {
-                status: 'Pago',
-                value: expectedValue,
-                date: existingTx.date || paymentDate,
-                invoiceId: inv.id
-              }).catch(e => console.error('Error reconciling tx in DB:', e));
-            }
-          } else if (expectedValue > 0) {
-            try {
-              const newTx = await db.transactions.create({
-                description: `Serviço: ${task.title}`,
-                value: expectedValue,
-                type: 'Entrada',
-                date: paymentDate,
-                status: 'Pago',
-                category: task.category || 'Serviço',
-                taskId: task.id,
-                invoiceId: inv.id
-              });
-              currentTransactions = [...currentTransactions, newTx];
-            } catch (err) {
-              console.error('Error auto-creating reconciled tx:', err);
-            }
-          }
-        }
-      } else if (invoiceTotal > 0) {
-        const existingTx = currentTransactions.find(tx => 
-          (tx.invoiceId === inv.id || (!tx.taskId && tx.description.includes(inv.title))) && tx.type === 'Entrada'
-        );
-
-        if (existingTx) {
-          if (existingTx.status !== 'Pago' || Math.abs(existingTx.value - invoiceTotal) > 0.01) {
-            const updatedTx: Transaction = {
-              ...existingTx,
-              status: 'Pago',
-              value: invoiceTotal,
-              date: existingTx.date || paymentDate,
-              invoiceId: inv.id
-            };
-            currentTransactions = currentTransactions.map(t => t.id === existingTx.id ? updatedTx : t);
-            db.transactions.update(existingTx.id, {
-              status: 'Pago',
-              value: invoiceTotal,
-              date: existingTx.date || paymentDate,
-              invoiceId: inv.id
-            }).catch(e => console.error('Error reconciling invoice tx in DB:', e));
-          }
-        } else {
-          try {
-            const newTx = await db.transactions.create({
-              description: `Nota: ${inv.title}${client ? ` (${client.company || client.name})` : ''}`,
-              value: invoiceTotal,
-              type: 'Entrada',
-              date: paymentDate,
-              status: 'Pago',
-              category: 'Serviço',
-              invoiceId: inv.id
-            });
-            currentTransactions = [...currentTransactions, newTx];
-          } catch (err) {
-            console.error('Error auto-creating reconciled invoice tx:', err);
-          }
-        }
-      }
-    }
-  }
-
-  return currentTransactions;
-};
-
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
+  const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeTab = tabFromPath(location.pathname);
+  const setActiveTab = useCallback((tab: DashboardTab) => navigate(TAB_PATHS[tab]), [navigate]);
   const [isPublicView, setIsPublicView] = useState(false);
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('syncing');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
+  // Sempre aponta para o estado mais recente (evita closures velhas em callbacks async)
+  const stateRef = useRef<AppState>(state);
+  stateRef.current = state;
+  // Descarta respostas antigas: só a requisição mais nova pode atualizar a tela
+  const requestSeq = useRef(0);
+
   const fetchData = useCallback(async (isSilent = false) => {
     const userId = user?.id;
     if (!userId) return;
+    const seq = ++requestSeq.current;
     if (!isSilent) setSyncStatus('syncing');
     try {
       const [
@@ -179,30 +95,28 @@ const DashboardPage: React.FC = () => {
         db.holidays.list()
       ]);
 
-      const clients = clientsRes.status === 'fulfilled' ? clientsRes.value : [];
-      const tasks = tasksRes.status === 'fulfilled' ? tasksRes.value : [];
-      const rawTransactions = transactionsRes.status === 'fulfilled' ? transactionsRes.value : [];
-      const invoices = invoicesRes.status === 'fulfilled' ? invoicesRes.value : [];
+      // Uma requisição mais nova já está em andamento/terminou: ignora esta
+      if (seq !== requestSeq.current) return;
 
-      // Auto-reconcile paid invoices and cash flow
-      const reconciledTransactions = (invoices.length > 0)
-        ? await reconcileInvoicesAndTransactions(invoices, tasks, rawTransactions, clients)
-        : rawTransactions;
+      const all = [clientsRes, tasksRes, transactionsRes, servicesRes, invoicesRes, remindersRes, budgetsRes, albumsRes, statsRes, holidaysRes];
+      const failed = all.filter(r => r.status === 'rejected') as PromiseRejectedResult[];
+      failed.forEach(r => console.error('Falha ao carregar tabela:', r.reason));
 
+      // Tabela que falhou mantém os dados anteriores (nunca vira lista vazia)
       setState(prev => ({
-        clients: clientsRes.status === 'fulfilled' ? clients : prev.clients,
-        tasks: tasksRes.status === 'fulfilled' ? tasks : prev.tasks,
-        transactions: transactionsRes.status === 'fulfilled' ? reconciledTransactions : prev.transactions,
+        clients: clientsRes.status === 'fulfilled' ? clientsRes.value : prev.clients,
+        tasks: tasksRes.status === 'fulfilled' ? tasksRes.value : prev.tasks,
+        transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value : prev.transactions,
         services: servicesRes.status === 'fulfilled' ? servicesRes.value : prev.services,
-        invoices: invoicesRes.status === 'fulfilled' ? invoices : prev.invoices,
+        invoices: invoicesRes.status === 'fulfilled' ? invoicesRes.value : prev.invoices,
         reminders: remindersRes.status === 'fulfilled' ? remindersRes.value : prev.reminders,
         budgets: budgetsRes.status === 'fulfilled' ? budgetsRes.value : prev.budgets,
         albums: albumsRes.status === 'fulfilled' ? albumsRes.value : prev.albums,
         stats: statsRes.status === 'fulfilled' && statsRes.value ? statsRes.value : (prev.stats || INITIAL_STATE.stats),
         holidays: holidaysRes.status === 'fulfilled' ? holidaysRes.value : prev.holidays
       }));
-      setSyncStatus('synced');
-      setLastSyncTime(new Date());
+      setSyncStatus(failed.length > 0 ? 'error' : 'synced');
+      if (failed.length === 0) setLastSyncTime(new Date());
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
       setSyncStatus('error');
@@ -216,86 +130,66 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Continuous real-time synchronization:
-  // 1. Supabase WebSockets (multi-table channels)
-  // 2. Heartbeat polling every 10 seconds
-  // 3. Window focus / visibilitychange / online events
+  // Sincronização em tempo real:
+  // - Supabase Realtime por tabela (filtrado pelo usuário), com debounce de 500 ms
+  // - Recarrega ao voltar o foco / a conexão (sem polling fixo)
   useEffect(() => {
     if (!user) return;
 
-    let isSubscribed = true;
-    let reconnectTimeout: any = null;
+    let active = true;
+    let debounceTimer: any = null;
+    let reconnectTimer: any = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const scheduleFetch = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (active) fetchData(true);
+      }, 500);
+    };
+
+    const REALTIME_TABLES = ['clients', 'tasks', 'transactions', 'invoices', 'user_settings', 'services', 'budgets', 'reminders'];
 
     const setupRealtime = () => {
-      const channel = supabase
-        .channel(`gvitor-sync-${user.id}-${Date.now()}`)
-        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings' }, () => {
-          if (isSubscribed) fetchData(true);
-        })
-        .subscribe((status) => {
-          if (!isSubscribed) return;
-          if (status === 'SUBSCRIBED') {
-            setSyncStatus('synced');
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            setSyncStatus('error');
-            // Auto-reconnect after 4 seconds
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = setTimeout(() => {
-              if (isSubscribed) {
-                supabase.removeChannel(channel);
-                setupRealtime();
-                fetchData(true);
-              }
-            }, 4000);
-          }
-        });
-
-      return channel;
+      const ch = supabase.channel(`gvitor-sync-${user.id}-${Date.now()}`);
+      REALTIME_TABLES.forEach(table => {
+        ch.on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${user.id}` }, scheduleFetch);
+      });
+      ch.subscribe((status) => {
+        if (!active) return;
+        if (status === 'SUBSCRIBED') {
+          setSyncStatus('synced');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setSyncStatus('error');
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            if (!active) return;
+            supabase.removeChannel(ch);
+            channel = setupRealtime();
+            fetchData(true);
+          }, 4000);
+        }
+      });
+      return ch;
     };
 
-    const activeChannel = setupRealtime();
+    channel = setupRealtime();
 
-    // 2. Heartbeat background polling (every 10s while tab is visible)
-    const pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && isSubscribed) {
-        fetchData(true);
-      }
-    }, 10000);
-
-    // 3. Tab visibility, window focus, network reconnect listeners
     const handleSyncEvent = () => {
-      if (document.visibilityState === 'visible' && isSubscribed) {
-        fetchData(true);
-      }
+      if (document.visibilityState === 'visible' && active) fetchData(true);
     };
-
     document.addEventListener('visibilitychange', handleSyncEvent);
     window.addEventListener('focus', handleSyncEvent);
     window.addEventListener('online', handleSyncEvent);
 
     return () => {
-      isSubscribed = false;
-      clearTimeout(reconnectTimeout);
-      clearInterval(pollInterval);
+      active = false;
+      clearTimeout(debounceTimer);
+      clearTimeout(reconnectTimer);
       document.removeEventListener('visibilitychange', handleSyncEvent);
       window.removeEventListener('focus', handleSyncEvent);
       window.removeEventListener('online', handleSyncEvent);
-      supabase.removeChannel(activeChannel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user, fetchData]);
 
@@ -410,7 +304,7 @@ const DashboardPage: React.FC = () => {
 
   // Briefing Daily Trigger
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     if (state.stats.lastBriefingDate !== today) {
       setShowBriefing(true);
     }
@@ -429,18 +323,18 @@ const DashboardPage: React.FC = () => {
     root.style.setProperty('--primary-shadow', theme.shadow);
   }, [state.stats.themeColor]);
 
-  const addXP = useCallback(async (amount: number) => {
-    setState(prev => {
-      const newXP = prev.stats.xp + amount;
-      const newLevel = Math.floor(newXP / XP_PER_LEVEL) + 1;
-      const updatedStats = { ...prev.stats, xp: newXP, level: newLevel };
-      db.settings.update(updatedStats).catch(e => console.error('Error updating XP:', e));
-      return { ...prev, stats: updatedStats };
-    });
+  const addXP = useCallback((amount: number) => {
+    const prevStats = stateRef.current.stats;
+    const newXP = prevStats.xp + amount;
+    const newLevel = Math.floor(newXP / XP_PER_LEVEL) + 1;
+    // Atualiza o ref já, para chamadas em sequência acumularem corretamente
+    stateRef.current = { ...stateRef.current, stats: { ...prevStats, xp: newXP, level: newLevel } };
+    setState(prev => ({ ...prev, stats: { ...prev.stats, xp: newXP, level: newLevel } }));
+    db.settings.update({ xp: newXP, level: newLevel }).catch(e => console.error('Error updating XP:', e));
   }, []);
 
   const handleStartDay = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     setState(prev => ({
       ...prev,
       stats: {
@@ -602,184 +496,60 @@ const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  const updateInvoice = useCallback(async (updated: Invoice) => {
-    const todayIso = new Date().toISOString();
-    const todayDate = getLocalDateString(new Date());
+  /**
+   * Regra única de pagamento: a nota é a fonte da verdade.
+   * - Campos de cadastro (título, observações, valor total) são gravados só se mudaram.
+   * - Pendente → Pago: db.invoices.pay() (nota + tarefas + caixa, atômico no banco).
+   * - Pago → Pendente: db.invoices.reopen().
+   * Editar observações NUNCA mexe nas transações.
+   */
+  const updateInvoice = useCallback(async (updated: Invoice, opts?: { method?: string }) => {
+    const current = stateRef.current.invoices.find(i => i.id === updated.id);
+    if (!current) return;
 
-    let invoiceWithPaymentDate: Invoice = { ...updated };
-    if (updated.status === 'Pago') {
-      invoiceWithPaymentDate.paidAt = updated.paidAt || todayIso;
-    } else if (updated.status === 'Pendente') {
-      invoiceWithPaymentDate.paidAt = null;
-    }
+    const norm = (v?: number | null) => (v === undefined || v === null ? null : Number(v));
+    const patch: Partial<Invoice> = {};
+    if (updated.title !== current.title) patch.title = updated.title;
+    if ((updated.notes || '') !== (current.notes || '')) patch.notes = updated.notes;
+    const customChanged = norm(updated.customValue) !== norm(current.customValue);
+    if (customChanged) patch.customValue = norm(updated.customValue);
 
-    const paymentDate = invoiceWithPaymentDate.paidAt ? invoiceWithPaymentDate.paidAt.split('T')[0] : todayDate;
+    const wasPaid = current.status === 'Pago';
+    const willBePaid = updated.status === 'Pago';
+    const payNow = willBePaid && !wasPaid;
+    const reopenNow = !willBePaid && wasPaid;
+    const repay = willBePaid && wasPaid && customChanged; // valor total mudou numa nota já paga
 
-    // Snapshot existing data for calculations
-    const client = state.clients.find(c => c.id === invoiceWithPaymentDate.clientId);
-    const invoiceTasks = state.tasks.filter(t => t.invoiceId === invoiceWithPaymentDate.id);
-    const calculatedTotal = invoiceTasks.reduce((a, c) => a + (Number(c.value) || 0), 0);
-    const invoiceTotal = (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null)
-      ? Number(invoiceWithPaymentDate.customValue)
-      : calculatedTotal;
-    const taskIds = new Set(invoiceTasks.map(t => t.id));
+    if (Object.keys(patch).length === 0 && !payNow && !reopenNow) return;
 
-    // Prepare synchronized transactions
-    interface TxAction {
-      isNew: boolean;
-      tx: Transaction;
-    }
-    const txActions: TxAction[] = [];
+    // Atualização otimista dos campos de cadastro
+    setState(prev => ({
+      ...prev,
+      invoices: prev.invoices.map(i => i.id === updated.id
+        ? { ...i, ...patch, ...(payNow ? { status: 'Pago' as const, paidAt: updated.paidAt || new Date().toISOString() } : {}), ...(reopenNow ? { status: 'Pendente' as const, paidAt: null } : {}) }
+        : i)
+    }));
 
-    if (invoiceWithPaymentDate.status === 'Pago') {
-      if (invoiceTasks.length > 0 && calculatedTotal > 0) {
-        for (const task of invoiceTasks) {
-          let val = Number(task.value) || 0;
-          if (invoiceWithPaymentDate.customValue !== undefined && invoiceWithPaymentDate.customValue !== null && calculatedTotal > 0) {
-            val = Number((val * (Number(invoiceWithPaymentDate.customValue) / calculatedTotal)).toFixed(2));
-          }
-
-          const existingTx = state.transactions.find(tx => tx.taskId === task.id && tx.type === 'Entrada');
-          if (existingTx) {
-            txActions.push({
-              isNew: false,
-              tx: {
-                ...existingTx,
-                value: val,
-                status: 'Pago',
-                date: existingTx.date || paymentDate,
-                invoiceId: invoiceWithPaymentDate.id
-              }
-            });
-          } else if (val > 0) {
-            txActions.push({
-              isNew: true,
-              tx: {
-                id: 'opt-' + task.id + '-' + Date.now(),
-                description: `Serviço: ${task.title}`,
-                value: val,
-                type: 'Entrada',
-                date: paymentDate,
-                status: 'Pago',
-                category: task.category || 'Serviço',
-                taskId: task.id,
-                invoiceId: invoiceWithPaymentDate.id
-              }
-            });
-          }
-        }
-      } else if (invoiceTotal > 0) {
-        const existingTx = state.transactions.find(tx => 
-          (tx.invoiceId === invoiceWithPaymentDate.id || (!tx.taskId && tx.description.includes(invoiceWithPaymentDate.title))) && tx.type === 'Entrada'
-        );
-
-        if (existingTx) {
-          txActions.push({
-            isNew: false,
-            tx: {
-              ...existingTx,
-              value: invoiceTotal,
-              status: 'Pago',
-              date: existingTx.date || paymentDate,
-              invoiceId: invoiceWithPaymentDate.id
-            }
-          });
-        } else {
-          txActions.push({
-            isNew: true,
-            tx: {
-              id: 'opt-inv-' + invoiceWithPaymentDate.id + '-' + Date.now(),
-              description: `Nota: ${invoiceWithPaymentDate.title}${client ? ` (${client.company || client.name})` : ''}`,
-              value: invoiceTotal,
-              type: 'Entrada',
-              date: paymentDate,
-              status: 'Pago',
-              category: 'Serviço',
-              invoiceId: invoiceWithPaymentDate.id
-            }
-          });
-        }
-      }
-    } else if (invoiceWithPaymentDate.status === 'Pendente') {
-      // Revert any linked transactions to Pendente
-      state.transactions.forEach(tx => {
-        const isLinkedToTask = tx.taskId && taskIds.has(tx.taskId) && tx.type === 'Entrada';
-        const isLinkedToInv = (tx.invoiceId === invoiceWithPaymentDate.id || (!tx.taskId && tx.description.includes(invoiceWithPaymentDate.title))) && tx.type === 'Entrada';
-        if (isLinkedToTask || isLinkedToInv) {
-          txActions.push({
-            isNew: false,
-            tx: { ...tx, status: 'Pendente' }
-          });
-        }
-      });
-    }
-
-    // 1. Synchronous Optimistic Update
-    setState(prev => {
-      const nextInvoices = prev.invoices.map(i => i.id === invoiceWithPaymentDate.id ? invoiceWithPaymentDate : i);
-      const nextTasks = invoiceWithPaymentDate.status === 'Pago'
-        ? prev.tasks.map(t => taskIds.has(t.id) && t.status !== 'Concluído' ? { ...t, status: 'Concluído' as Status } : t)
-        : prev.tasks;
-
-      const txActionMap = new Map(txActions.map(a => [a.tx.id, a.tx]));
-      const updatedExisting = prev.transactions.map(tx => txActionMap.get(tx.id) || tx);
-      const newTransactions = txActions.filter(a => a.isNew).map(a => a.tx);
-
-      return {
-        ...prev,
-        invoices: nextInvoices,
-        tasks: nextTasks,
-        transactions: [...updatedExisting, ...newTransactions]
-      };
-    });
-
-    // 2. Asynchronous DB Persistence
     try {
-      // A. Update invoice in DB
-      await db.invoices.update(invoiceWithPaymentDate.id, invoiceWithPaymentDate);
-
-      // B. If Pago, mark tasks Concluído in DB
-      if (invoiceWithPaymentDate.status === 'Pago' && invoiceTasks.length > 0) {
-        const tasksToComplete = invoiceTasks.filter(t => t.status !== 'Concluído');
-        if (tasksToComplete.length > 0) {
-          await Promise.all(tasksToComplete.map(t => db.tasks.update(t.id, { status: 'Concluído' })));
-        }
+      if (Object.keys(patch).length > 0) {
+        await db.invoices.update(updated.id, patch);
       }
-
-      // C. Persist all transaction changes
-      await Promise.all(
-        txActions.map(async (action) => {
-          if (action.isNew) {
-            return await db.transactions.create({
-              description: action.tx.description,
-              value: action.tx.value,
-              type: action.tx.type,
-              date: action.tx.date,
-              status: action.tx.status,
-              category: action.tx.category,
-              taskId: action.tx.taskId,
-              invoiceId: action.tx.invoiceId
-            });
-          } else {
-            return await db.transactions.update(action.tx.id, {
-              value: action.tx.value,
-              status: action.tx.status,
-              date: action.tx.date,
-              description: action.tx.description,
-              category: action.tx.category,
-              invoiceId: action.tx.invoiceId
-            });
-          }
-        })
-      );
-
-      // D. Silent sync from DB to guarantee absolute synchronization
-      fetchData(true);
+      if (payNow || repay) {
+        const paidDate = getLocalDateString(updated.paidAt ? new Date(updated.paidAt) : new Date());
+        await db.invoices.pay(updated.id, paidDate, opts?.method);
+        toast.success(repay ? 'Valor da nota atualizado e caixa reajustado.' : 'Nota quitada e lançada no caixa.');
+      } else if (reopenNow) {
+        await db.invoices.reopen(updated.id);
+        toast.success('Nota reaberta. Lançamentos voltaram para pendente.');
+      }
     } catch (e) {
-      console.error('Error updating invoice and syncing transactions:', e);
+      console.error('Error updating invoice:', e);
+      toast.error(errorMessage(e, 'Não foi possível atualizar a nota.'), () => updateInvoice(updated, opts));
+    } finally {
+      // Fonte da verdade: recarrega do banco (desfaz o otimismo se algo falhou)
       fetchData(true);
     }
-  }, [state.clients, state.tasks, state.transactions, fetchData]);
+  }, [fetchData, toast]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
     try {
@@ -806,8 +576,9 @@ const DashboardPage: React.FC = () => {
       }
     } catch (e) {
       console.error('Error adding task:', e);
+      toast.error(errorMessage(e, 'Não foi possível criar a demanda.'));
     }
-  }, []);
+  }, [toast]);
 
   const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
     try {
@@ -816,10 +587,36 @@ const DashboardPage: React.FC = () => {
         ...prev,
         transactions: [...prev.transactions, newTx]
       }));
+      toast.success('Lançamento registrado.');
     } catch (e) {
       console.error('Error adding transaction:', e);
+      toast.error(errorMessage(e, 'Não foi possível registrar o lançamento.'), () => addTransaction(tx));
     }
-  }, []);
+  }, [toast]);
+
+  const updateTransaction = useCallback(async (id: string, patch: Partial<Transaction>) => {
+    try {
+      const saved = await db.transactions.update(id, patch);
+      setState(prev => ({ ...prev, transactions: prev.transactions.map(t => t.id === id ? saved : t) }));
+      toast.success('Lançamento atualizado.');
+    } catch (e) {
+      console.error('Error updating transaction:', e);
+      toast.error(errorMessage(e, 'Não foi possível atualizar o lançamento.'), () => updateTransaction(id, patch));
+      fetchData(true);
+    }
+  }, [toast, fetchData]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    try {
+      await db.transactions.delete(id);
+      setState(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id) }));
+      toast.success('Lançamento excluído.');
+    } catch (e) {
+      console.error('Error deleting transaction:', e);
+      toast.error(errorMessage(e, 'Não foi possível excluir o lançamento.'));
+      fetchData(true);
+    }
+  }, [toast, fetchData]);
 
   const updateTask = useCallback(async (taskId: string, updatedTask: Omit<Task, 'id'> | Partial<Task>) => {
     try {
@@ -844,57 +641,55 @@ const DashboardPage: React.FC = () => {
 
       const result = await db.tasks.update(taskId, taskToSave);
 
-      setState(prev => {
-        const nextTasks = prev.tasks.map(t => t.id === taskId ? result : t);
+      // Mantém o lançamento vinculado em sincronia (efeito colateral fora do setState)
+      const linkedTx = stateRef.current.transactions.find(tx => tx.taskId === taskId && tx.type === 'Entrada');
+      const newDescription = `Serviço: ${mergedTask.title}`;
+      let syncedTx: Transaction | null = null;
+      if (linkedTx && (linkedTx.value !== mergedTask.value || linkedTx.description !== newDescription)) {
+        syncedTx = await db.transactions.update(linkedTx.id, {
+          value: mergedTask.value,
+          description: newDescription,
+          category: mergedTask.category || linkedTx.category
+        });
+      }
 
-        // Sync linked transaction if it exists
-        const linkedTx = prev.transactions.find(tx => tx.taskId === taskId && tx.type === 'Entrada');
-        if (linkedTx) {
-          const needsSync = linkedTx.value !== mergedTask.value ||
-            linkedTx.description !== `Serviço: ${mergedTask.title}`;
-
-          if (needsSync) {
-            db.transactions.update(linkedTx.id, {
-              value: mergedTask.value,
-              description: `Serviço: ${mergedTask.title}`,
-              category: mergedTask.category || linkedTx.category
-            }).catch(e => console.error('Error syncing transaction:', e));
-
-            return {
-              ...prev,
-              tasks: nextTasks,
-              transactions: prev.transactions.map(tx =>
-                tx.id === linkedTx.id
-                  ? { ...tx, value: mergedTask.value, description: `Serviço: ${mergedTask.title}`, category: mergedTask.category || tx.category }
-                  : tx
-              )
-            };
-          }
-        }
-        return { ...prev, tasks: nextTasks };
-      });
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t => t.id === taskId ? result : t),
+        transactions: syncedTx ? prev.transactions.map(tx => tx.id === syncedTx!.id ? syncedTx! : tx) : prev.transactions
+      }));
 
       if (isConcluding) {
         setPendingPaymentTask(result);
       }
     } catch (e) {
       console.error('Error updating task:', e);
+      toast.error(errorMessage(e, 'Não foi possível salvar a demanda.'));
       fetchData(true);
     }
-  }, [state.tasks, state.transactions, fetchData]);
+  }, [state.tasks, state.transactions, fetchData, toast]);
 
   const deleteTask = useCallback(async (taskId: string) => {
     try {
+      // Lançamentos ainda não pagos da tarefa saem junto; os pagos ficam como histórico
+      const unpaid = stateRef.current.transactions.filter(tx => tx.taskId === taskId && tx.status !== 'Pago');
+      await Promise.all(unpaid.map(tx => db.transactions.delete(tx.id)));
       await db.tasks.delete(taskId);
+      const unpaidIds = new Set(unpaid.map(tx => tx.id));
       setState(prev => ({
         ...prev,
         tasks: prev.tasks.filter(t => t.id !== taskId),
-        transactions: prev.transactions.filter(t => t.taskId !== taskId)
+        transactions: prev.transactions
+          .filter(tx => !unpaidIds.has(tx.id))
+          .map(tx => tx.taskId === taskId ? { ...tx, taskId: undefined } : tx)
       }));
+      toast.success('Demanda excluída.');
     } catch (e) {
       console.error('Error deleting task:', e);
+      toast.error(errorMessage(e, 'Não foi possível excluir a demanda.'));
+      fetchData(true);
     }
-  }, []);
+  }, [fetchData, toast]);
 
   const moveTask = useCallback(async (taskId: string, day: DayOfWeek, date?: string, newPosition?: number) => {
     try {
@@ -966,97 +761,63 @@ const DashboardPage: React.FC = () => {
     }
   }, [state.tasks, state.transactions]);
 
-  const handleConfirmPayment = async (received: boolean) => {
+  const handleConfirmPayment = async (received: boolean, receipt?: ReceiptResult) => {
     if (!pendingPaymentTask) return;
 
-    const taskToConclude = pendingPaymentTask;
+    const task = pendingPaymentTask;
     setPendingPaymentTask(null);
     addXP(XP_PER_TASK);
 
-    const todayDate = new Date().toISOString().split('T')[0];
-
-    // Optimistically update task and transactions
-    setState(prev => {
-      const updatedTasks = prev.tasks.map(t => t.id === taskToConclude.id ? { ...t, status: 'Concluído' as Status } : t);
-
-      const relatedTxs = prev.transactions.filter(tx => tx.taskId === taskToConclude.id);
-      let updatedTxs = prev.transactions;
-
-      if (relatedTxs.length > 0) {
-        updatedTxs = prev.transactions.map(tx => {
-          if (tx.taskId === taskToConclude.id) {
-            return {
-              ...tx,
-              status: (received ? 'Pago' : 'Pendente') as 'Pago' | 'Pendente',
-              date: received ? todayDate : tx.date
-            };
-          }
-          return tx;
-        });
-      } else if (taskToConclude.value > 0) {
-        const optimisticTx: Transaction = {
-          id: 'temp-' + Date.now(),
-          description: `Serviço: ${taskToConclude.title}`,
-          value: taskToConclude.value,
-          type: 'Entrada',
-          date: todayDate,
-          status: received ? 'Pago' : 'Pendente',
-          category: 'Serviço',
-          taskId: taskToConclude.id
-        };
-        updatedTxs = [...prev.transactions, optimisticTx];
-      }
-
-      return {
-        ...prev,
-        tasks: updatedTasks,
-        transactions: updatedTxs
-      };
-    });
+    const today = receipt?.date || getLocalDateString();
+    const method = receipt?.method;
 
     try {
-      // 1. Update task status in Supabase
-      const updatedTask = await db.tasks.update(taskToConclude.id, { status: 'Concluído' });
+      await db.tasks.update(task.id, { status: 'Concluído' });
 
-      // 2. Find and update or create related transactions in Supabase
-      const relatedTxs = state.transactions.filter(tx => tx.taskId === taskToConclude.id);
-
-      let updatedTxs: Transaction[] = [];
-      if (relatedTxs.length > 0) {
-        updatedTxs = await Promise.all(relatedTxs.map(tx =>
-          db.transactions.update(tx.id, {
-            status: received ? 'Pago' : 'Pendente',
-            date: received ? todayDate : tx.date
-          })
-        ));
-      } else if (taskToConclude.value > 0) {
-        const newTx = await db.transactions.create({
-          description: `Serviço: ${taskToConclude.title}`,
-          value: taskToConclude.value,
-          type: 'Entrada',
-          date: todayDate,
+      // Consulta fresca ao banco (não usa estado velho) + índice único = sem duplicatas
+      const existing = await db.transactions.findEntradaByTask(task.id);
+      if (existing) {
+        await db.transactions.update(existing.id, {
           status: received ? 'Pago' : 'Pendente',
-          category: 'Serviço',
-          taskId: taskToConclude.id
+          date: received ? today : existing.date,
+          invoiceId: task.invoiceId ?? existing.invoiceId,
+          ...(received && method ? { method } : {})
         });
-        updatedTxs = [newTx];
+      } else if (task.value > 0) {
+        await db.transactions.create({
+          description: `Serviço: ${task.title}`,
+          value: task.value,
+          type: 'Entrada',
+          date: today,
+          status: received ? 'Pago' : 'Pendente',
+          category: task.category || 'Serviço',
+          taskId: task.id,
+          invoiceId: task.invoiceId,
+          method: received ? method : undefined
+        });
       }
 
-      setState(prev => {
-        const otherTransactions = prev.transactions.filter(tx => tx.taskId !== taskToConclude.id && !tx.id.startsWith('temp-'));
-        return {
-          ...prev,
-          tasks: prev.tasks.map(t => t.id === taskToConclude.id ? updatedTask : t),
-          transactions: [...otherTransactions, ...updatedTxs]
-        };
-      });
+      // Se este foi o último recebimento da nota, quita a nota também (Notas e Caixa sempre iguais)
+      if (received && task.invoiceId) {
+        const inv = stateRef.current.invoices.find(i => i.id === task.invoiceId);
+        if (inv && inv.status !== 'Pago' && await db.invoices.isFullyReceived(task.invoiceId)) {
+          await db.invoices.pay(task.invoiceId, today, method);
+          toast.success('Recebimento registrado. Todas as demandas da nota foram pagas: nota quitada.');
+        } else {
+          toast.success(received ? 'Recebimento registrado no caixa.' : 'Demanda concluída; recebimento previsto no caixa.');
+        }
+      } else {
+        toast.success(received ? 'Recebimento registrado no caixa.' : 'Demanda concluída; recebimento previsto no caixa.');
+      }
     } catch (e) {
       console.error('Error confirming payment:', e);
-      fetchData();
+      toast.error(errorMessage(e, 'Não foi possível registrar o recebimento.'));
+    } finally {
+      fetchData(true);
     }
   };
 
-  const handleBudgetApprove = useCallback(async (budget: Budget, tasks: Omit<Task, 'id'>[], transaction: Omit<Transaction, 'id'>) => {
+  const handleBudgetApprove = useCallback(async (budget: Budget, tasks: Omit<Task, 'id'>[], _transaction?: Omit<Transaction, 'id'>) => {
     try {
       // 0. Persist Budget to Supabase
       const savedBudget = await db.budgets.create({
@@ -1083,15 +844,13 @@ const DashboardPage: React.FC = () => {
       // 2. Create Tasks linked to invoice
       const newTasks = await Promise.all(tasks.map(t => db.tasks.create({ ...t, invoiceId: newInvoice.id })));
 
-      // 3. Create Transaction
-      const newTransaction = await db.transactions.create({ ...transaction, taskId: undefined }); // Or link to one of the tasks if appropriate
+      // O recebimento só entra no caixa quando a nota/tarefa for paga (evita contar a receita 2x)
 
       setState(prev => ({
         ...prev,
         budgets: [...prev.budgets, savedBudget],
         invoices: [...prev.invoices, newInvoice],
-        tasks: [...prev.tasks, ...newTasks],
-        transactions: [...prev.transactions, newTransaction]
+        tasks: [...prev.tasks, ...newTasks]
       }));
 
       addXP(300);
@@ -1191,7 +950,23 @@ const DashboardPage: React.FC = () => {
   const handleNavigate = useCallback((tab: DashboardTab) => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
-  }, []);
+  }, [setActiveTab]);
+
+  // Atalhos de teclado (desativados ao digitar ou com algum modal aberto)
+  const anyModalOpen = isTaskModalOpen || isQuickTaskModalOpen || isTransactionModalOpen || !!pendingPaymentTask || !!selectedClientForInvoice || showBriefing;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || anyModalOpen) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable)) return;
+      const tabs: DashboardTab[] = ['dashboard', 'kanban', 'finance', 'budgets', 'clients', 'settings'];
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setEditingTask(null); setIsTaskModalOpen(true); }
+      else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); setIsTransactionModalOpen(true); }
+      else if (/^[1-6]$/.test(e.key)) { e.preventDefault(); handleNavigate(tabs[Number(e.key) - 1]); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [anyModalOpen, handleNavigate]);
 
   if (isInitialLoading) {
     return (
@@ -1228,6 +1003,8 @@ const DashboardPage: React.FC = () => {
           weeklyGoal={state.stats.weeklyGoal}
           monthlyGoal={state.stats.monthlyGoal}
           onAddTransaction={addTransaction}
+          onUpdateTransaction={updateTransaction}
+          onDeleteTransaction={deleteTransaction}
           onViewClientNote={setSelectedClientForInvoice}
           onEditTask={(task) => { setEditingTask(task); setIsTaskModalOpen(true); }}
         />;
@@ -1336,7 +1113,7 @@ const DashboardPage: React.FC = () => {
               }`}
             >
               <LayoutDashboard size={19} />
-              <span className="text-[9px] uppercase tracking-wider">Início</span>
+              <span className="text-[11px] uppercase tracking-wider">Início</span>
             </button>
 
             <button
@@ -1346,7 +1123,7 @@ const DashboardPage: React.FC = () => {
               }`}
             >
               <Trophy size={19} />
-              <span className="text-[9px] uppercase tracking-wider">Agenda</span>
+              <span className="text-[11px] uppercase tracking-wider">Agenda</span>
             </button>
 
             {/* Quick Action Center Button */}
@@ -1368,7 +1145,7 @@ const DashboardPage: React.FC = () => {
               }`}
             >
               <DollarSign size={19} />
-              <span className="text-[9px] uppercase tracking-wider">Fluxo</span>
+              <span className="text-[11px] uppercase tracking-wider">Fluxo</span>
             </button>
 
             <button
@@ -1378,7 +1155,7 @@ const DashboardPage: React.FC = () => {
               }`}
             >
               <Users size={19} />
-              <span className="text-[9px] uppercase tracking-wider">CRM</span>
+              <span className="text-[11px] uppercase tracking-wider">CRM</span>
             </button>
           </nav>
         )}
@@ -1388,7 +1165,7 @@ const DashboardPage: React.FC = () => {
       {
         showBriefing && (
           <BriefingModal
-            userName={state.stats.name || 'Agente'}
+            userName={state.stats.name || 'Usuário'}
             criticalTasks={criticalTasks}
             pendingTransactions={pendingPayments}
             onStart={handleStartDay}
@@ -1459,7 +1236,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               <div className="mt-4 text-center space-y-4">
-                <h3 className="text-sm font-black text-[var(--primary-color)] uppercase tracking-widest">Lembrete Programado</h3>
+                <h3 className="text-sm font-black text-[var(--primary-color)] uppercase tracking-wide">Lembrete Programado</h3>
                 <p className="text-xl font-bold text-white leading-tight">"{activeAlert.text}"</p>
 
                 <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
@@ -1470,7 +1247,7 @@ const DashboardPage: React.FC = () => {
 
                 <button
                   onClick={() => setActiveAlert(null)}
-                  className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-color)]/90 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg shadow-[var(--primary-color)]/20 transition-all active:scale-95"
+                  className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-color)]/90 text-white font-black uppercase tracking-wide py-4 rounded-xl shadow-lg shadow-[var(--primary-color)]/20 transition-all active:scale-95"
                 >
                   Recebido
                 </button>

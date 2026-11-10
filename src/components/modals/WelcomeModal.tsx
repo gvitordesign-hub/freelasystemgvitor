@@ -42,21 +42,21 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
 
                     <div className="flex items-center gap-3 mb-6 animate-reveal">
                         <div className="w-12 h-1.5 bg-[var(--primary-color)] rounded-full shadow-[0_0_15px_var(--primary-color)]"></div>
-                        <span className="text-xs font-black tracking-[0.3em] text-slate-400 uppercase">
+                        <span className="text-xs font-black tracking-wide text-slate-400 uppercase">
                             {protocol} V2.5
                         </span>
                         <div className="w-12 h-1.5 bg-[var(--primary-color)] rounded-full shadow-[0_0_15px_var(--primary-color)]"></div>
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl font-black cyber-font italic tracking-tighter text-white mb-4 animate-reveal delay-100 leading-tight">
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-white mb-4 animate-reveal delay-100 leading-tight">
                         {greeting}, <br />
                         <span className="text-[var(--primary-color)] neon-text">{user?.name?.toUpperCase() || 'G-VITOR'}</span>
                     </h1>
 
                     <div className="flex items-center gap-2 text-slate-500 mt-4 mb-10 animate-reveal delay-200">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
-                        <span className="text-[10px] md:text-xs font-black tracking-[0.3em] uppercase">
-                            OPERACIONAL FRELLA INICIADO
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
+                        <span className="text-[11px] md:text-xs font-black tracking-wide uppercase">
+                            Tudo pronto para começar
                         </span>
                     </div>
 
@@ -64,7 +64,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
                         onClick={onClose}
                         className="group relative px-8 py-4 bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 border border-[var(--primary-color)]/30 hover:border-[var(--primary-color)] text-[var(--primary-color)] rounded-2xl flex items-center gap-3 transition-all duration-300 animate-reveal delay-300"
                     >
-                        <span className="font-black uppercase tracking-widest text-xs">Iniciar Sistema</span>
+                        <span className="font-black uppercase tracking-wide text-xs">Iniciar Sistema</span>
                         <div className="w-6 h-6 bg-[var(--primary-color)] rounded-lg flex items-center justify-center text-slate-900 group-hover:scale-110 transition-transform">
                             <Check size={14} strokeWidth={4} />
                         </div>

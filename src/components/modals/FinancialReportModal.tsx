@@ -15,7 +15,7 @@ import {
     Search
 } from 'lucide-react';
 import { Transaction, Client, Task, Invoice } from '../../types';
-import { formatDateBR } from '@/utils/dateUtils';
+import { formatDateBR, getLocalDateString } from '@/utils/dateUtils';
 
 interface FinancialReportModalProps {
     transactions: Transaction[];
@@ -34,10 +34,10 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
 }) => {
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
-        return new Date(d.getFullYear(), 0, 1).toISOString().split('T')[0]; // Jan 1st of current year
+        return getLocalDateString(new Date(d.getFullYear(), 0, 1)); // Jan 1st of current year
     });
     const [endDate, setEndDate] = useState(() => {
-        return new Date().toISOString().split('T')[0]; // Today
+        return getLocalDateString(); // Today
     });
 
     const filteredTransactions = useMemo(() => {
@@ -123,15 +123,15 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                             <BarChart3 size={20} />
                         </div>
                         <div>
-                            <h2 className="text-base sm:text-xl font-black cyber-font text-white uppercase tracking-tight">Relatório Financeiro</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Análise de Desempenho & Fluxo de Caixa</p>
+                            <h2 className="text-base sm:text-xl font-black text-white tracking-tight">Relatório Financeiro</h2>
+                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Análise de Desempenho & Fluxo de Caixa</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                         <button
                             onClick={handlePrint}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border border-slate-700 cursor-pointer"
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-black text-[11px] uppercase tracking-wider transition-all border border-slate-700 cursor-pointer"
                         >
                             <Printer size={15} />
                             Imprimir / PDF
@@ -158,7 +158,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                     {/* Filters - Hidden on Print */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Data Inicial</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-wide ml-1">Data Inicial</label>
                             <div className="relative">
                                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                 <input
@@ -170,7 +170,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Data Final</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-wide ml-1">Data Final</label>
                             <div className="relative">
                                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                 <input
@@ -186,27 +186,27 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                     {/* Summary Stats */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-2">
                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl print:border-slate-200 print:bg-white print:text-slate-900">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Total Recebido</p>
+                            <p className="text-slate-500 text-[11px] font-black uppercase tracking-wide mb-1">Total Recebido</p>
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl font-black text-emerald-400 print:text-emerald-700">R$ {stats.income.toLocaleString()}</span>
                                 <TrendingUp size={16} className="text-emerald-500" />
                             </div>
                         </div>
                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl print:border-slate-200 print:bg-white print:text-slate-900">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Total Despesas</p>
+                            <p className="text-slate-500 text-[11px] font-black uppercase tracking-wide mb-1">Total Despesas</p>
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl font-black text-rose-400 print:text-rose-700">R$ {stats.expenses.toLocaleString()}</span>
                                 <TrendingDown size={16} className="text-rose-500" />
                             </div>
                         </div>
                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl print:border-slate-200 print:bg-white print:text-slate-900">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Previsão Pendente</p>
+                            <p className="text-slate-500 text-[11px] font-black uppercase tracking-wide mb-1">Previsão Pendente</p>
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl font-black text-amber-400 print:text-amber-700">R$ {stats.pendingIncome.toLocaleString()}</span>
                             </div>
                         </div>
                         <div className="bg-slate-900 border border-[var(--primary-color)]/30 p-6 rounded-3xl print:border-slate-200 print:bg-white print:text-slate-900">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Balanço Líquido</p>
+                            <p className="text-slate-500 text-[11px] font-black uppercase tracking-wide mb-1">Balanço Líquido</p>
                             <div className="flex items-center gap-2">
                                 <span className={`text-2xl font-black ${stats.balance >= 0 ? 'text-emerald-400 print:text-emerald-700' : 'text-rose-400 print:text-rose-700'}`}>
                                     R$ {stats.balance.toLocaleString()}
@@ -223,7 +223,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                         <div className="lg:col-span-5 space-y-6 print:mb-8">
                             <div className="flex items-center gap-3">
                                 <Filter className="text-[var(--primary-color)]" size={18} />
-                                <h3 className="text-xs font-black text-slate-300 uppercase tracking-widest print:text-slate-900">Por Categoria</h3>
+                                <h3 className="text-xs font-black text-slate-300 uppercase tracking-wide print:text-slate-900">Por Categoria</h3>
                             </div>
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden print:border-slate-200">
                                 <div className="p-2 space-y-1">
@@ -245,7 +245,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                                                     style={{ width: `${(cat.expense / (cat.income + cat.expense || 1)) * 100}%` }}
                                                 />
                                             </div>
-                                            <div className="flex justify-between mt-1 text-[9px] font-black uppercase tracking-tighter">
+                                            <div className="flex justify-between mt-1 text-[11px] font-black uppercase tracking-tighter">
                                                 <span className="text-emerald-500">Entrada: R$ {cat.income.toLocaleString()}</span>
                                                 <span className="text-rose-500">Saída: R$ {cat.expense.toLocaleString()}</span>
                                             </div>
@@ -262,13 +262,13 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                         <div className="lg:col-span-7 space-y-6">
                             <div className="flex items-center gap-3">
                                 <FileText className="text-[var(--primary-color)]" size={18} />
-                                <h3 className="text-xs font-black text-slate-300 uppercase tracking-widest print:text-slate-900">Detalhamento</h3>
+                                <h3 className="text-xs font-black text-slate-300 uppercase tracking-wide print:text-slate-900">Detalhamento</h3>
                             </div>
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden print:border-slate-200">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
                                         <thead>
-                                            <tr className="text-[9px] text-slate-500 uppercase tracking-widest font-black border-b border-slate-800 print:border-slate-200">
+                                            <tr className="text-[11px] text-slate-500 uppercase tracking-wide font-black border-b border-slate-800 print:border-slate-200">
                                                 <th className="px-6 py-4">Data</th>
                                                 <th className="px-6 py-4">Descrição / Cliente</th>
                                                 <th className="px-6 py-4 text-right">Valor</th>
@@ -283,7 +283,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">
                                                             <span className="font-bold text-slate-200 print:text-slate-900">{tx.description}</span>
-                                                            <span className="text-[9px] text-slate-500 uppercase tracking-tighter font-black">
+                                                            <span className="text-[11px] text-slate-500 uppercase tracking-tighter font-black">
                                                                 {getClientName(tx)} • {tx.category}
                                                             </span>
                                                         </div>
@@ -308,7 +308,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                     </div>
 
                     {/* Footer / Notes Only on Print */}
-                    <div className="hidden print:block pt-12 border-t border-slate-200 text-[10px] text-slate-400 italic">
+                    <div className="hidden print:block pt-12 border-t border-slate-200 text-[11px] text-slate-400 italic">
                         Documento gerado automaticamente pelo sistema FRELLA SYSTEM em {new Date().toLocaleString()}.
                     </div>
 

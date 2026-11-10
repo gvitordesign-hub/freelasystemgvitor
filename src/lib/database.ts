@@ -1,5 +1,6 @@
 
 import { supabase } from './supabase';
+import { getLocalDateString } from '../utils/dateUtils';
 import { Client, Task, Transaction, Album, Service, Budget, Invoice, Reminder, UserStats, AppState, Holiday } from '../types';
 
 const getUserId = async () => {
@@ -10,32 +11,13 @@ const getUserId = async () => {
     return user.id;
 };
 
-// Resilient fallback storage when Supabase schema migrations haven't run yet
-const getDeliverablesCache = (): Record<string, any[]> => {
-    try {
-        return JSON.parse(localStorage.getItem('task_deliverables_cache') || '{}');
-    } catch {
-        return {};
-    }
-};
-
-const setDeliverablesCache = (taskId: string, deliverables: any[]) => {
-    try {
-        const cache = getDeliverablesCache();
-        cache[taskId] = deliverables;
-        localStorage.setItem('task_deliverables_cache', JSON.stringify(cache));
-    } catch {}
-};
-
-const DELIVERABLES_MARKER = '<!--GV_DELIVERABLES:';
-const DELIVERABLES_END_MARKER = '-->';
-
-export const injectDeliverablesIntoBriefing = (briefing?: string, deliverables?: any[]): string => {
-    const clean = (briefing || '').replace(/\n?<!--GV_DELIVERABLES:[\s\S]*?-->/g, '').trim();
-    if (!deliverables || deliverables.length === 0) return clean;
-    const json = JSON.stringify(deliverables);
-    return clean ? `${clean}\n${DELIVERABLES_MARKER}${json}${DELIVERABLES_END_MARKER}` : `${DELIVERABLES_MARKER}${json}${DELIVERABLES_END_MARKER}`;
-};
+// ---------------------------------------------------------------
+// Legado: antes das colunas existirem no Supabase, alguns valores
+// ficavam apenas no localStorage / dentro do briefing. Estes helpers
+// existem SOMENTE para enviar esses dados ao banco uma vez
+// (Configurações → "Enviar dados locais para o banco").
+// ---------------------------------------------------------------
+const DELIVERABLES_REGEX = /\n?<!--GV_DELIVERABLES:[\s\S]*?-->/g;
 
 export const extractDeliverablesFromBriefing = (briefing?: string): any[] | null => {
     if (!briefing) return null;
@@ -51,28 +33,63 @@ export const extractDeliverablesFromBriefing = (briefing?: string): any[] | null
 
 export const cleanBriefing = (briefing?: string): string => {
     if (!briefing) return '';
-    return briefing.replace(/\n?<!--GV_DELIVERABLES:[\s\S]*?-->/g, '').trim();
+    return briefing.replace(DELIVERABLES_REGEX, '').trim();
 };
 
-const getCustomValueCache = (): Record<string, number | null> => {
+const readLocalJson = (key: string): Record<string, any> => {
     try {
-        return JSON.parse(localStorage.getItem('invoice_custom_values_cache') || '{}');
+        return JSON.parse(localStorage.getItem(key) || '{}');
     } catch {
         return {};
     }
 };
 
-const setCustomValueCache = (invoiceId: string, customValue: number | null | undefined) => {
+export const getLegacyLocalData = () => ({
+    customValues: readLocalJson('invoice_custom_values_cache') as Record<string, number | null>,
+    deliverables: readLocalJson('task_deliverables_cache') as Record<string, any[]>
+});
+
+export const clearLegacyLocalData = () => {
     try {
-        const cache = getCustomValueCache();
-        if (customValue === null || customValue === undefined) {
-            delete cache[invoiceId];
-        } else {
-            cache[invoiceId] = customValue;
-        }
-        localStorage.setItem('invoice_custom_values_cache', JSON.stringify(cache));
-    } catch {}
+        localStorage.removeItem('invoice_custom_values_cache');
+        localStorage.removeItem('task_deliverables_cache');
+    } catch { /* ignore */ }
 };
+
+// ---------------------------------------------------------------
+// Mappers banco (snake_case) -> app (camelCase)
+// ---------------------------------------------------------------
+const mapTask = (t: any): Task => {
+    const fromBriefing = extractDeliverablesFromBriefing(t.briefing);
+    const deliverables = Array.isArray(t.deliverables) && t.deliverables.length > 0
+        ? t.deliverables
+        : (fromBriefing || []);
+    return {
+        ...t,
+        clientId: t.client_id,
+        invoiceId: t.invoice_id,
+        addToPortfolio: t.add_to_portfolio,
+        value: Number(t.value) || 0,
+        position: t.position || 0,
+        briefing: cleanBriefing(t.briefing),
+        deliverables
+    } as Task;
+};
+
+const mapTransaction = (t: any): Transaction => ({
+    ...t,
+    value: Number(t.value) || 0,
+    taskId: t.task_id,
+    invoiceId: t.invoice_id
+}) as Transaction;
+
+const mapInvoice = (i: any): Invoice => ({
+    ...i,
+    clientId: i.client_id,
+    createdAt: i.created_at,
+    paidAt: i.paid_at ?? null,
+    customValue: i.custom_value !== undefined && i.custom_value !== null ? Number(i.custom_value) : null
+}) as Invoice;
 
 export const db = {
     // Clients
@@ -135,29 +152,7 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('position', { ascending: true });
             if (error) throw error;
-            const deliverablesCache = getDeliverablesCache();
-            return data.map(t => {
-                const briefingDelivs = extractDeliverablesFromBriefing(t.briefing);
-                const finalDeliverables = (Array.isArray(t.deliverables) && t.deliverables.length > 0)
-                    ? t.deliverables
-                    : (briefingDelivs && briefingDelivs.length > 0)
-                    ? briefingDelivs
-                    : (deliverablesCache[t.id] || []);
-
-                if (finalDeliverables.length > 0 && !deliverablesCache[t.id]) {
-                    setDeliverablesCache(t.id, finalDeliverables);
-                }
-
-                return {
-                    ...t,
-                    clientId: t.client_id,
-                    invoiceId: t.invoice_id,
-                    addToPortfolio: t.add_to_portfolio,
-                    position: t.position || 0,
-                    briefing: cleanBriefing(t.briefing),
-                    deliverables: finalDeliverables
-                };
-            }) as Task[];
+            return data.map(mapTask);
         },
         async create(task: Omit<Task, 'id'>) {
             const userId = await getUserId();
@@ -174,51 +169,12 @@ export const db = {
                 briefing: task.briefing,
                 add_to_portfolio: task.addToPortfolio,
                 position: task.position || 0,
+                deliverables: task.deliverables ?? [],
                 user_id: userId
             };
-            if (task.deliverables !== undefined) {
-                payload.deliverables = task.deliverables;
-            }
-
-            let insertedData: any = null;
             const { data, error } = await supabase.from('tasks').insert(payload).select().single();
-
-            if (error) {
-                // If deliverables column doesn't exist yet on Supabase, retry without it and encode in briefing
-                if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
-                    delete payload.deliverables;
-                    if (task.deliverables && task.deliverables.length > 0) {
-                        payload.briefing = injectDeliverablesIntoBriefing(payload.briefing, task.deliverables);
-                    }
-                    const retry = await supabase.from('tasks').insert(payload).select().single();
-                    if (retry.error) throw retry.error;
-                    insertedData = retry.data;
-                    if (task.deliverables && task.deliverables.length > 0) {
-                        setDeliverablesCache(insertedData.id, task.deliverables);
-                    }
-                } else {
-                    throw error;
-                }
-            } else {
-                insertedData = data;
-                if (task.deliverables && task.deliverables.length > 0) {
-                    setDeliverablesCache(insertedData.id, task.deliverables);
-                }
-            }
-
-            const deliverablesCache = getDeliverablesCache();
-            const briefingDelivs = extractDeliverablesFromBriefing(insertedData.briefing);
-            return {
-                ...insertedData,
-                clientId: insertedData.client_id,
-                invoiceId: insertedData.invoice_id,
-                addToPortfolio: insertedData.add_to_portfolio,
-                position: insertedData.position,
-                briefing: cleanBriefing(insertedData.briefing),
-                deliverables: (Array.isArray(insertedData.deliverables) && insertedData.deliverables.length > 0)
-                    ? insertedData.deliverables
-                    : (task.deliverables || briefingDelivs || deliverablesCache[insertedData.id] || [])
-            } as Task;
+            if (error) throw error;
+            return mapTask(data);
         },
         async update(id: string, task: Partial<Task>) {
             const userId = await getUserId();
@@ -228,69 +184,17 @@ export const db = {
             if (task.clientId !== undefined) { transformed.client_id = task.clientId; delete transformed.clientId; }
             if (task.invoiceId !== undefined) { transformed.invoice_id = task.invoiceId; delete transformed.invoiceId; }
             if (task.addToPortfolio !== undefined) { transformed.add_to_portfolio = task.addToPortfolio; delete transformed.addToPortfolio; }
-            if (task.deliverables !== undefined) { transformed.deliverables = task.deliverables; }
             if (transformed.date && transformed.date.includes('T')) {
                 transformed.date = transformed.date.split('T')[0];
             }
 
-            // Strip undefined properties
             Object.keys(transformed).forEach(k => {
-                if (transformed[k] === undefined) {
-                    delete transformed[k];
-                }
+                if (transformed[k] === undefined) delete transformed[k];
             });
 
-            let updatedData: any = null;
             const { data, error } = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-
-            if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('deliverables') || error.code === '42703') {
-                    delete transformed.deliverables;
-
-                    // Persist deliverables into briefing metadata and local cache
-                    if (task.deliverables !== undefined) {
-                        setDeliverablesCache(id, task.deliverables);
-
-                        let currentBriefing = transformed.briefing;
-                        if (currentBriefing === undefined) {
-                            const { data: existing } = await supabase.from('tasks').select('briefing').eq('id', id).eq('user_id', userId).single();
-                            currentBriefing = existing?.briefing || '';
-                        }
-                        transformed.briefing = injectDeliverablesIntoBriefing(currentBriefing, task.deliverables);
-                    }
-
-                    if (Object.keys(transformed).length > 0) {
-                        const retry = await supabase.from('tasks').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-                        if (retry.error) throw retry.error;
-                        updatedData = retry.data;
-                    } else {
-                        const { data: existing, error: fetchErr } = await supabase.from('tasks').select('*').eq('id', id).eq('user_id', userId).single();
-                        if (fetchErr) throw fetchErr;
-                        updatedData = existing;
-                    }
-                } else {
-                    throw error;
-                }
-            } else {
-                updatedData = data;
-                if (task.deliverables !== undefined) {
-                    setDeliverablesCache(id, task.deliverables);
-                }
-            }
-
-            const deliverablesCache = getDeliverablesCache();
-            const briefingDelivs = extractDeliverablesFromBriefing(updatedData.briefing);
-            return {
-                ...updatedData,
-                clientId: updatedData.client_id,
-                invoiceId: updatedData.invoice_id,
-                addToPortfolio: updatedData.add_to_portfolio,
-                position: updatedData.position,
-                briefing: cleanBriefing(updatedData.briefing),
-                deliverables: (Array.isArray(updatedData.deliverables) && updatedData.deliverables.length > 0)
-                    ? updatedData.deliverables
-                    : (task.deliverables || briefingDelivs || deliverablesCache[id] || [])
-            } as Task;
+            if (error) throw error;
+            return mapTask(data);
         },
         async delete(id: string) {
             const userId = await getUserId();
@@ -305,15 +209,18 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
             if (error) throw error;
-            return data.map(t => ({ 
-                ...t, 
-                taskId: t.task_id,
-                invoiceId: t.invoice_id 
-            })) as Transaction[];
+            return data.map(mapTransaction);
+        },
+        async findEntradaByTask(taskId: string) {
+            const userId = await getUserId();
+            const { data, error } = await supabase.from('transactions').select('*')
+                .eq('user_id', userId).eq('task_id', taskId).eq('type', 'Entrada').maybeSingle();
+            if (error) throw error;
+            return data ? mapTransaction(data) : null;
         },
         async create(tx: Omit<Transaction, 'id'>) {
             const userId = await getUserId();
-            const dateStr = tx.date ? (tx.date.includes('T') ? tx.date.split('T')[0] : tx.date) : new Date().toISOString().split('T')[0];
+            const dateStr = tx.date ? (tx.date.includes('T') ? tx.date.split('T')[0] : tx.date) : getLocalDateString();
             const payload: any = {
                 description: tx.description,
                 value: tx.value,
@@ -322,34 +229,14 @@ export const db = {
                 status: tx.status,
                 category: tx.category,
                 task_id: tx.taskId,
+                invoice_id: tx.invoiceId,
+                method: tx.method,
                 user_id: userId
             };
-            if (tx.invoiceId) {
-                payload.invoice_id = tx.invoiceId;
-            }
-
-            let insertedData: any = null;
+            Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
             const { data, error } = await supabase.from('transactions').insert(payload).select().single();
-
-            if (error) {
-                // If invoice_id column does not exist yet in Postgres, retry without it gracefully
-                if (error.code === 'PGRST204' || error.message?.includes('invoice_id') || error.code === '42703') {
-                    delete payload.invoice_id;
-                    const retry = await supabase.from('transactions').insert(payload).select().single();
-                    if (retry.error) throw retry.error;
-                    insertedData = retry.data;
-                } else {
-                    throw error;
-                }
-            } else {
-                insertedData = data;
-            }
-
-            return { 
-                ...insertedData, 
-                taskId: insertedData.task_id,
-                invoiceId: insertedData.invoice_id ?? tx.invoiceId
-            } as Transaction;
+            if (error) throw error;
+            return mapTransaction(data);
         },
         async update(id: string, tx: Partial<Transaction>) {
             const userId = await getUserId();
@@ -361,35 +248,13 @@ export const db = {
             if (transformed.date && transformed.date.includes('T')) {
                 transformed.date = transformed.date.split('T')[0];
             }
-
-            // Strip undefined properties
             Object.keys(transformed).forEach(k => {
-                if (transformed[k] === undefined) {
-                    delete transformed[k];
-                }
+                if (transformed[k] === undefined) delete transformed[k];
             });
 
-            let updatedData: any = null;
             const { data, error } = await supabase.from('transactions').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-
-            if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('invoice_id') || error.code === '42703') {
-                    delete transformed.invoice_id;
-                    const retry = await supabase.from('transactions').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-                    if (retry.error) throw retry.error;
-                    updatedData = retry.data;
-                } else {
-                    throw error;
-                }
-            } else {
-                updatedData = data;
-            }
-
-            return { 
-                ...updatedData, 
-                taskId: updatedData.task_id,
-                invoiceId: updatedData.invoice_id ?? tx.invoiceId
-            } as Transaction;
+            if (error) throw error;
+            return mapTransaction(data);
         },
         async delete(id: string) {
             const userId = await getUserId();
@@ -438,16 +303,7 @@ export const db = {
             const userId = await getUserId();
             const { data, error } = await supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false });
             if (error) throw error;
-            const customValueCache = getCustomValueCache();
-            return data.map(i => ({
-                ...i,
-                clientId: i.client_id,
-                createdAt: i.created_at,
-                paidAt: i.paid_at ?? null,
-                customValue: i.custom_value !== undefined && i.custom_value !== null
-                    ? Number(i.custom_value)
-                    : (customValueCache[i.id] ?? null)
-            })) as Invoice[];
+            return data.map(mapInvoice);
         },
         async create(invoice: Omit<Invoice, 'id'>) {
             const userId = await getUserId();
@@ -458,52 +314,18 @@ export const db = {
                 notes: invoice.notes,
                 user_id: userId
             };
-            if (invoice.customValue !== undefined && invoice.customValue !== null) {
-                payload.custom_value = invoice.customValue;
-            }
-            if (invoice.paidAt !== undefined) {
-                payload.paid_at = invoice.paidAt;
-            }
+            if (invoice.customValue !== undefined && invoice.customValue !== null) payload.custom_value = invoice.customValue;
+            if (invoice.paidAt !== undefined) payload.paid_at = invoice.paidAt;
 
-            let insertedData: any = null;
             const { data, error } = await supabase.from('invoices').insert(payload).select().single();
-
-            if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.message?.includes('paid_at') || error.code === '42703') {
-                    delete payload.custom_value;
-                    delete payload.paid_at;
-                    const retry = await supabase.from('invoices').insert(payload).select().single();
-                    if (retry.error) throw retry.error;
-                    insertedData = retry.data;
-                    if (invoice.customValue !== undefined) {
-                        setCustomValueCache(insertedData.id, invoice.customValue);
-                    }
-                } else {
-                    throw error;
-                }
-            } else {
-                insertedData = data;
-                if (invoice.customValue !== undefined) {
-                    setCustomValueCache(insertedData.id, invoice.customValue);
-                }
-            }
-
-            const customValueCache = getCustomValueCache();
-            return {
-                ...insertedData,
-                clientId: insertedData.client_id,
-                createdAt: insertedData.created_at,
-                paidAt: insertedData.paid_at ?? invoice.paidAt ?? null,
-                customValue: insertedData.custom_value !== undefined && insertedData.custom_value !== null
-                    ? Number(insertedData.custom_value)
-                    : (invoice.customValue !== undefined ? invoice.customValue : (customValueCache[insertedData.id] ?? null))
-            } as Invoice;
+            if (error) throw error;
+            return mapInvoice(data);
         },
+        /** Atualiza apenas campos de cadastro. Pagamento/reabertura usam pay()/reopen(). */
         async update(id: string, invoice: Partial<Invoice> & Record<string, any>) {
             const userId = await getUserId();
             const transformed: any = {};
             if (invoice.title !== undefined) transformed.title = invoice.title;
-            if (invoice.status !== undefined) transformed.status = invoice.status;
             if (invoice.notes !== undefined) transformed.notes = invoice.notes;
 
             const clientId = invoice.clientId ?? invoice.client_id;
@@ -512,49 +334,42 @@ export const db = {
             const createdAt = invoice.createdAt ?? invoice.created_at;
             if (createdAt !== undefined) transformed.created_at = createdAt;
 
-            const paidAt = invoice.paidAt !== undefined ? invoice.paidAt : invoice.paid_at;
-            if (paidAt !== undefined) transformed.paid_at = paidAt;
-
             const customValue = invoice.customValue !== undefined ? invoice.customValue : invoice.custom_value;
             if (customValue !== undefined) transformed.custom_value = customValue;
 
-            let updatedData: any = null;
             const { data, error } = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-
-            if (error) {
-                if (error.code === 'PGRST204' || error.message?.includes('custom_value') || error.message?.includes('paid_at') || error.code === '42703') {
-                    delete transformed.custom_value;
-                    delete transformed.paid_at;
-                    const retry = await supabase.from('invoices').update(transformed).eq('id', id).eq('user_id', userId).select().single();
-                    if (retry.error) throw retry.error;
-                    updatedData = retry.data;
-                    if (customValue !== undefined) {
-                        setCustomValueCache(id, customValue);
-                    }
-                } else {
-                    throw error;
-                }
-            } else {
-                updatedData = data;
-                if (customValue !== undefined) {
-                    setCustomValueCache(id, customValue);
-                }
-            }
-
-            const customValueCache = getCustomValueCache();
-            return {
-                ...updatedData,
-                clientId: updatedData.client_id,
-                createdAt: updatedData.created_at,
-                paidAt: updatedData.paid_at ?? paidAt ?? null,
-                customValue: updatedData.custom_value !== undefined && updatedData.custom_value !== null
-                    ? Number(updatedData.custom_value)
-                    : (customValue !== undefined ? customValue : (customValueCache[id] ?? null))
-            } as Invoice;
+            if (error) throw error;
+            return mapInvoice(data);
+        },
+        /** Quita a nota, conclui as tarefas e lança no caixa — tudo numa transação no banco. */
+        async pay(id: string, paidAt: string = getLocalDateString(), method?: string) {
+            const { error } = await supabase.rpc('pay_invoice', {
+                p_invoice_id: id,
+                p_paid_at: paidAt,
+                p_method: method ?? null
+            });
+            if (error) throw error;
+        },
+        /** True se todas as tarefas com valor da nota já têm entrada paga (consulta fresca ao banco). */
+        async isFullyReceived(id: string) {
+            const userId = await getUserId();
+            const { data: invTasks, error: e1 } = await supabase.from('tasks').select('id,value').eq('invoice_id', id).eq('user_id', userId);
+            if (e1) throw e1;
+            const billable = (invTasks || []).filter(t => Number(t.value) > 0);
+            if (billable.length === 0) return false;
+            const { data: txs, error: e2 } = await supabase.from('transactions').select('task_id')
+                .eq('user_id', userId).eq('type', 'Entrada').eq('status', 'Pago').in('task_id', billable.map(t => t.id));
+            if (e2) throw e2;
+            const paid = new Set((txs || []).map(t => t.task_id));
+            return billable.every(t => paid.has(t.id));
+        },
+        /** Volta a nota e os lançamentos vinculados para Pendente. */
+        async reopen(id: string) {
+            const { error } = await supabase.rpc('reopen_invoice', { p_invoice_id: id });
+            if (error) throw error;
         },
         async delete(id: string) {
             const userId = await getUserId();
-            setCustomValueCache(id, null);
             const { error } = await supabase.from('invoices').delete().eq('id', id).eq('user_id', userId);
             if (error) throw error;
         }

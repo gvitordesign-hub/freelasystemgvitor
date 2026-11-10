@@ -151,13 +151,13 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               <Plus size={22} className="stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest">Protocolo Rápido</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Nova demanda para sua agenda</p>
+              <h3 className="text-xs font-black text-slate-200 uppercase tracking-wide">Demanda rápida</h3>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Nova demanda para sua agenda</p>
             </div>
           </div>
           <button
             onClick={onOpenTaskModal}
-            className="w-full sm:w-auto bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_var(--primary-shadow)] active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto bg-[var(--primary-color)] hover:brightness-110 text-white px-6 py-3 rounded-xl font-black uppercase text-[11px] tracking-wide flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_var(--primary-shadow)] active:scale-95 cursor-pointer"
           >
             Lançar Demanda
           </button>
@@ -170,13 +170,13 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               <TrendingDown size={22} className="stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest">Despesa Rápida</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Lançar saída financeira</p>
+              <h3 className="text-xs font-black text-slate-200 uppercase tracking-wide">Despesa Rápida</h3>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Lançar saída financeira</p>
             </div>
           </div>
           <button
             onClick={onOpenTransactionModal}
-            className="w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_rgba(244,63,94,0.3)] active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-xl font-black uppercase text-[11px] tracking-wide flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_rgba(244,63,94,0.3)] active:scale-95 cursor-pointer"
           >
             Lançar Despesa
           </button>
@@ -185,10 +185,10 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
 
       <div className="flex items-center justify-between animate-reveal delay-100">
         <div>
-          <h1 className="text-xl md:text-3xl font-black cyber-font text-white uppercase tracking-tight">
-            Centro de Comando
+          <h1 className="text-xl md:text-3xl font-black text-white tracking-tight">
+            Painel
           </h1>
-          <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-0.5">Visão Executiva & Performance</p>
+          <p className="text-[11px] text-slate-500 uppercase font-black tracking-wide mt-0.5">Visão geral e desempenho</p>
         </div>
       </div>
 
@@ -204,7 +204,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 </div>
                 <div>
                   <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Nível Atual</p>
-                  <p className="text-xl font-black cyber-font text-white">Protocolo {stats.level}</p>
+                  <p className="text-xl font-black text-white">Nível {stats.level}</p>
                 </div>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
@@ -213,7 +213,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                   style={{ width: `${(stats.xp % XP_PER_LEVEL) / (XP_PER_LEVEL / 100)}%` }}
                 />
               </div>
-              <p className="text-[9px] text-slate-400 mt-2.5 font-black uppercase tracking-wider font-mono">XP: {stats.xp % XP_PER_LEVEL} / {XP_PER_LEVEL}</p>
+              <p className="text-[11px] text-slate-400 mt-2.5 font-black uppercase tracking-wider font-mono">XP: {stats.xp % XP_PER_LEVEL} / {XP_PER_LEVEL}</p>
             </div>
 
             {/* Monthly Income Card */}
@@ -224,7 +224,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 </div>
                 <div>
                   <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Renda Mensal</p>
-                  <p className="text-xl font-black cyber-font text-emerald-400">R$ {monthlyIncome.toLocaleString('pt-BR')}</p>
+                  <p className="text-xl font-black text-emerald-400">R$ {monthlyIncome.toLocaleString('pt-BR')}</p>
                 </div>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
@@ -234,8 +234,8 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 />
               </div>
               <div className="flex justify-between mt-2.5">
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Performance</p>
-                <p className="text-[9px] text-emerald-400 font-black cyber-font">{Math.round(monthlyProgress)}%</p>
+                <p className="text-[11px] text-slate-400 font-black uppercase tracking-wider">Performance</p>
+                <p className="text-[11px] text-emerald-400 font-black">{Math.round(monthlyProgress)}%</p>
               </div>
             </div>
 
@@ -247,7 +247,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 </div>
                 <div>
                   <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Anual</p>
-                  <p className="text-xl font-black cyber-font text-cyan-400">R$ {annualIncome.toLocaleString('pt-BR')}</p>
+                  <p className="text-xl font-black text-cyan-400">R$ {annualIncome.toLocaleString('pt-BR')}</p>
                 </div>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
@@ -256,19 +256,19 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                   style={{ width: `${annualProgress}%` }}
                 />
               </div>
-              <p className="text-[9px] text-slate-400 mt-2.5 font-black uppercase tracking-wider font-mono">Meta: R$ {stats.annualGoal?.toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-2.5 font-black uppercase tracking-wider font-mono">Meta: R$ {stats.annualGoal?.toLocaleString()}</p>
             </div>
           </div>
 
-          {/* Mapeamento Mensal / Fluxo Operacional */}
+          {/* Mapeamento Mensal / Fluxo mensal */}
           <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 p-6 md:p-8 rounded-[2.5rem] space-y-6 md:space-y-8 transition-all hover:border-slate-700/80 shadow-[0_12px_36px_rgba(0,0,0,0.35)] animate-reveal delay-500">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex flex-col gap-1">
-                <h3 className="text-xs md:text-sm font-black text-slate-200 uppercase tracking-widest flex items-center gap-2.5">
+                <h3 className="text-xs md:text-sm font-black text-slate-200 uppercase tracking-wide flex items-center gap-2.5">
                   <BarChart3 size={18} className="text-[var(--primary-color)]" />
-                  Fluxo Operacional
+                  Fluxo mensal
                 </h3>
-                <div className="flex items-center gap-4 text-[8px] md:text-[9px] font-black uppercase tracking-wider text-slate-400 mt-0.5">
+                <div className="flex items-center gap-4 text-[11px] md:text-[11px] font-black uppercase tracking-wider text-slate-400 mt-0.5">
                   <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[var(--primary-color)] shadow-[0_0_6px_var(--primary-color)]" /> Realizado</span>
                   <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-700" /> Previsto</span>
                 </div>
@@ -278,7 +278,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                   <button
                     key={view}
                     onClick={() => setChartView(view)}
-                    className={`px-3.5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all duration-200 cursor-pointer ${
+                    className={`px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wide rounded-xl transition-all duration-200 cursor-pointer ${
                       chartView === view 
                         ? 'bg-[var(--primary-color)] text-white shadow-[0_2px_12px_var(--primary-shadow)]' 
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -297,7 +297,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                   className="absolute left-0 right-0 border-t border-[var(--primary-color)]/25 border-dashed z-0 transition-all duration-700 pointer-events-none"
                   style={{ bottom: `${((chartView === 'Semanal' ? stats.weeklyGoal : chartView === 'Mensal' ? stats.monthlyGoal : stats.annualGoal) / maxChartValue) * 100}%` }}
                 >
-                  <span className="absolute -top-4 right-0 text-[8px] font-black text-[var(--primary-color)] uppercase tracking-widest opacity-60">
+                  <span className="absolute -top-4 right-0 text-[11px] font-black text-[var(--primary-color)] uppercase tracking-wide opacity-60">
                     Meta: R$ {(chartView === 'Semanal' ? stats.weeklyGoal : chartView === 'Mensal' ? stats.monthlyGoal : stats.annualGoal).toLocaleString()}
                   </span>
                 </div>
@@ -307,9 +307,9 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 <div key={idx} className="flex-1 flex flex-col items-center gap-3 group z-10">
                   <div className="relative w-full flex flex-col items-center justify-end h-full gap-1">
                     {/* Tooltip */}
-                    <div className="absolute -top-16 bg-slate-900/95 backdrop-blur-md text-[10px] font-black px-3.5 py-2.5 rounded-xl border border-slate-700 opacity-0 group-hover:opacity-100 transition-all z-20 text-white whitespace-nowrap shadow-2xl translate-y-2 group-hover:translate-y-0 flex flex-col gap-1 pointer-events-none">
-                      <span className="text-emerald-400 cyber-font">Pago: R$ {data.realized.toLocaleString()}</span>
-                      {data.pending > 0 && <span className="text-amber-400 cyber-font">Pendente: R$ {data.pending.toLocaleString()}</span>}
+                    <div className="absolute -top-16 bg-slate-900/95 backdrop-blur-md text-[11px] font-black px-3.5 py-2.5 rounded-xl border border-slate-700 opacity-0 group-hover:opacity-100 transition-all z-20 text-white whitespace-nowrap shadow-2xl translate-y-2 group-hover:translate-y-0 flex flex-col gap-1 pointer-events-none">
+                      <span className="text-emerald-400">Pago: R$ {data.realized.toLocaleString()}</span>
+                      {data.pending > 0 && <span className="text-amber-400">Pendente: R$ {data.pending.toLocaleString()}</span>}
                       <div className="border-t border-slate-700/80 mt-1 pt-1 flex justify-between gap-4 font-mono">
                         <span className="text-slate-400">TOTAL:</span>
                         <span className="text-white">R$ {(data.realized + data.pending).toLocaleString()}</span>
@@ -333,7 +333,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                       <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-20 transition-opacity" />
                     </div>
                   </div>
-                  <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-[var(--primary-color)] transition-colors text-center leading-tight">
+                  <span className="text-[11px] md:text-[11px] font-black text-slate-400 uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors text-center leading-tight">
                     {data.label}
                   </span>
                 </div>
@@ -344,13 +344,13 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
           {/* Demandas Próximas */}
           <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-[2.5rem] overflow-hidden flex flex-col transition-all hover:border-slate-700/80 shadow-[0_12px_36px_rgba(0,0,0,0.3)] animate-reveal delay-600">
             <div className="p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/40">
-              <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-xs font-black text-slate-200 uppercase tracking-wide flex items-center gap-2">
                 <Clock size={16} className="text-[var(--primary-color)]" />
-                Protocolos Pendentes
+                Demandas pendentes
               </h3>
               <button 
                 onClick={() => onNavigate('kanban')} 
-                className="text-[9px] font-black text-slate-400 hover:text-[var(--primary-color)] transition-colors flex items-center gap-1 uppercase tracking-widest cursor-pointer"
+                className="text-[11px] font-black text-slate-400 hover:text-[var(--primary-color)] transition-colors flex items-center gap-1 uppercase tracking-wide cursor-pointer"
               >
                 Expandir Agenda <ChevronRight size={12} />
               </button>
@@ -359,7 +359,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               {criticalTasks.length > 0 ? criticalTasks.map(task => (
                 <div key={task.id} className="p-4 hover:bg-slate-800/50 rounded-2xl transition-all flex items-center justify-between group">
                   <div className="flex flex-col gap-1 overflow-hidden">
-                    <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest truncate">
+                    <span className="text-[11px] font-black uppercase text-slate-400 tracking-wide truncate">
                       {getClientName(task.clientId)}
                     </span>
                     <span className="text-sm font-bold text-slate-100 group-hover:text-[var(--primary-color)] transition-colors truncate">
@@ -367,10 +367,10 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                     </span>
                   </div>
                   <div className="text-right shrink-0 ml-4">
-                    <p className="text-xs font-black text-emerald-400 cyber-font">
+                    <p className="text-xs font-black text-emerald-400">
                       {task.category === 'Demanda Rápida' ? 'Lembrete' : `R$ ${task.value.toLocaleString('pt-BR')}`}
                     </p>
-                    <p className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full mt-1 inline-block ${
+                    <p className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-full mt-1 inline-block ${
                       task.status === 'Em Andamento'
                         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                         : 'bg-slate-800 text-slate-400 border border-slate-700/50'
@@ -399,7 +399,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
           {stats.objectives && (
             <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--primary-color)] shadow-[0_0_12px_var(--primary-color)]" />
-              <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Diretrizes Master</h3>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wide mb-3">Objetivos</h3>
               <p className="text-slate-200 text-xs leading-relaxed italic">"{stats.objectives}"</p>
             </div>
           )}

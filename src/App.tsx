@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 import Dashboard from '@/features/dashboard/DashboardPage';
 import Login from '@/features/auth/Login';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
@@ -33,23 +34,25 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
+          <ToastProvider>
           <Routes>
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/register" element={<Navigate to="/login" replace />} />
             
             {/* Private Core Application Routes */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Uma única rota para todas as abas (/agenda, /financeiro...): navegar entre elas não remonta o app */}
             <Route
-              path="/dashboard"
+              path="*"
               element={
                 <PrivateRoute>
                   <Dashboard />
                 </PrivateRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -122,6 +122,7 @@ export interface Transaction {
   category: string;
   taskId?: string;
   invoiceId?: string;
+  method?: string; // forma de pagamento (PIX, transferência...)
 }
 
 export interface SocialLink {

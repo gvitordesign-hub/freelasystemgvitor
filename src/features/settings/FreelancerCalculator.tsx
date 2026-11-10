@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, Plus, Trash2, ChevronRight, ChevronLeft, Zap, DollarSign, Clock, Target, Play } from 'lucide-react';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 interface MaintenanceCost {
   id: string;
@@ -30,6 +31,7 @@ const defaultData: FinancialData = {
 };
 
 import { UserStats, Client } from '@/types';
+import { notify } from '@/context/ToastContext';
 
 interface FreelancerCalculatorProps {
   stats?: UserStats;
@@ -130,7 +132,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
   };
 
   const handleCreateBgProject = async () => {
-    if (!bgProjectTitle) return alert('Por favor, digite o nome do projeto.');
+    if (!bgProjectTitle) return notify.error('Por favor, digite o nome do projeto.');
     if (onAddTask) {
       try {
         await onAddTask({
@@ -138,7 +140,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
           clientId: bgClientId || (clients && clients[0]?.id) || '',
           value: simulatedValue,
           day: 'Segunda', // Default day
-          date: new Date().toISOString().split('T')[0], // Today's date YYYY-MM-DD
+          date: getLocalDateString(), // data local YYYY-MM-DD
           status: 'Pendente',
           category: 'Design',
           position: 0
@@ -174,7 +176,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
             <Calculator size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white cyber-font uppercase tracking-tighter">Financial Engine</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tighter">Financial Engine</h2>
             <p className="text-sm text-slate-400">Descubra sua hora técnica real</p>
           </div>
         </div>
@@ -215,7 +217,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Pró-labore Desejado (Mês)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Pró-labore Desejado (Mês)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">R$</span>
                       <input
@@ -227,7 +229,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Horas Produtivas / Dia</label>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Horas Produtivas / Dia</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Clock size={16}/></span>
                       <input
@@ -239,7 +241,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Dias Úteis / Semana</label>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Dias Úteis / Semana</label>
                     <input
                       type="number"
                       value={data.daysPerWeek || ''}
@@ -248,7 +250,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Semanas de Férias / Ano</label>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Semanas de Férias / Ano</label>
                     <input
                       type="number"
                       value={data.vacationWeeks || ''}
@@ -352,8 +354,8 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                 <div className="bg-slate-800/40 backdrop-blur-md border border-emerald-500/30 p-8 rounded-[2rem] shadow-[0_0_40px_rgba(16,185,129,0.15)] text-center w-full max-w-sm relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Sua Hora Técnica</p>
-                  <div className="text-5xl font-black text-white cyber-font mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wide mb-2">Sua Hora Técnica</p>
+                  <div className="text-5xl font-black text-white mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
                     <span className="text-emerald-400 text-2xl mr-1">R$</span>
                     {hourlyRate.toFixed(2)}
                     <span className="text-slate-500 text-xl ml-1">/h</span>
@@ -374,7 +376,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-slate-500 mt-6 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 mt-6 leading-relaxed">
                     Para bater sua meta de <strong>R$ {data.desiredIncome.toFixed(2)}</strong> livre e pagar as contas, 
                     você precisa faturar <strong>{Math.round(monthlyCapacity)} horas</strong> este mês.
                   </p>
@@ -398,7 +400,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
 
                 <div className="bg-slate-800/30 border border-white/5 p-6 rounded-3xl space-y-6">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-4">
                       Estimativa de horas do projeto
                     </label>
                     <div className="flex items-center gap-4">
@@ -417,14 +419,14 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                   </div>
 
                   <div className="flex flex-col items-center p-6 bg-slate-900/80 border border-[var(--primary-color)]/30 rounded-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary-color)]/10 to-transparent animate-pulse-slow" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primary-color)]/10 to-transparent-slow" />
                     
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 relative z-10">Valor Sugerido para o Job</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-wide mb-2 relative z-10">Valor Sugerido para o Job</p>
                     <motion.div 
                       key={simulatedValue}
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="text-4xl md:text-5xl font-black text-white cyber-font relative z-10"
+                      className="text-4xl md:text-5xl font-black text-white relative z-10"
                     >
                       <span className="text-[var(--primary-color)] mr-2">R$</span>
                       {simulatedValue.toFixed(2)}
@@ -434,7 +436,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                   {/* Cálculo de Projeto em Segundo Plano (Kanban) */}
                   {onAddTask && (
                     <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl space-y-4 relative z-10">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-2">
                         <Calculator size={14} className="text-purple-400" />
                         Registrar Projeto como Demanda no Kanban
                       </p>
@@ -463,7 +465,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                       <button
                         type="button"
                         onClick={handleCreateBgProject}
-                        className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                        className={`w-full py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide flex items-center justify-center gap-2 transition-all border ${
                           bgProjectCreated
                             ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                             : 'bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)] text-[var(--primary-color)] hover:text-white border-[var(--primary-color)]/30 hover:border-[var(--primary-color)]'
@@ -477,18 +479,18 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
 
                   {/* Metas Propostas baseadas nos cálculos */}
                   <div className="mt-6 pt-6 border-t border-slate-800/80 text-left relative z-10 space-y-3 w-full">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">🎯 Objetivos de Metas Calculados</p>
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide text-center">🎯 Objetivos de Metas Calculados</p>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 text-center">
-                        <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-tight">Semanal</span>
+                        <span className="block text-[11px] text-slate-500 font-bold uppercase tracking-tight">Semanal</span>
                         <span className="text-xs font-black text-white">R$ {weeklyGoalValue.toLocaleString()}</span>
                       </div>
                       <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 text-center">
-                        <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-tight">Mensal</span>
+                        <span className="block text-[11px] text-slate-500 font-bold uppercase tracking-tight">Mensal</span>
                         <span className="text-xs font-black text-emerald-400 font-mono">R$ {monthlyGoalValue.toLocaleString()}</span>
                       </div>
                       <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 text-center">
-                        <span className="block text-[8px] text-slate-500 font-bold uppercase tracking-tight">Anual</span>
+                        <span className="block text-[11px] text-slate-500 font-bold uppercase tracking-tight">Anual</span>
                         <span className="text-xs font-black text-blue-400">R$ {annualGoalValue.toLocaleString()}</span>
                       </div>
                     </div>
@@ -496,7 +498,7 @@ const FreelancerCalculator: React.FC<FreelancerCalculatorProps> = ({ stats, onUp
                     <button
                       type="button"
                       onClick={handleApplyGoals}
-                      className={`w-full py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                      className={`w-full py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-wide flex items-center justify-center gap-2 transition-all border ${
                         goalsApplied
                           ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                           : 'bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)] text-[var(--primary-color)] hover:text-white border-[var(--primary-color)]/30 hover:border-[var(--primary-color)] hover:shadow-[0_0_15px_rgba(var(--primary-color),0.3)]'

@@ -14,6 +14,7 @@ import {
   UserPlus 
 } from 'lucide-react';
 import { Client, DayOfWeek, Task, Holiday } from '../../types';
+import { notify } from '@/context/ToastContext';
 
 interface QuickTaskModalProps {
   clients: Client[];
@@ -133,13 +134,13 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
     e.preventDefault();
 
     if (!formData.title.trim()) {
-      alert('Informe o que precisa ser feito.');
+      notify.error('Informe o que precisa ser feito.');
       return;
     }
 
     // Check for holiday
     if (activeHoliday) {
-      alert(`Impossível agendar: "${formData.date}" foi configurado como feriado/folga (${activeHoliday.description || 'Feriado'}).`);
+      notify.error(`Impossível agendar: "${formData.date}" foi configurado como feriado/folga (${activeHoliday.description || 'Feriado'}).`);
       return;
     }
 
@@ -147,14 +148,14 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
 
     if (isAddingNewClient) {
       if (!newClientData.name.trim()) {
-        alert('Preencha o nome do novo cliente.');
+        notify.error('Preencha o nome do novo cliente.');
         return;
       }
       finalClientId = await onQuickAddClient(newClientData);
     }
 
     if (!finalClientId) {
-      alert('Selecione ou crie um cliente para esta demanda.');
+      notify.error('Selecione ou crie um cliente para esta demanda.');
       return;
     }
 
@@ -189,10 +190,10 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
               <Zap size={22} className="fill-amber-400/20" />
             </div>
             <div>
-              <h2 className="text-xl font-bold cyber-font text-white uppercase tracking-tighter flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white tracking-tighter flex items-center gap-2">
                 Demanda Rápida
               </h2>
-              <p className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider">
+              <p className="text-[11px] text-amber-400/80 font-bold uppercase tracking-wider">
                 Lembrete de serviço sem objetivo financeiro
               </p>
             </div>
@@ -205,7 +206,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
           <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+            <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">
               O que precisa ser feito? *
             </label>
             <input
@@ -222,7 +223,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
           {/* Searchable Client Selector */}
           <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80 space-y-3 relative" ref={clientDropdownRef}>
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                 <User size={12} className="text-amber-400" />
                 Cliente Vinculado *
               </label>
@@ -232,7 +233,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                   setIsAddingNewClient(!isAddingNewClient);
                   if (!isAddingNewClient) setNewClientData({ name: '', company: '' });
                 }} 
-                className="text-[9px] font-bold text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <UserPlus size={11} />
                 {isAddingNewClient ? 'Selecionar da Lista' : 'Novo Cliente'}
@@ -265,13 +266,13 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                 >
                   {selectedClient ? (
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-[10px] shrink-0 border border-amber-500/30">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-[11px] shrink-0 border border-amber-500/30">
                         {selectedClient.name.charAt(0)}
                       </div>
                       <div className="truncate">
                         <span className="font-bold text-slate-100">{selectedClient.name}</span>
                         {selectedClient.company && (
-                          <span className="text-[10px] text-slate-400 ml-1.5 font-normal">
+                          <span className="text-[11px] text-slate-400 ml-1.5 font-normal">
                             ({selectedClient.company})
                           </span>
                         )}
@@ -328,13 +329,13 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-5 h-5 rounded-md bg-slate-800 text-[10px] font-bold text-amber-400 flex items-center justify-center shrink-0">
+                              <div className="w-5 h-5 rounded-md bg-slate-800 text-[11px] font-bold text-amber-400 flex items-center justify-center shrink-0">
                                 {c.name.charAt(0)}
                               </div>
                               <div className="truncate">
                                 <span className="font-semibold">{c.name}</span>
                                 {c.company && (
-                                  <span className="text-[10px] text-slate-500 ml-1.5">
+                                  <span className="text-[11px] text-slate-500 ml-1.5">
                                     • {c.company}
                                   </span>
                                 )}
@@ -356,7 +357,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
                               setIsClientDropdownOpen(false);
                               setClientSearchTerm('');
                             }}
-                            className="text-[10px] font-black uppercase text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                            className="text-[11px] font-black uppercase text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Plus size={12} /> Cadastrar "{clientSearchTerm}"
                           </button>
@@ -372,12 +373,12 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
           {/* Enhanced Date Picker Interface */}
           <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
             <div className="flex justify-between items-center">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
                 <CalendarIcon size={12} className="text-amber-400" />
                 Data Alvo *
               </label>
               {formattedDateInfo.dayOfWeek && (
-                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
                   {formattedDateInfo.dayOfWeek}
                 </span>
               )}
@@ -388,7 +389,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('today') }))}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('today')
                     ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
@@ -399,7 +400,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('tomorrow') }))}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('tomorrow')
                     ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
@@ -410,7 +411,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('friday') }))}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('friday')
                     ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
@@ -421,7 +422,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, date: getPresetDate('nextMonday') }))}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
                   formData.date === getPresetDate('nextMonday')
                     ? 'bg-amber-500 text-amber-950 font-black border-amber-500 shadow-sm'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
@@ -444,12 +445,12 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
 
             {/* Formatted Date Preview & Holiday Warning */}
             {activeHoliday ? (
-              <div className="flex items-center gap-1.5 p-2 bg-rose-500/15 border border-rose-500/30 rounded-xl text-rose-300 text-[10px] font-bold animate-pulse">
+              <div className="flex items-center gap-1.5 p-2 bg-rose-500/15 border border-rose-500/30 rounded-xl text-rose-300 text-[11px] font-bold">
                 <AlertTriangle size={12} className="text-rose-400 shrink-0" />
                 <span>Feriado/Folga: {activeHoliday.description || 'Data Bloqueada'}</span>
               </div>
             ) : formattedDateInfo.formattedDate ? (
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium px-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium px-1">
                 <Clock size={11} className="text-amber-400/70" />
                 <span>Agendado para <strong className="text-slate-200">{formattedDateInfo.formattedDate}</strong></span>
               </div>
@@ -457,7 +458,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
+            <label className="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wide">
               Observações / Detalhes (Opcional)
             </label>
             <textarea
@@ -471,7 +472,7 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
 
           <button 
             type="submit" 
-            className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] uppercase tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] uppercase tracking-wide text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             <Zap size={16} className="fill-amber-950" />
             Adicionar Lembrete Rápido

@@ -82,7 +82,7 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-in slide-in-from-right-8 duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-[var(--primary-color)] transition-all text-[10px] font-black uppercase tracking-[0.2em] group">
+        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-[var(--primary-color)] transition-all text-[11px] font-black uppercase tracking-wide group">
           <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 group-hover:border-[var(--primary-color)]/30 transition-all">
             <ChevronLeft size={16} />
           </div>
@@ -90,7 +90,7 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
         </button>
         <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-3 bg-[var(--primary-color)] hover:brightness-110 text-white px-8 py-4 rounded-2xl font-black transition-all neon-shadow-primary text-xs uppercase tracking-widest group"
+          className="flex items-center gap-3 bg-[var(--primary-color)] hover:brightness-110 text-white px-8 py-4 rounded-2xl font-black transition-all neon-shadow-primary text-xs uppercase tracking-wide group"
         >
           <div className="p-1.5 bg-white/20 rounded-lg group-hover:scale-110 transition-transform">
             <Plus size={18} />
@@ -102,11 +102,11 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
       <div className="bg-slate-900/40 border border-slate-800 p-10 rounded-[2.5rem] relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[var(--primary-color)]/5 blur-[120px] -z-10 group-hover:bg-[var(--primary-color)]/10 transition-all duration-1000" />
         <div className="relative z-10">
-          <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--primary-color)] mb-4 block opacity-70">Diretório: {album.category}</span>
-          <h1 className="text-4xl md:text-5xl font-black text-white cyber-font uppercase tracking-tighter mb-2">{album.title}</h1>
+          <span className="text-[11px] font-black uppercase tracking-wide text-[var(--primary-color)] mb-4 block opacity-70">Diretório: {album.category}</span>
+          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2">{album.title}</h1>
           <div className="flex gap-4 items-center">
             <div className="h-1 w-12 bg-[var(--primary-color)] rounded-full shadow-[0_0_10px_var(--primary-color)]" />
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{album.assets.length} Itens Operacionais</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{album.assets.length} Itens Operacionais</span>
           </div>
         </div>
       </div>
@@ -120,8 +120,8 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
                   <Upload size={20} />
                 </div>
                 <div>
-                  <h3 className="font-black text-white uppercase text-sm tracking-widest">Upload em Lote</h3>
-                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Protocolo de Otimização WEBP Ativo</p>
+                  <h3 className="font-black text-white uppercase text-sm tracking-wide">Upload em Lote</h3>
+                  <p className="text-[11px] text-slate-500 uppercase font-bold tracking-tighter">Otimização WEBP ativa</p>
                 </div>
               </div>
               <button
@@ -149,33 +149,33 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
                 <>
                   <div className="relative mb-6">
                     <Loader2 className="text-amber-500 animate-spin" size={48} />
-                    <div className="absolute inset-0 bg-amber-500/20 blur-xl animate-pulse rounded-full" />
+                    <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
                   </div>
-                  <span className="text-sm font-black uppercase text-amber-500 tracking-[0.2em] mb-2">Sincronizando Mídias</span>
+                  <span className="text-sm font-black uppercase text-amber-500 tracking-wide mb-2">Sincronizando Mídias</span>
                   <div className="w-48 bg-slate-800 h-1 rounded-full overflow-hidden mt-2">
                     <div
                       className="bg-amber-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                       style={{ width: `${(processProgress.current / processProgress.total) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[10px] font-black text-slate-600 mt-4 uppercase tracking-[0.1em]">{processProgress.current} / {processProgress.total}</span>
+                  <span className="text-[11px] font-black text-slate-600 mt-4 uppercase tracking-wide">{processProgress.current} / {processProgress.total}</span>
                 </>
               ) : (
                 <>
                   <div className="p-5 bg-slate-900/50 rounded-3xl mb-6 border border-slate-800 group-hover:scale-110 transition-transform duration-500">
                     <Files className="text-slate-500" size={48} />
                   </div>
-                  <span className="text-sm font-black text-slate-200 uppercase tracking-widest">Injetar Arquivos</span>
-                  <p className="text-[10px] text-slate-600 uppercase mt-2 tracking-tighter font-bold">Arraste ou clique para selecionar</p>
+                  <span className="text-sm font-black text-slate-200 uppercase tracking-wide">Injetar Arquivos</span>
+                  <p className="text-[11px] text-slate-600 uppercase mt-2 tracking-tighter font-bold">Arraste ou clique para selecionar</p>
                 </>
               )}
             </div>
 
             <button
               onClick={() => setIsAdding(false)}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest transition-all"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-black py-4 rounded-2xl uppercase text-[11px] tracking-wide transition-all"
             >
-              Cancelar Protocolo
+              Cancelar
             </button>
           </div>
         </div>
@@ -192,7 +192,7 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
                   <div className="p-4 bg-[var(--primary-color)]/10 rounded-full border border-[var(--primary-color)]/20 mb-3 group-hover:scale-110 transition-transform">
                     <Play className="text-[var(--primary-color)]" size={32} />
                   </div>
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Protocolo Vídeo</span>
+                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Vídeo</span>
                 </div>
               )}
 
@@ -203,7 +203,7 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
                 >
                   <Trash2 size={24} />
                 </button>
-                <span className="text-[10px] font-black uppercase text-white/40 tracking-widest opacity-0 group-hover:opacity-100 transition-opacity delay-200">Excluir Item</span>
+                <span className="text-[11px] font-black uppercase text-white/40 tracking-wide opacity-0 group-hover:opacity-100 transition-opacity delay-200">Excluir Item</span>
               </div>
             </div>
           ))}
@@ -214,8 +214,8 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ album, onBack, onUpdate }) 
             <ImageIcon size={64} />
           </div>
           <div className="text-center">
-            <p className="cyber-font text-sm uppercase font-black tracking-[0.3em]">Repositório Vazio</p>
-            <p className="text-[10px] mt-2 font-bold opacity-50 uppercase tracking-tighter">Injete novas mídias para começar o catálogo</p>
+            <p className="text-sm uppercase font-black tracking-wide">Repositório Vazio</p>
+            <p className="text-[11px] mt-2 font-bold opacity-50 uppercase tracking-tighter">Injete novas mídias para começar o catálogo</p>
           </div>
         </div>
       )}

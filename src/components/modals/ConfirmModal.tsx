@@ -79,13 +79,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <h3 id="confirm-modal-title" className="text-xl sm:text-2xl font-bold cyber-font text-white uppercase tracking-tight">{title}</h3>
+                        <h3 id="confirm-modal-title" className="text-xl sm:text-2xl font-bold text-white tracking-tight">{title}</h3>
                         <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{message}</p>
                     </div>
 
                     {errorMessage && (
                         <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-xs text-left animate-in fade-in">
-                            <p className="font-bold uppercase tracking-wider text-[10px] mb-0.5">Falha na Operação</p>
+                            <p className="font-bold uppercase tracking-wider text-[11px] mb-0.5">Falha na Operação</p>
                             <p>{errorMessage}</p>
                         </div>
                     )}
@@ -95,7 +95,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             type="button"
                             onClick={onCancel}
                             disabled={isLoading}
-                            className="flex-1 px-5 py-3.5 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all border border-slate-700/80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                            className="flex-1 px-5 py-3.5 rounded-2xl font-black text-[11px] sm:text-xs uppercase tracking-wide bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white transition-all border border-slate-700/80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                         >
                             {cancelLabel}
                         </button>
@@ -103,7 +103,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             type="button"
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className={`flex-1 px-5 py-3.5 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all border flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isDanger
+                            className={`flex-1 px-5 py-3.5 rounded-2xl font-black text-[11px] sm:text-xs uppercase tracking-wide transition-all border flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isDanger
                                     ? 'bg-rose-600 text-white border-rose-500 hover:bg-rose-500 shadow-[0_4px_16px_rgba(244,63,94,0.35)] active:scale-95'
                                     : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-500 shadow-[0_4px_16px_rgba(59,130,246,0.35)] active:scale-95'
                                 }`}

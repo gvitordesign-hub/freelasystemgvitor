@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, ChevronLeft, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2, ExternalLink, Printer, Clock } from 'lucide-react';
 import { Client, Task, Invoice } from '../../types';
+import ReceiptModal, { ReceiptResult } from './ReceiptModal';
+import { useToast } from '@/context/ToastContext';
 
 interface ProjectNoteModalProps {
    client: Client;
    tasks: Task[];
    invoices: Invoice[];
    pixKey: string;
-   onUpdateInvoice: (invoice: Invoice) => void;
+   onUpdateInvoice: (invoice: Invoice, opts?: { method?: string }) => void;
    onDeleteInvoice: (id: string) => void;
    onUpdatePix: (pix: string) => void;
    onClose: () => void;
@@ -58,6 +60,8 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    onUpdatePix, 
    onClose 
 }) => {
+   const toast = useToast();
+   const [showReceipt, setShowReceipt] = useState(false);
    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
    const [mobileView, setMobileView] = useState<'list' | 'detail'>('detail');
    const [copied, setCopied] = useState(false);
@@ -243,7 +247,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
          setCopied(true);
          setTimeout(() => setCopied(false), 2000);
       } else {
-         alert('Não foi possível copiar automaticamente.');
+         toast.error('Não foi possível copiar automaticamente.');
       }
    };
 
@@ -254,7 +258,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
          setCopied(true);
          setTimeout(() => setCopied(false), 2000);
       } else {
-         alert('Não foi possível copiar automaticamente.');
+         toast.error('Não foi possível copiar automaticamente.');
       }
    };
 
@@ -273,6 +277,11 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
    const handleMarkAsPaid = () => {
       if (!currentInvoice) return;
+      setShowReceipt(true);
+   };
+
+   const confirmPaid = (receipt: ReceiptResult) => {
+      if (!currentInvoice) return;
       const targetInvoice: Invoice = { ...currentInvoice };
       if (editingTotal) {
          const parsed = parseCurrency(localTotal);
@@ -284,7 +293,10 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
          }
          setEditingTotal(false);
       }
-      onUpdateInvoice({ ...targetInvoice, status: 'Pago', paidAt: new Date().toISOString() });
+      // meio-dia local evita o dia "voltar" ao converter para UTC
+      const paidAt = new Date(`${receipt.date}T12:00:00`).toISOString();
+      onUpdateInvoice({ ...targetInvoice, status: 'Pago', paidAt }, { method: receipt.method });
+      setShowReceipt(false);
    };
 
    const handleReopenInvoice = () => {
@@ -326,14 +338,31 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
    const isCustomValueActive = currentInvoice && currentInvoice.customValue !== undefined && currentInvoice.customValue !== null;
 
+   const receiptAmount = (() => {
+      if (editingTotal) {
+         const parsed = parseCurrency(localTotal);
+         if (!isNaN(parsed) && localTotal.trim() !== '') return parsed;
+      }
+      return currentInvoice?.customValue ?? invoiceCalculatedTotal;
+   })();
+
    return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+         {showReceipt && currentInvoice && (
+            <ReceiptModal
+               title={`Nota: ${currentInvoice.title}`}
+               amount={Number(receiptAmount) || 0}
+               detail={invoiceTasks.length > 0 ? `Um lançamento por demanda (${invoiceTasks.length}), somando o total da nota.` : undefined}
+               onConfirm={confirmPaid}
+               onClose={() => setShowReceipt(false)}
+            />
+         )}
          <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl h-[92dvh] max-h-[92dvh] rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95">
 
             {/* Sidebar: Lista de Notas */}
             <div className={`w-full md:w-80 bg-slate-950/70 border-r border-slate-800 p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 ${mobileView === 'list' ? 'flex flex-1' : 'hidden md:flex'}`}>
                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faturamento Frella</h3>
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wide">Faturamento Frella</h3>
                   <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-slate-800" aria-label="Fechar"><X size={20} /></button>
                </div>
 
@@ -348,12 +377,12 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                      <Archive size={16} className="text-[var(--primary-color)]" />
                      <div className="flex flex-col">
                         <span className="text-xs font-bold uppercase tracking-tight">Resumo Master</span>
-                        <span className="text-[9px] opacity-60">Todas as notas ativas</span>
+                        <span className="text-[11px] opacity-60">Todas as notas ativas</span>
                      </div>
                   </button>
 
                   <div className="pt-3 space-y-2">
-                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-2">Notas Individuais ({clientInvoices.length})</p>
+                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">Notas Individuais ({clientInvoices.length})</p>
                      {clientInvoices.map(inv => {
                         const invTasks = tasks.filter(t => t.invoiceId === inv.id);
                         const invTotal = inv.customValue !== undefined && inv.customValue !== null
@@ -370,9 +399,9 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                         >
                            <div className="flex justify-between items-start mb-1">
                               <span className="text-xs font-bold truncate max-w-[130px]">{inv.title}</span>
-                              {inv.status === 'Pago' ? <CheckCircle2 size={12} className="text-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+                              {inv.status === 'Pago' ? <CheckCircle2 size={12} className="text-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-amber-500" />}
                            </div>
-                           <div className="flex items-center justify-between text-[9px] uppercase tracking-tight mt-1">
+                           <div className="flex items-center justify-between text-[11px] uppercase tracking-tight mt-1">
                               <div className="flex flex-col text-left">
                                  <span className="opacity-70">Criada: {new Date(inv.createdAt).toLocaleDateString('pt-BR')}</span>
                                  {inv.status === 'Pago' && inv.paidAt && (
@@ -391,7 +420,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
                <div className="pt-3 border-t border-slate-800 space-y-3">
                   <div className="flex items-center justify-between px-1">
-                     <span className="text-[10px] font-bold text-slate-400">Preço nos itens</span>
+                     <span className="text-[11px] font-bold text-slate-400">Preço nos itens</span>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input 
                            type="checkbox" 
@@ -406,14 +435,14 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                   <div className="grid grid-cols-2 gap-2">
                      <button
                         onClick={handleExportAll}
-                        className="bg-slate-800 hover:bg-slate-700 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
+                        className="bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
                         title="Copiar relatório master para a área de transferência"
                      >
                         <Copy size={12} /> {copied ? 'Copiado!' : 'Copiar Master'}
                      </button>
                      <button
                         onClick={() => openWhatsAppWeb(buildWhatsAppTextMaster())}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase py-3 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-target"
                         title="Abrir diretamente no WhatsApp"
                      >
                         <ExternalLink size={12} /> Abrir Zap
@@ -441,7 +470,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                      </div>
                      <div className="truncate">
                         <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider truncate max-w-[160px] sm:max-w-xs">{selectedInvoiceId ? currentInvoice?.title : 'Visão Geral do Cliente'}</h2>
-                        <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black truncate">{client.company || client.name}</p>
+                        <p className="text-[11px] sm:text-[11px] text-slate-500 uppercase font-black truncate">{client.company || client.name}</p>
                      </div>
                   </div>
 
@@ -454,10 +483,10 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                               value={localPix}
                               onChange={e => setLocalPix(e.target.value)}
                               onBlur={() => { onUpdatePix(localPix); setEditingPix(false); }}
-                              className="bg-transparent border-none outline-none text-[10px] text-white w-20 sm:w-24 font-mono"
+                              className="bg-transparent border-none outline-none text-[11px] text-white w-20 sm:w-24 font-mono"
                            />
                         ) : (
-                           <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 truncate max-w-[80px] sm:max-w-[120px]">{localPix || 'Sem Pix'}</span>
+                           <span className="text-[11px] sm:text-[11px] font-mono text-slate-400 truncate max-w-[80px] sm:max-w-[120px]">{localPix || 'Sem Pix'}</span>
                         )}
                      </div>
                      <button onClick={onClose} className="p-2 text-slate-500 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer" aria-label="Fechar"><X size={20} /></button>
@@ -470,26 +499,26 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                      <div className="space-y-8 animate-in fade-in duration-500">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                            <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-800">
-                              <h4 className="text-[9px] font-black text-slate-500 uppercase mb-2 tracking-widest">Total Acumulado</h4>
-                              <p className="text-3xl font-black text-white cyber-font">R$ {masterGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              <p className="text-[10px] text-slate-500 mt-1 font-bold">FATURAMENTO TOTAL</p>
+                              <h4 className="text-[11px] font-black text-slate-500 uppercase mb-2 tracking-wide">Total Acumulado</h4>
+                              <p className="text-3xl font-black text-white">R$ {masterGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[11px] text-slate-500 mt-1 font-bold">FATURAMENTO TOTAL</p>
                            </div>
 
                            <div className="bg-emerald-500/10 p-6 rounded-3xl border border-emerald-500/20">
-                              <h4 className="text-[9px] font-black text-emerald-400 uppercase mb-2 tracking-widest">Total Pago</h4>
-                              <p className="text-3xl font-black text-emerald-400 cyber-font">R$ {masterPaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              <p className="text-[10px] text-emerald-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pago').length} notas quitadas</p>
+                              <h4 className="text-[11px] font-black text-emerald-400 uppercase mb-2 tracking-wide">Total Pago</h4>
+                              <p className="text-3xl font-black text-emerald-400">R$ {masterPaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[11px] text-emerald-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pago').length} notas quitadas</p>
                            </div>
 
                            <div className="bg-amber-500/10 p-6 rounded-3xl border border-amber-500/20">
-                              <h4 className="text-[9px] font-black text-amber-400 uppercase mb-2 tracking-widest">Total Pendente</h4>
-                              <p className="text-3xl font-black text-amber-400 cyber-font">R$ {masterPendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              <p className="text-[10px] text-amber-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pendente').length} notas a receber</p>
+                              <h4 className="text-[11px] font-black text-amber-400 uppercase mb-2 tracking-wide">Total Pendente</h4>
+                              <p className="text-3xl font-black text-amber-400">R$ {masterPendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-[11px] text-amber-500/80 mt-1 font-bold">{clientInvoices.filter(i => i.status === 'Pendente').length} notas a receber</p>
                            </div>
                         </div>
 
                         <div>
-                           <h4 className="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-[0.2em] flex items-center gap-2">
+                           <h4 className="text-[11px] font-black text-slate-500 uppercase mb-4 tracking-wide flex items-center gap-2">
                               <ListFilter size={12} /> Demandas Sem Nota (Avulsas)
                            </h4>
                            <div className="space-y-2">
@@ -508,18 +537,18 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                      <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
                            <div>
-                              <span className="text-[10px] font-black text-[var(--primary-color)] uppercase tracking-widest mb-1 block">Detalhamento da Nota</span>
+                              <span className="text-[11px] font-black text-[var(--primary-color)] uppercase tracking-wide mb-1 block">Detalhamento da Nota</span>
                               <h3 className="text-3xl font-black text-white">{currentInvoice?.title}</h3>
                               <div className="flex flex-wrap items-center gap-2 mt-2">
-                                 <span className="text-[10px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
+                                 <span className="text-[11px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
                                     Criada em: <strong className="text-slate-200">{currentInvoice ? new Date(currentInvoice.createdAt).toLocaleDateString('pt-BR') : ''}</strong>
                                  </span>
                                  {currentInvoice?.status === 'Pago' && (
-                                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                                    <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                                        <CheckCircle2 size={12} className="text-emerald-400" />
                                        Recebido em: {currentInvoice.paidAt ? new Date(currentInvoice.paidAt).toLocaleDateString('pt-BR') : 'Hoje'}
                                        {currentInvoice.paidAt && (
-                                          <span className="text-[9px] uppercase tracking-wider text-emerald-300 font-bold ml-1 opacity-90">
+                                          <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold ml-1 opacity-90">
                                              ({new Date(currentInvoice.paidAt).toLocaleString('pt-BR', { month: 'short', year: 'numeric' })})
                                           </span>
                                        )}
@@ -528,7 +557,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                               </div>
                            </div>
                            <div className="text-left sm:text-right flex flex-col sm:items-end gap-2">
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total da Nota</span>
+                              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide block">Total da Nota</span>
                               {editingTotal ? (
                                  <div className="flex items-center gap-2">
                                     <input
@@ -547,7 +576,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                           }
                                        }}
                                        placeholder={invoiceCalculatedTotal.toString()}
-                                       className="bg-slate-950 border border-emerald-500 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-400 cyber-font w-36 outline-none focus:ring-2 focus:ring-emerald-500/30"
+                                       className="bg-slate-950 border border-emerald-500 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-400 w-36 outline-none focus:ring-2 focus:ring-emerald-500/30"
                                     />
                                     <button
                                        type="button"
@@ -577,7 +606,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                     className="flex items-center gap-2 group cursor-pointer hover:bg-slate-800/80 px-3 py-1.5 rounded-2xl transition-all border border-slate-800 hover:border-emerald-500/40"
                                     title="Clique para editar o total da nota"
                                  >
-                                    <p className="text-2xl font-black text-emerald-400 cyber-font">
+                                    <p className="text-2xl font-black text-emerald-400">
                                        R$ {Number(localTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                     <PenLine size={15} className="text-slate-500 group-hover:text-emerald-400 transition-all shrink-0" />
@@ -586,12 +615,12 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                               
                               {isCustomValueActive && (
                                  <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                    <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
                                        Valor Personalizado
                                     </span>
                                     <button
                                        onClick={handleResetToCalculated}
-                                       className="text-[9px] text-slate-500 hover:text-slate-300 underline cursor-pointer"
+                                       className="text-[11px] text-slate-500 hover:text-slate-300 underline cursor-pointer"
                                        title={`Restaurar soma dos itens (R$ ${invoiceCalculatedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`}
                                     >
                                        Restaurar automático (R$ {invoiceCalculatedTotal.toLocaleString('pt-BR')})
@@ -603,21 +632,21 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                  {currentInvoice?.status === 'Pendente' ? (
                                     <button
                                        onClick={handleMarkAsPaid}
-                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                     >
                                        <Check size={12} /> Marcar como Pago
                                     </button>
                                  ) : (
                                     <button
                                        onClick={handleReopenInvoice}
-                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                       className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                     >
                                        <Clock size={12} /> Reabrir Nota (Pendente)
                                     </button>
                                  )}
                                  <button
                                     onClick={handleDelete}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                  >
                                     <Trash2 size={12} /> Excluir Nota
                                  </button>
@@ -635,7 +664,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                        </div>
                                        <div>
                                           <p className="text-xs font-bold text-slate-200">{t.title}</p>
-                                          <p className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">{t.category}</p>
+                                          <p className="text-[11px] font-black uppercase text-slate-500 tracking-tighter">{t.category}</p>
                                        </div>
                                     </div>
                                     <span className="text-sm font-black text-white font-mono">
@@ -649,7 +678,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                        {t.deliverables.map(d => (
                                           <div key={d.id} className="flex items-center justify-between text-xs text-slate-400">
                                              <div className="flex items-center gap-2">
-                                                <span className={`text-[10px] ${d.completed ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                                <span className={`text-[11px] ${d.completed ? 'text-emerald-400' : 'text-slate-600'}`}>
                                                    {d.completed ? '✓' : '○'}
                                                 </span>
                                                 <span className={d.completed ? 'line-through text-slate-500' : 'text-slate-300'}>
@@ -668,7 +697,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                         </div>
 
                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-600 uppercase flex items-center gap-2"><PenLine size={12} /> Observações Específicas</label>
+                           <label className="text-[11px] font-black text-slate-600 uppercase flex items-center gap-2"><PenLine size={12} /> Observações Específicas</label>
                            <textarea
                               value={localNotes}
                               onChange={e => setLocalNotes(e.target.value)}
@@ -688,7 +717,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                               <DollarSign size={16} className="text-emerald-400" />
                               <div>
                                  <span className="text-xs font-bold text-slate-300 block">Exibir preço individual em cada serviço na mensagem</span>
-                                 <span className="text-[9px] text-slate-500 font-medium">O valor total final da nota será sempre mantido</span>
+                                 <span className="text-[11px] text-slate-500 font-medium">O valor total final da nota será sempre mantido</span>
                               </div>
                            </div>
                            <label className="relative inline-flex items-center cursor-pointer">
@@ -705,7 +734,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                         <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                            <button
                               onClick={handleExportSingle}
-                              className="bg-white hover:bg-slate-200 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs uppercase tracking-widest shadow-lg"
+                              className="bg-white hover:bg-slate-200 text-slate-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs uppercase tracking-wide shadow-lg"
                               title="Copiar texto formatado para a área de transferência"
                            >
                               {copied ? <CheckCircle2 size={18} className="text-emerald-600" /> : <Copy size={18} className="text-slate-900" />}
@@ -714,7 +743,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
                            <button
                               onClick={() => openWhatsAppWeb(buildWhatsAppTextSingle())}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs uppercase tracking-widest shadow-lg"
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs uppercase tracking-wide shadow-lg"
                               title="Abrir diretamente no WhatsApp Web / App com o texto pronto"
                            >
                               <ExternalLink size={18} />
@@ -723,7 +752,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
                            <button
                               onClick={() => window.print()}
-                              className="bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-2xl border border-slate-700 flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-widest"
+                              className="bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-2xl border border-slate-700 flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-wide"
                               title="Gerar ou imprimir PDF limpo e organizado"
                            >
                               <Printer size={18} /> PDF / Imprimir
@@ -739,7 +768,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
          <div id="printable-area" className="hidden print:block text-slate-900 bg-white font-sans">
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
                <div>
-                  <h1 className="text-2xl font-black uppercase tracking-wider text-slate-900">FRELLA SYSTEM</h1>
+                  <h1 className="text-2xl font-black tracking-wider text-slate-900">FRELLA SYSTEM</h1>
                   <p className="text-xs text-slate-500 uppercase font-bold mt-1">Comprovante de Prestação de Serviços</p>
                </div>
                <div className="text-right">
@@ -759,15 +788,15 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
 
             <div className="grid grid-cols-2 gap-6 mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl print-avoid-break">
                <div>
-                  <p className="text-[10px] font-black uppercase text-slate-500">Cliente / Corporação</p>
+                  <p className="text-[11px] font-black uppercase text-slate-500">Cliente / Empresa</p>
                   <p className="text-sm font-bold text-slate-900 mt-0.5">{client.name}</p>
                   <p className="text-xs text-slate-600">{client.company || 'Sem empresa informada'}</p>
                   {client.contact && <p className="text-xs text-slate-600 mt-1">Contato: {client.contact}</p>}
                </div>
                <div>
-                  <p className="text-[10px] font-black uppercase text-slate-500">Dados Financeiros</p>
+                  <p className="text-[11px] font-black uppercase text-slate-500">Dados Financeiros</p>
                   <p className="text-xs font-bold text-slate-900 mt-0.5">Chave PIX: {localPix || 'A combinar'}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Sua transferência PIX confirma a quitação do documento.</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Sua transferência PIX confirma a quitação do documento.</p>
                </div>
             </div>
 
@@ -811,13 +840,13 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                <div className="max-w-md">
                   {selectedInvoiceId && currentInvoice?.notes && (
                      <div>
-                        <p className="text-[10px] font-black uppercase text-slate-500">Observações Especificadas:</p>
+                        <p className="text-[11px] font-black uppercase text-slate-500">Observações Especificadas:</p>
                         <p className="text-xs text-slate-700 mt-1 whitespace-pre-wrap">{currentInvoice.notes}</p>
                      </div>
                   )}
                </div>
                <div className="text-right bg-slate-50 p-4 border border-slate-300 rounded-xl min-w-[220px]">
-                  <p className="text-[10px] font-black uppercase text-slate-500">Valor Total a Pagar</p>
+                  <p className="text-[11px] font-black uppercase text-slate-500">Valor Total a Pagar</p>
                   <p className="text-2xl font-black text-slate-900 mt-1">
                      R$ {
                         selectedInvoiceId
@@ -828,7 +857,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                </div>
             </div>
 
-            <div className="mt-12 pt-4 border-t border-slate-200 text-center text-[10px] text-slate-400">
+            <div className="mt-12 pt-4 border-t border-slate-200 text-center text-[11px] text-slate-400">
                Documento emitido eletronicamente via FRELLA SYSTEM. Qualquer dúvida entre em contato com o prestador responsável.
             </div>
          </div>

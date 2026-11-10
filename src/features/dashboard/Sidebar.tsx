@@ -36,7 +36,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, collapsed, onCli
       {icon}
     </div>
     {!collapsed && (
-      <span className={`font-bold text-xs whitespace-nowrap uppercase tracking-[0.12em] transition-colors ${active ? 'text-slate-100' : 'text-slate-400 group-hover:text-slate-200'}`}>
+      <span className={`font-bold text-xs whitespace-nowrap uppercase tracking-wide transition-colors ${active ? 'text-slate-100' : 'text-slate-400 group-hover:text-slate-200'}`}>
         {label}
       </span>
     )}
@@ -63,8 +63,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, isSidebarOpen, isMobileMen
             </div>
             {isSidebarOpen && (
               <div className="flex flex-col">
-                <span className="text-xl font-black cyber-font tracking-tighter text-white leading-none">FRELLA</span>
-                <span className="text-[10px] font-black tracking-[0.3em] text-[var(--primary-color)] mt-0.5 opacity-90">SYSTEM</span>
+                <span className="text-xl font-black tracking-tighter text-white leading-none">FRELLA</span>
+                <span className="text-[11px] font-black tracking-wide text-[var(--primary-color)] mt-0.5 opacity-90">SYSTEM</span>
               </div>
             )}
           </div>
@@ -108,18 +108,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, isSidebarOpen, isMobileMen
         <NavItem icon={<Trophy size={19} />} label="Agenda" active={activeTab === 'kanban'} collapsed={!isSidebarOpen} onClick={() => onNavigate('kanban')} />
         <NavItem icon={<DollarSign size={19} />} label="Fluxo" active={activeTab === 'finance'} collapsed={!isSidebarOpen} onClick={() => onNavigate('finance')} />
         <NavItem icon={<Calculator size={19} />} label="Propostas" active={activeTab === 'budgets'} collapsed={!isSidebarOpen} onClick={() => onNavigate('budgets')} />
-        <NavItem icon={<Users size={19} />} label="Frella CRM" active={activeTab === 'clients'} collapsed={!isSidebarOpen} onClick={() => onNavigate('clients')} />
-        <NavItem icon={<Settings size={19} />} label="Protocolos" active={activeTab === 'settings'} collapsed={!isSidebarOpen} onClick={() => onNavigate('settings')} />
+        <NavItem icon={<Users size={19} />} label="Clientes" active={activeTab === 'clients'} collapsed={!isSidebarOpen} onClick={() => onNavigate('clients')} />
+        <NavItem icon={<Settings size={19} />} label="Configurações" active={activeTab === 'settings'} collapsed={!isSidebarOpen} onClick={() => onNavigate('settings')} />
       </nav>
 
       {isSidebarOpen && userEmail && (
         <div className="p-4 border-t border-slate-800/80">
           <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80 shadow-inner">
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               Acesso Verificado
             </p>
-            <p className="text-[10px] font-bold text-slate-300 truncate tracking-tight font-mono">{userEmail}</p>
+            <p className="text-[11px] font-bold text-slate-300 truncate tracking-tight font-mono">{userEmail}</p>
           </div>
         </div>
       )}

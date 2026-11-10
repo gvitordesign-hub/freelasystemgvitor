@@ -71,7 +71,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
       {/* Lembretes Rápidos */}
       <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-slate-800 bg-slate-950/30">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Briefing de Operações</h3>
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wide mb-4">Foco do dia</h3>
           <form onSubmit={handleAdd} className="relative space-y-3">
             <div className="relative">
               <input
@@ -114,7 +114,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className="bg-transparent text-[10px] text-slate-300 outline-none w-full"
+                    className="bg-transparent text-[11px] text-slate-300 outline-none w-full"
                   />
                 </div>
                 <div className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 flex-1 min-w-[100px]">
@@ -123,7 +123,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
                     type="time"
                     value={time}
                     onChange={e => setTime(e.target.value)}
-                    className="bg-transparent text-[10px] text-slate-300 outline-none w-full"
+                    className="bg-transparent text-[11px] text-slate-300 outline-none w-full"
                   />
                 </div>
                 <div className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 flex-1 min-w-[140px]">
@@ -131,7 +131,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
                   <select
                     value={alertBefore}
                     onChange={e => setAlertBefore(Number(e.target.value))}
-                    className="bg-transparent text-[10px] text-slate-300 outline-none w-full appearance-none cursor-pointer"
+                    className="bg-transparent text-[11px] text-slate-300 outline-none w-full appearance-none cursor-pointer"
                   >
                     <option value={0} className="bg-slate-900 text-slate-500">Sem alerta</option>
                     <option value={5} className="bg-slate-900">5 min antes</option>
@@ -166,12 +166,12 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
 
                   <div className="flex flex-wrap items-center gap-2">
                     {rem.type === 'finance' && (
-                      <span className="text-[8px] font-black text-rose-500 uppercase tracking-tighter flex items-center gap-1 bg-rose-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[11px] font-black text-rose-500 uppercase tracking-tighter flex items-center gap-1 bg-rose-500/10 px-1.5 py-0.5 rounded">
                         <DollarSign size={8} /> Financeiro
                       </span>
                     )}
                     {(rem.date || rem.time) && (
-                      <span className="text-[8px] font-bold text-slate-500 flex items-center gap-1 bg-slate-900/50 px-1.5 py-0.5 rounded">
+                      <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 bg-slate-900/50 px-1.5 py-0.5 rounded">
                         <Calendar size={8} />
                         {rem.date && (() => {
                           const [y, m, d] = rem.date.split('-').map(Number);
@@ -181,7 +181,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
                       </span>
                     )}
                     {rem.alertBefore && rem.alertBefore > 0 && (
-                      <span className="text-[8px] font-bold text-[var(--primary-color)] flex items-center gap-1 bg-[var(--primary-color)]/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[11px] font-bold text-[var(--primary-color)] flex items-center gap-1 bg-[var(--primary-color)]/10 px-1.5 py-0.5 rounded">
                         <Bell size={8} />
                         {getAlertLabel(rem.alertBefore)}
                       </span>
@@ -209,7 +209,7 @@ const FocusWidget: React.FC<FocusWidgetProps> = ({
           ))}
           {reminders.length === 0 && (
             <div className="py-12 text-center">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Nenhum lembrete operacional</p>
+              <p className="text-[11px] font-black text-slate-600 uppercase tracking-wide italic">Nenhum lembrete operacional</p>
             </div>
           )}
         </div>

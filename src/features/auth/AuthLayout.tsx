@@ -36,7 +36,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                     {children}
                 </div>
 
-                <div className="mt-8 flex justify-center gap-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                <div className="mt-8 flex justify-center gap-6 text-[11px] font-bold text-slate-600 uppercase tracking-wide">
                     <span className="hover:text-purple-400 transition-colors cursor-pointer text-purple-400/80">Frella System v2.6.0-SECURED</span>
                     <span className="hover:text-purple-400 transition-colors cursor-pointer">Privacy</span>
                     <span className="hover:text-purple-400 transition-colors cursor-pointer">Terms</span>

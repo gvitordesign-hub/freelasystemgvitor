@@ -11,6 +11,7 @@ import { Task, Client, DayOfWeek, Status, Holiday } from '@/types';
 import { DAYS_OF_WEEK } from '@/constants';
 import TaskDetailModal from '@/components/modals/TaskDetailModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
+import { notify } from '@/context/ToastContext';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -323,7 +324,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const renderStatusFilter = () => (
     <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-800/80 shadow-md overflow-x-auto no-scrollbar max-w-full">
-      <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 py-1 shrink-0">
+      <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 px-2 py-1 shrink-0">
         <Filter size={12} className="text-[var(--primary-color)]" />
         <span className="hidden sm:inline">Status:</span>
       </div>
@@ -332,7 +333,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <button
         type="button"
         onClick={() => setStatusFilter('Todos')}
-        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 ${
+        className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 ${
           statusFilter === 'Todos'
             ? 'bg-[var(--primary-color)] text-white shadow-[0_0_12px_var(--primary-shadow)]'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -340,7 +341,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         title="Mostrar todas as demandas"
       >
         <span>Todos</span>
-        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+        <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
           statusFilter === 'Todos' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
         }`}>
           {counts.all}
@@ -351,16 +352,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <button
         type="button"
         onClick={() => setStatusFilter(prev => prev === 'Pendente' ? 'Todos' : 'Pendente')}
-        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+        className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
           statusFilter === 'Pendente'
             ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
             : 'text-slate-400 hover:text-rose-300 hover:bg-slate-800/60 border-transparent'
         }`}
         title="Filtrar por demandas pendentes"
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'Pendente' ? 'bg-rose-400 animate-pulse' : 'bg-rose-500/70'}`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'Pendente' ? 'bg-rose-400' : 'bg-rose-500/70'}`} />
         <span>Pendentes</span>
-        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+        <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
           statusFilter === 'Pendente'
             ? 'bg-rose-500/30 text-rose-200'
             : 'bg-slate-800 text-slate-400'
@@ -373,7 +374,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <button
         type="button"
         onClick={() => setStatusFilter(prev => prev === 'Em Andamento' ? 'Todos' : 'Em Andamento')}
-        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+        className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
           statusFilter === 'Em Andamento'
             ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
             : 'text-slate-400 hover:text-blue-300 hover:bg-slate-800/60 border-transparent'
@@ -382,7 +383,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       >
         <Clock size={11} className={statusFilter === 'Em Andamento' ? 'text-blue-400 animate-spin' : 'text-blue-400/70'} />
         <span>Em Andamento</span>
-        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+        <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
           statusFilter === 'Em Andamento'
             ? 'bg-blue-500/30 text-blue-200'
             : 'bg-slate-800 text-slate-400'
@@ -395,7 +396,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <button
         type="button"
         onClick={() => setStatusFilter(prev => prev === 'Concluído' ? 'Todos' : 'Concluído')}
-        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+        className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer shrink-0 border ${
           statusFilter === 'Concluído'
             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
             : 'text-slate-400 hover:text-emerald-300 hover:bg-slate-800/60 border-transparent'
@@ -404,7 +405,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       >
         <CheckCircle2 size={11} className={statusFilter === 'Concluído' ? 'text-emerald-400' : 'text-emerald-400/70'} />
         <span>Concluídos</span>
-        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+        <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
           statusFilter === 'Concluído'
             ? 'bg-emerald-500/30 text-emerald-200'
             : 'bg-slate-800 text-slate-400'
@@ -444,7 +445,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     const isHoliday = holidays?.some(h => h.date === dateStr);
     if (isHoliday) {
       const holidayName = holidays?.find(h => h.date === dateStr)?.description || 'Feriado';
-      alert(`Impossível reagendar: o dia "${dateStr}" foi configurado como feriado/folga (${holidayName}).`);
+      notify.error(`Impossível reagendar: o dia "${dateStr}" foi configurado como feriado/folga (${holidayName}).`);
       return;
     }
 
@@ -549,10 +550,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <div className="flex flex-col h-full animate-reveal">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-800/80 gap-4 shadow-lg">
           <div className="flex items-center justify-between w-full lg:w-auto gap-4">
-            <h2 className="cyber-font font-bold text-white uppercase tracking-widest text-xs md:text-sm truncate">{monthName}</h2>
+            <h2 className="font-bold text-white uppercase tracking-wide text-xs md:text-sm truncate">{monthName}</h2>
             <div className="flex gap-1 md:gap-2 shrink-0">
               <button onClick={prevMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronLeft size={18} /></button>
-              <button onClick={() => setCurrentDate(new Date())} className="px-3 md:px-4 py-2 hover:bg-slate-800 rounded-xl text-[10px] font-bold uppercase text-slate-300 hover:text-white cursor-pointer">Hoje</button>
+              <button onClick={() => setCurrentDate(new Date())} className="px-3 md:px-4 py-2 hover:bg-slate-800 rounded-xl text-[11px] font-bold uppercase text-slate-300 hover:text-white cursor-pointer">Hoje</button>
               <button onClick={nextMonth} className="p-2 md:p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"><ChevronRight size={18} /></button>
             </div>
           </div>
@@ -561,7 +562,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
           <div className="grid grid-cols-7 gap-2 min-w-[700px] md:min-w-0">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => (
-              <div key={d} className="text-center text-[10px] font-black text-slate-400 uppercase py-2 tracking-wider">{d}</div>
+              <div key={d} className="text-center text-[11px] font-black text-slate-400 uppercase py-2 tracking-wider">{d}</div>
             ))}
             {days.map((date, idx) => {
               const dateStr = date?.toLocaleDateString('en-CA');
@@ -580,16 +581,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   {date && (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className={`text-[11px] font-bold cyber-font ${isToday ? 'text-[var(--primary-color)] font-black' : holiday ? 'text-rose-400' : 'text-slate-400'}`}>{date.getDate()}</span>
+                        <span className={`text-[11px] font-bold ${isToday ? 'text-[var(--primary-color)] font-black' : holiday ? 'text-rose-400' : 'text-slate-400'}`}>{date.getDate()}</span>
                         {holiday && (
-                          <span className="text-[7px] bg-rose-500/20 border border-rose-500/40 text-rose-300 px-1.5 py-0.5 rounded font-black uppercase tracking-wider scale-90 origin-right truncate max-w-[55px]" title={holiday.description}>
+                          <span className="text-[11px] bg-rose-500/20 border border-rose-500/40 text-rose-300 px-1.5 py-0.5 rounded font-black uppercase tracking-wider scale-90 origin-right truncate max-w-[55px]" title={holiday.description}>
                             FOLGA
                           </span>
                         )}
                       </div>
                       <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
                         {holiday && (
-                          <div className="text-[7px] text-rose-300 font-bold uppercase tracking-tight text-center py-0.5 px-1 bg-rose-500/10 border border-rose-500/20 rounded truncate" title={holiday.description}>
+                          <div className="text-[11px] text-rose-300 font-bold uppercase tracking-tight text-center py-0.5 px-1 bg-rose-500/10 border border-rose-500/20 rounded truncate" title={holiday.description}>
                             {holiday.description}
                           </div>
                         )}
@@ -599,7 +600,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             <div
                               key={t.id}
                               onClick={(e) => { e.stopPropagation(); setSelectedTask(t); }}
-                              className={`text-[8px] md:text-[9px] p-1.5 rounded-lg border truncate font-medium cursor-pointer hover:brightness-125 active:scale-95 transition-all shadow-sm ${styles.card} ${styles.text}`}
+                              className={`text-[11px] md:text-[11px] p-1.5 rounded-lg border truncate font-medium cursor-pointer hover:brightness-125 active:scale-95 transition-all shadow-sm ${styles.card} ${styles.text}`}
                             >
                               {t.category === 'Demanda Rápida' ? `⚡ ${t.title}` : t.title}
                             </div>
@@ -629,7 +630,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           <div className="flex items-center justify-between w-full sm:w-auto gap-3">
             <button onClick={prevDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronLeft size={20} /></button>
             <div className="text-center">
-              <h2 className="cyber-font font-bold text-white uppercase text-sm">{dayName}</h2>
+              <h2 className="font-bold text-white uppercase text-sm">{dayName}</h2>
             </div>
             <button onClick={nextDay} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"><ChevronRight size={20} /></button>
           </div>
@@ -638,10 +639,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         {holiday && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-3 shadow-lg">
-            <AlertTriangle className="animate-pulse shrink-0 text-rose-400" size={18} />
+            <AlertTriangle className="shrink-0 text-rose-400" size={18} />
             <div>
               <p className="text-xs font-black uppercase tracking-wider">Feriado / Dia de Folga</p>
-              <p className="text-[10px] text-rose-300 font-bold mt-0.5">{holiday.description}</p>
+              <p className="text-[11px] text-rose-300 font-bold mt-0.5">{holiday.description}</p>
             </div>
           </div>
         )}
@@ -655,8 +656,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <div key={task.id} className={`border p-6 rounded-3xl flex items-center justify-between group transition-all duration-200 hover:-translate-y-0.5 ${styles.card}`}>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-[var(--primary-color)] tracking-widest">{getClientName(task.clientId)}</span>
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${styles.badge}`}>
+                    <span className="text-[11px] font-black uppercase text-[var(--primary-color)] tracking-wide">{getClientName(task.clientId)}</span>
+                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${styles.badge}`}>
                       {styles.icon} {styles.label}
                     </span>
                   </div>
@@ -670,7 +671,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
                     return (
                       <div className="w-full max-w-xs space-y-1.5 py-1">
-                        <div className="flex justify-between text-[9px] font-black uppercase tracking-wider">
+                        <div className="flex justify-between text-[11px] font-black uppercase tracking-wider">
                           <span className="text-slate-400 flex items-center gap-1">
                             <Sparkles size={10} className="text-[var(--primary-color)]" />
                             {done}/{total} Entregáveis
@@ -688,7 +689,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   })()}
 
                   <div className="flex gap-2">
-                    <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
+                    <span className={`text-[11px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
                       isQuick
                         ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                         : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -696,11 +697,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {task.category}
                     </span>
                     {isQuick ? (
-                      <span className="text-[10px] bg-amber-500/15 px-2.5 py-1 rounded-lg text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                      <span className="text-[11px] bg-amber-500/15 px-2.5 py-1 rounded-lg text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
                         <Zap size={10} className="fill-amber-400/30" /> Lembrete
                       </span>
                     ) : (
-                      <span className="text-[10px] bg-emerald-500/15 px-2.5 py-1 rounded-lg text-emerald-300 border border-emerald-500/30 font-bold cyber-font">
+                      <span className="text-[11px] bg-emerald-500/15 px-2.5 py-1 rounded-lg text-emerald-300 border border-emerald-500/30 font-bold">
                         R$ {task.value.toLocaleString('pt-BR')}
                       </span>
                     )}
@@ -745,8 +746,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           }) : (
             <div className="py-20 text-center flex flex-col items-center gap-4 opacity-40">
               <Clock size={48} className="text-slate-600" />
-              <p className="cyber-font uppercase text-xs font-bold tracking-widest text-slate-400">
-                {statusFilter === 'Todos' ? 'Protocolo Vazio para Hoje' : `Nenhuma Demanda (${statusFilter}) para Hoje`}
+              <p className="uppercase text-xs font-bold tracking-wide text-slate-400">
+                {statusFilter === 'Todos' ? 'Nenhuma demanda para hoje' : `Nenhuma Demanda (${statusFilter}) para Hoje`}
               </p>
             </div>
           )}
@@ -768,13 +769,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl md:text-2xl font-black cyber-font text-white uppercase tracking-tight">Agenda de Missões</h1>
-            <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest hidden sm:inline">Gestão de Demandas & Entregas</span>
+            <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">Agenda</h1>
+            <span className="text-[11px] text-slate-500 uppercase font-black tracking-wide hidden sm:inline">Gestão de Demandas & Entregas</span>
           </div>
           <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all duration-200 cursor-pointer ${
                 viewMode === 'kanban' 
                   ? 'bg-[var(--primary-color)] text-white shadow-[0_2px_12px_var(--primary-shadow)]' 
                   : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
@@ -784,7 +785,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </button>
             <button
               onClick={() => setViewMode('mensal')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all duration-200 cursor-pointer ${
                 viewMode === 'mensal' 
                   ? 'bg-[var(--primary-color)] text-white shadow-[0_2px_12px_var(--primary-shadow)]' 
                   : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
@@ -794,7 +795,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </button>
             <button
               onClick={() => setViewMode('diario')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all duration-200 cursor-pointer ${
                 viewMode === 'diario' 
                   ? 'bg-[var(--primary-color)] text-white shadow-[0_2px_12px_var(--primary-shadow)]' 
                   : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
@@ -809,7 +810,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           {onAddQuickTask && (
             <button
               onClick={onAddQuickTask}
-              className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-amber-500/10 hover:from-amber-500/30 hover:to-amber-500/20 text-amber-300 border border-amber-500/40 px-3.5 py-2 rounded-xl font-black transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] text-[10px] uppercase tracking-widest active:scale-95 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-amber-500/10 hover:from-amber-500/30 hover:to-amber-500/20 text-amber-300 border border-amber-500/40 px-3.5 py-2 rounded-xl font-black transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] text-[11px] uppercase tracking-wide active:scale-95 cursor-pointer"
               title="Criar lembrete rápido de serviço sem objetivo financeiro"
             >
               <Zap size={14} className="fill-amber-400/30" />
@@ -818,7 +819,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           )}
           <button
             onClick={onAddTask}
-            className="flex items-center justify-center gap-1.5 bg-[var(--primary-color)] hover:brightness-110 text-white px-4 py-2 rounded-xl font-black transition-all shadow-[0_4px_16px_var(--primary-shadow)] text-[10px] uppercase tracking-widest active:scale-95 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[var(--primary-color)] hover:brightness-110 text-white px-4 py-2 rounded-xl font-black transition-all shadow-[0_4px_16px_var(--primary-shadow)] text-[11px] uppercase tracking-wide active:scale-95 cursor-pointer"
           >
             <Plus size={15} />
             Adicionar Demanda
@@ -836,12 +837,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   <button onClick={prevWeek} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer" title="Semana anterior">
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="cyber-font text-white font-bold text-[11px] uppercase tracking-widest min-w-[120px] text-center">{weekRangeLabel}</span>
+                  <span className="text-white font-bold text-[11px] uppercase tracking-wide min-w-[120px] text-center">{weekRangeLabel}</span>
                   <button onClick={nextWeek} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer" title="Próxima semana">
                     <ChevronRight size={16} />
                   </button>
                 </div>
-                <button onClick={resetToToday} className="text-[10px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-widest cursor-pointer px-2">
+                <button onClick={resetToToday} className="text-[11px] font-black text-[var(--primary-color)] hover:underline uppercase tracking-wide cursor-pointer px-2">
                   Voltar para Hoje
                 </button>
               </div>
@@ -894,19 +895,19 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       ${isToday ? 'bg-[var(--primary-color)]/10 border-[var(--primary-color)]/30' : holiday ? 'bg-rose-950/20 border-rose-500/20' : 'bg-slate-950/50 border-slate-800/80'}`}>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
-                          <h3 className={`font-black cyber-font uppercase tracking-widest text-[11px] ${isToday ? 'text-[var(--primary-color)]' : holiday ? 'text-rose-400' : 'text-slate-200'}`}>{formattedDayName}</h3>
+                          <h3 className={`font-black uppercase tracking-wide text-[11px] ${isToday ? 'text-[var(--primary-color)]' : holiday ? 'text-rose-400' : 'text-slate-200'}`}>{formattedDayName}</h3>
                           {holiday && (
-                            <span className="text-[7px] font-black tracking-widest bg-rose-500/20 text-rose-300 border border-rose-500/40 px-1.5 py-0.5 rounded">FOLGA</span>
+                            <span className="text-[11px] font-black tracking-wide bg-rose-500/20 text-rose-300 border border-rose-500/40 px-1.5 py-0.5 rounded">FOLGA</span>
                           )}
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400">{date.toLocaleDateString('pt-BR')}</span>
+                        <span className="text-[11px] font-bold text-slate-400">{date.toLocaleDateString('pt-BR')}</span>
                       </div>
                       {holiday ? (
-                        <span className="text-[8px] font-black text-rose-300 px-2.5 py-1 rounded-lg border bg-rose-950/40 border-rose-500/30 truncate max-w-[120px]" title={holiday.description.toUpperCase()}>
+                        <span className="text-[11px] font-black text-rose-300 px-2.5 py-1 rounded-lg border bg-rose-950/40 border-rose-500/30 truncate max-w-[120px]" title={holiday.description.toUpperCase()}>
                           {holiday.description.toUpperCase()}
                         </span>
                       ) : (
-                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold cyber-font ${isToday ? 'bg-[var(--primary-color)] text-slate-950 border-[var(--primary-color)] shadow-[0_0_8px_var(--primary-color)]' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${isToday ? 'bg-[var(--primary-color)] text-slate-950 border-[var(--primary-color)] shadow-[0_0_8px_var(--primary-color)]' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                           {colTasks.length}
                         </span>
                       )}
@@ -921,7 +922,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         return (
                           <div key={task.id} className="relative">
                             {dropIndicator?.id === task.id && dropIndicator?.position === 'top' && (
-                              <div className="h-1 bg-[var(--primary-color)] rounded-full mb-1 animate-pulse" />
+                              <div className="h-1 bg-[var(--primary-color)] rounded-full mb-1" />
                             )}
                             <div
                               draggable
@@ -936,10 +937,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             >
                               <div className="flex justify-between items-start mb-2.5">
                                 <div className="flex flex-col gap-1.5">
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 max-w-[150px] truncate">
+                                  <span className="text-[11px] font-black uppercase tracking-wide text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800 max-w-[150px] truncate">
                                     {getClientName(task.clientId)}
                                   </span>
-                                  <div className={`flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${styles.badge}`}>
+                                  <div className={`flex items-center gap-1 text-[11px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${styles.badge}`}>
                                     {styles.icon} {styles.label}
                                   </div>
                                 </div>
@@ -961,7 +962,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
                                 return (
                                   <div className="my-2.5 space-y-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80">
-                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
+                                    <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
                                       <span className="text-slate-400 flex items-center gap-1">
                                         <Sparkles size={10} className={isFullyDone ? 'text-emerald-400' : 'text-[var(--primary-color)]'} />
                                         {done}/{total} Entregáveis
@@ -971,7 +972,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                       </span>
                                     </div>
 
-                                    {/* Barra de Progresso Neon */}
+                                    {/* Barra de progresso */}
                                     <div className="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-700/40">
                                       <div
                                         className={`h-full rounded-full transition-all duration-300 ${
@@ -1005,11 +1006,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                             >
                                               {d.completed && <Check size={9} strokeWidth={3} />}
                                             </div>
-                                            <span className={`text-[10px] truncate ${d.completed ? 'line-through text-slate-500' : 'text-slate-300 font-medium'}`}>
+                                            <span className={`text-[11px] truncate ${d.completed ? 'line-through text-slate-500' : 'text-slate-300 font-medium'}`}>
                                               {d.title}
                                             </span>
                                           </div>
-                                          <span className="text-[9px] font-mono text-emerald-400/80 font-bold shrink-0">
+                                          <span className="text-[11px] font-mono text-emerald-400/80 font-bold shrink-0">
                                             R${d.value}
                                           </span>
                                         </div>
@@ -1027,14 +1028,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                       Lembrete
                                     </div>
                                   ) : (
-                                    <div className={`flex items-center gap-0.5 font-black text-xs cyber-font ${task.status === 'Concluído' ? 'text-slate-500' : 'text-emerald-400'}`}>
+                                    <div className={`flex items-center gap-0.5 font-black text-xs ${task.status === 'Concluído' ? 'text-slate-500' : 'text-emerald-400'}`}>
                                       <DollarSign size={12} />
                                       {task.value.toLocaleString('pt-BR')}
                                     </div>
                                   )}
 
                                   {task.status === 'Concluído' && !isQuick && (
-                                    <div className="flex items-center gap-1 text-purple-400 text-[8px] font-bold uppercase mt-1">
+                                    <div className="flex items-center gap-1 text-purple-400 text-[11px] font-bold uppercase mt-1">
                                       <Briefcase size={8} /> Portfólio
                                     </div>
                                   )}
@@ -1083,23 +1084,23 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                               </div>
                             </div>
                             {dropIndicator?.id === task.id && dropIndicator?.position === 'bottom' && (
-                              <div className="h-1 bg-[var(--primary-color)] rounded-full mt-1 animate-pulse" />
+                              <div className="h-1 bg-[var(--primary-color)] rounded-full mt-1" />
                             )}
                           </div>
                         );
                       })}
 
                       {colTasks.length === 0 && (
-                        <div className={`h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest italic opacity-40 px-3 text-center
+                        <div className={`h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-wide italic opacity-40 px-3 text-center
                           ${holiday ? 'border-rose-500/30 text-rose-400' : 'border-slate-800/80 text-slate-600'}`}>
                           {holiday ? (
                             <span>Dia de Folga</span>
                           ) : statusFilter === 'Todos' ? (
-                            <span>Sem Missões</span>
+                            <span>Sem demandas</span>
                           ) : (
                             <>
-                              <span>Sem Missões</span>
-                              <span className="text-[8px] font-semibold text-slate-500 not-italic">
+                              <span>Sem demandas</span>
+                              <span className="text-[11px] font-semibold text-slate-500 not-italic">
                                 ({statusFilter})
                               </span>
                             </>
@@ -1124,7 +1125,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 className="py-2.5 px-4 bg-slate-950/95 backdrop-blur-2xl border border-slate-800/90 rounded-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3 select-none transition-all duration-75 pointer-events-auto"
               >
                 {/* Quick Jump Today / Left Info */}
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-wide shrink-0">
                   <span>7 Dias da Semana</span>
                 </div>
 
@@ -1184,7 +1185,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 </div>
 
                 {/* Right Hint */}
-                <div className="hidden lg:flex items-center gap-2 text-[9px] text-slate-500 font-medium shrink-0">
+                <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-500 font-medium shrink-0">
                   <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-400">Shift + Scroll</span>
                   <span>ou arraste o fundo</span>
                 </div>

@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle size={24} />
             </div>
 
-            <h2 className="text-xl font-black cyber-font text-white uppercase tracking-tight mb-2">
+            <h2 className="text-xl font-black text-white tracking-tight mb-2">
               Algo inesperado aconteceu
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed mb-6">
