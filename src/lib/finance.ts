@@ -125,6 +125,49 @@ export interface Receivables {
   openInvoices: number;
 }
 
+/** 'YYYY-MM' no fuso local (datas puras YYYY-MM-DD são usadas como estão). */
+export const monthKey = (value?: string | null): string | null => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 7);
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+/**
+ * A receber agrupado por mês de competência:
+ * * nota pendente: o restante é dividido pelos meses das suas demandas
+ *   (proporcional ao valor de cada uma); sem demandas → mês de criação da nota;
+ * * previsão avulsa: mês do lançamento.
+ */
+export const receivablesByMonth = (invoices: Invoice[], transactions: Transaction[], idx: FinanceIndex): Map<string, number> => {
+  const out = new Map<string, number>();
+  const add = (k: string | null, v: number) => { if (!k || v <= 0) return; out.set(k, round2((out.get(k) || 0) + v)); };
+
+  invoices.forEach(inv => {
+    if (inv.status !== 'Pendente') return;
+    const { remaining } = invoiceSummary(inv, idx);
+    if (remaining <= 0.009) return;
+    const byMonth = new Map<string, number>();
+    (idx.tasksByInvoice.get(inv.id) || []).forEach(t => {
+      const k = monthKey(t.date) || monthKey((t as any).created_at) || monthKey(inv.createdAt);
+      if (k && num(t.value) > 0) byMonth.set(k, (byMonth.get(k) || 0) + num(t.value));
+    });
+    const base = [...byMonth.values()].reduce((s, v) => s + v, 0);
+    if (base <= 0) { add(monthKey(inv.createdAt), remaining); return; }
+    const entries = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b));
+    let alloc = 0;
+    entries.forEach(([k, v], i) => {
+      const part = i === entries.length - 1 ? round2(remaining - alloc) : round2(remaining * v / base);
+      alloc = round2(alloc + part);
+      add(k, part);
+    });
+  });
+
+  transactions.forEach(tx => { if (isStandaloneForecast(tx, idx)) add(monthKey(tx.date), num(tx.value)); });
+  return out;
+};
+
 /** Tudo o que ainda falta receber, de qualquer mês. */
 export const receivables = (invoices: Invoice[], transactions: Transaction[], idx: FinanceIndex): Receivables => {
   let fromInvoices = 0;

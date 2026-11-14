@@ -6,7 +6,7 @@ import FinancialReportModal from '@/components/modals/FinancialReportModal';
 import TransactionModal, { TransactionFormValues } from '@/components/modals/TransactionModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { isSameMonthAndYear, formatDateBR, getLocalDateString, getDateParts } from '@/utils/dateUtils';
-import { buildFinanceIndex, clientIdOfTx, receivables } from '@/lib/finance';
+import { buildFinanceIndex, clientIdOfTx, receivables, receivablesByMonth } from '@/lib/finance';
 
 interface FinanceDashboardProps {
   transactions: Transaction[];
@@ -41,6 +41,11 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
 
   const fidx = useMemo(() => buildFinanceIndex(tasks, invoices, transactions), [tasks, invoices, transactions]);
   const openReceivables = useMemo(() => receivables(invoices, transactions, fidx), [invoices, transactions, fidx]);
+  const receivablesMonth = useMemo(() => {
+    const byMonth = receivablesByMonth(invoices, transactions, fidx);
+    const key = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}`;
+    return byMonth.get(key) || 0;
+  }, [invoices, transactions, fidx, viewDate]);
 
   const clientOfTx = (tx: Transaction): Client | null => {
     const clientId = clientIdOfTx(tx, fidx);
@@ -182,14 +187,18 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
             <div className="p-3 bg-amber-500/20 rounded-2xl border border-amber-500/30">
               <Clock className="text-amber-400" size={20} />
             </div>
-            <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Em aberto</span>
+            <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Previsto</span>
           </div>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">A receber (todos os meses)</p>
-          <h2 className="text-2xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(openReceivables.total)}</h2>
-          <p className="text-xs text-slate-500 mt-1 tabular-nums">
-            {openReceivables.openInvoices} nota{openReceivables.openInvoices !== 1 ? 's' : ''} em aberto
-            {openReceivables.standalone > 0 && ` · ${brl(openReceivables.standalone)} avulso`}
-          </p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">A receber do mês</p>
+          <h2 className="text-2xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(receivablesMonth)}</h2>
+          <div className="mt-3 pt-3 border-t border-slate-800" title="Restante de todas as notas em aberto + previsões avulsas, somando todos os meses">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total pendente geral</p>
+            <p className="text-base font-black text-amber-300 tabular-nums">{brl(openReceivables.total)}</p>
+            <p className="text-[11px] text-slate-500 tabular-nums">
+              {openReceivables.openInvoices} nota{openReceivables.openInvoices !== 1 ? 's' : ''} em aberto
+              {openReceivables.standalone > 0 && ` · ${brl(openReceivables.standalone)} avulso`}
+            </p>
+          </div>
         </div>
 
         <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
