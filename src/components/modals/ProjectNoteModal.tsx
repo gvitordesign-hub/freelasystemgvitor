@@ -2,13 +2,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Copy, Check, DollarSign, FileText, Share2, CreditCard, PenLine, ChevronRight, ChevronLeft, Archive, CheckCircle2, LayoutPanelLeft, ListFilter, MessageCircle, Trash2, ExternalLink, Printer, Clock } from 'lucide-react';
 import { Client, Task, Invoice, Transaction } from '../../types';
 import ReceiptModal, { ReceiptResult } from './ReceiptModal';
+import { buildFinanceIndex, invoiceSummary, clientFinancials } from '@/lib/finance';
 import { useToast } from '@/context/ToastContext';
 
 interface ProjectNoteModalProps {
    client: Client;
    tasks: Task[];
    invoices: Invoice[];
-   abatements: Transaction[];
+   transactions: Transaction[];
    onAddAbatement: (invoice: Invoice, amount: number, date: string, method: string) => void;
    onDeleteAbatement: (id: string) => void;
    pixKey: string;
@@ -57,7 +58,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    client, 
    tasks, 
    invoices,
-   abatements,
+   transactions,
    onAddAbatement,
    onDeleteAbatement,
    pixKey,
@@ -70,7 +71,9 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    const [showReceipt, setShowReceipt] = useState(false);
    const [showAbatement, setShowAbatement] = useState(false);
    const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-   const abatedOf = (invId: string) => abatements.filter(a => a.invoiceId === invId).reduce((s, a) => s + (Number(a.value) || 0), 0);
+   // Mesma regra de lib/finance: recebido = todas as entradas pagas da nota (abatimentos + demandas)
+   const fidx = useMemo(() => buildFinanceIndex(tasks, invoices, transactions), [tasks, invoices, transactions]);
+   const abatedOf = (invId: string) => { const inv = invoices.find(i => i.id === invId); return inv ? invoiceSummary(inv, fidx).received : 0; };
    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
    const [mobileView, setMobileView] = useState<'list' | 'detail'>('detail');
    const [copied, setCopied] = useState(false);
@@ -203,7 +206,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
 ${taskLines || '  _(Nenhuma demanda finalizada nesta nota)_'}
 
 ${abatedOf(currentInvoice.id) > 0 && currentInvoice.status === 'Pendente'
-   ? `💰 *TOTAL DA NOTA:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n➖ *Já pago (abatido):* R$ ${abatedOf(currentInvoice.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *RESTANTE A PAGAR:* *R$ ${Math.max(total - abatedOf(currentInvoice.id), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`
+   ? `💰 *TOTAL DA NOTA:* R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n➖ *Já recebido:* R$ ${abatedOf(currentInvoice.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *RESTANTE A PAGAR:* *R$ ${Math.max(total - abatedOf(currentInvoice.id), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`
    : `💰 *TOTAL A PAGAR:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*`}
 ${localPix ? `🔑 *CHAVE PIX:* \`${localPix}\`` : ''}
 ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes || currentInvoice.notes}_` : ''}
@@ -243,7 +246,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
             return mainLine;
          }).join('\n');
 
-         return `📌 *NOTA: ${inv.title.toUpperCase()}*\n${taskLines || '  _(Sem demandas concluídas)_'}\n💵 *Subtotal:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*${abated > 0 ? `\n➖ *Já pago (abatido):* R$ ${abated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *Restante:* *R$ ${Math.max(total - abated, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*` : ''}`;
+         return `📌 *NOTA: ${inv.title.toUpperCase()}*\n${taskLines || '  _(Sem demandas concluídas)_'}\n💵 *Subtotal:* *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*${abated > 0 ? `\n➖ *Já recebido:* R$ ${abated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n✅ *Restante:* *R$ ${Math.max(total - abated, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*` : ''}`;
       }).join('\n\n');
 
       const header = `📑 *RELATÓRIO DE COBRANÇA MASTER* 📑\n👤 *Cliente:* *${companyName}*\n\n`;
@@ -316,35 +319,9 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
       onUpdateInvoice({ ...currentInvoice, status: 'Pendente', paidAt: null });
    };
 
-   const masterPaidTotal = useMemo(() => {
-      // notas quitadas + abatimentos já recebidos de notas pendentes
-      return clientInvoices
-         .reduce((acc, inv) => {
-            if (inv.status === 'Pendente') {
-               return acc + abatements.filter(a => a.invoiceId === inv.id).reduce((s, a) => s + (Number(a.value) || 0), 0);
-            }
-            const invTasks = tasks.filter(t => t.invoiceId === inv.id);
-            const val = inv.customValue !== undefined && inv.customValue !== null
-               ? Number(inv.customValue)
-               : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-            return acc + val;
-         }, 0);
-   }, [clientInvoices, tasks, abatements]);
-
-   const masterPendingTotal = useMemo(() => {
-      const invPending = clientInvoices
-         .filter(i => i.status === 'Pendente')
-         .reduce((acc, inv) => {
-            const invTasks = tasks.filter(t => t.invoiceId === inv.id);
-            const val = inv.customValue !== undefined && inv.customValue !== null
-               ? Number(inv.customValue)
-               : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-            const abated = abatements.filter(a => a.invoiceId === inv.id).reduce((s, a) => s + (Number(a.value) || 0), 0);
-            return acc + Math.max(val - abated, 0);
-         }, 0);
-      const unassignedSum = unassignedTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-      return invPending + unassignedSum;
-   }, [clientInvoices, tasks, unassignedTasks, abatements]);
+   const clientFin = useMemo(() => clientFinancials(client, invoices, transactions, fidx), [client, invoices, transactions, fidx]);
+   const masterPaidTotal = clientFin.paid;
+   const masterPendingTotal = clientFin.pending;
 
    const masterGrandTotal = masterPaidTotal + masterPendingTotal;
 
@@ -362,7 +339,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
       return currentInvoice?.customValue ?? invoiceCalculatedTotal;
    })();
    const currentAbated = currentInvoice ? abatedOf(currentInvoice.id) : 0;
-   const currentAbatements = currentInvoice ? abatements.filter(a => a.invoiceId === currentInvoice.id) : [];
+   const currentAbatements = currentInvoice ? (fidx.entradasByInvoice.get(currentInvoice.id) || []).filter(a => a.status === 'Pago').sort((a, b) => a.date.localeCompare(b.date)) : [];
    const remainingAmount = Math.max((Number(receiptAmount) || 0) - currentAbated, 0);
 
    return (
@@ -372,7 +349,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                title={`Nota: ${currentInvoice.title}`}
                amount={remainingAmount}
                detail={currentAbated > 0
-                  ? `Já foram abatidos ${brl(currentAbated)}; só o restante entra no caixa.`
+                  ? `Já foram recebidos ${brl(currentAbated)}; só o restante entra no caixa.`
                   : invoiceTasks.length > 0 ? `Um lançamento por demanda (${invoiceTasks.length}), somando o total da nota.` : undefined}
                onConfirm={confirmPaid}
                onClose={() => setShowReceipt(false)}
@@ -698,7 +675,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                            <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 space-y-3">
                               <div className="flex items-center justify-between gap-3 flex-wrap">
                                  <div className="text-sm">
-                                    <span className="text-slate-400">Abatido: </span>
+                                    <span className="text-slate-400">Recebido: </span>
                                     <strong className="text-emerald-400 tabular-nums">{brl(currentAbated)}</strong>
                                     {currentInvoice?.status === 'Pendente' && (
                                        <>
@@ -722,17 +699,17 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                                     {currentAbatements.map(a => (
                                        <li key={a.id} className="flex items-center justify-between py-2 gap-3">
                                           <span className="text-slate-400">
-                                             {new Date(`${a.date.split('T')[0]}T12:00:00`).toLocaleDateString('pt-BR')}{a.method ? ` · ${a.method}` : ''}
+                                             {new Date(`${a.date.split('T')[0]}T12:00:00`).toLocaleDateString('pt-BR')}{a.method ? ` · ${a.method}` : ''}{a.abatement ? ' · abatimento' : ` · ${a.description}`}
                                           </span>
                                           <span className="flex items-center gap-3">
                                              <strong className="text-emerald-400 tabular-nums">{brl(Number(a.value) || 0)}</strong>
-                                             <button
+                                             {a.abatement ? <button
                                                 onClick={() => { if (confirm(`Remover o abatimento de ${brl(Number(a.value) || 0)}? Ele sai do Fluxo de Caixa.`)) onDeleteAbatement(a.id); }}
                                                 className="text-slate-500 hover:text-rose-400 cursor-pointer"
                                                 aria-label="Remover abatimento"
                                              >
                                                 <Trash2 size={13} />
-                                             </button>
+                                             </button> : <span className="text-[11px] text-slate-500 w-[13px]" title="Recebimento de demanda/nota">{a.taskId ? 'dem.' : 'nota'}</span>}
                                           </span>
                                        </li>
                                     ))}
@@ -935,7 +912,7 @@ ${(localNotes || currentInvoice.notes) ? `\n📝 *Observações:* _${localNotes 
                <div className="text-right bg-slate-50 p-4 border border-slate-300 rounded-xl min-w-[220px]">
                   {selectedInvoiceId && currentInvoice?.status === 'Pendente' && currentAbated > 0 && (
                      <div className="mb-2 pb-2 border-b border-slate-200 text-xs text-slate-600 space-y-0.5">
-                        <p>Abatido: <strong>{brl(currentAbated)}</strong></p>
+                        <p>Já recebido: <strong>{brl(currentAbated)}</strong></p>
                         <p className="font-black uppercase text-slate-500 text-[11px] pt-1">Restante a pagar</p>
                         <p className="text-lg font-black text-slate-900">{brl(remainingAmount)}</p>
                      </div>

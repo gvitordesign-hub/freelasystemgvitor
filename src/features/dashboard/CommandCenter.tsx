@@ -15,6 +15,7 @@ import FocusWidget from '@/features/dashboard/FocusWidget';
 import OverdueAlert from '@/features/dashboard/OverdueAlert';
 import { DashboardTab } from './types';
 import { isSameMonthAndYear, isSameDay, getDateParts } from '@/utils/dateUtils';
+import { buildFinanceIndex, isStandaloneForecast } from '@/lib/finance';
 
 interface CommandCenterProps {
   stats: UserStats;
@@ -50,6 +51,8 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   onDeleteReminder
 }) => {
   const [chartView, setChartView] = useState<ChartView>('Mensal');
+  // Pendentes de demandas dentro de nota não são previsão própria (a nota cobra)
+  const fidx = useMemo(() => buildFinanceIndex(tasks, invoices, transactions), [tasks, invoices, transactions]);
 
   const monthlyIncome = useMemo(() => {
     const now = new Date();
@@ -79,7 +82,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
         const periodTransactions = transactions.filter(t => t.type === 'Entrada' && isSameDay(t.date, d));
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);
-        const pending = periodTransactions.filter(t => t.status === 'Pendente').reduce((acc, curr) => acc + curr.value, 0);
+        const pending = periodTransactions.filter(t => isStandaloneForecast(t, fidx)).reduce((acc, curr) => acc + curr.value, 0);
 
         data.push({ label, realized, pending });
       }
@@ -90,7 +93,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
         const periodTransactions = transactions.filter(t => t.type === 'Entrada' && isSameMonthAndYear(t.date, d));
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);
-        const pending = periodTransactions.filter(t => t.status === 'Pendente').reduce((acc, curr) => acc + curr.value, 0);
+        const pending = periodTransactions.filter(t => isStandaloneForecast(t, fidx)).reduce((acc, curr) => acc + curr.value, 0);
 
         data.push({ label, realized, pending });
       }
@@ -105,13 +108,13 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
         });
 
         const realized = periodTransactions.filter(t => t.status === 'Pago').reduce((acc, curr) => acc + curr.value, 0);
-        const pending = periodTransactions.filter(t => t.status === 'Pendente').reduce((acc, curr) => acc + curr.value, 0);
+        const pending = periodTransactions.filter(t => isStandaloneForecast(t, fidx)).reduce((acc, curr) => acc + curr.value, 0);
 
         data.push({ label: months[i], realized, pending });
       }
     }
     return data;
-  }, [transactions, chartView]);
+  }, [transactions, chartView, fidx]);
 
   const maxChartValue = useMemo(() => {
     const values = chartData.map(d => d.realized + d.pending);
@@ -138,6 +141,8 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
       <OverdueAlert
         clients={clients}
         invoices={invoices}
+        tasks={tasks}
+        transactions={transactions}
         overdueAlertDays={stats.overdueAlertDays ?? 30}
         onNavigateToClient={() => onNavigate('clients')}
       />

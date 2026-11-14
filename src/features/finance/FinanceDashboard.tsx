@@ -6,6 +6,7 @@ import FinancialReportModal from '@/components/modals/FinancialReportModal';
 import TransactionModal, { TransactionFormValues } from '@/components/modals/TransactionModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { isSameMonthAndYear, formatDateBR, getLocalDateString, getDateParts } from '@/utils/dateUtils';
+import { buildFinanceIndex, clientIdOfTx, receivables } from '@/lib/finance';
 
 interface FinanceDashboardProps {
   transactions: Transaction[];
@@ -38,10 +39,11 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
 
   const monthYearLabel = viewDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
+  const fidx = useMemo(() => buildFinanceIndex(tasks, invoices, transactions), [tasks, invoices, transactions]);
+  const openReceivables = useMemo(() => receivables(invoices, transactions, fidx), [invoices, transactions, fidx]);
+
   const clientOfTx = (tx: Transaction): Client | null => {
-    const linkedTask = tx.taskId ? tasks.find(t => t.id === tx.taskId) : null;
-    const linkedInvoice = tx.invoiceId ? invoices.find(i => i.id === tx.invoiceId) : null;
-    const clientId = linkedTask?.clientId ?? linkedInvoice?.clientId;
+    const clientId = clientIdOfTx(tx, fidx);
     return clientId ? clients.find(c => c.id === clientId) ?? null : null;
   };
 
@@ -68,7 +70,6 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
     .reduce((acc, curr) => curr.type === 'Entrada' ? acc + curr.value : acc - curr.value, 0);
 
   const realIncome = sum(filteredByMonth.filter(t => t.type === 'Entrada' && t.status === 'Pago'));
-  const pendingIncome = sum(filteredByMonth.filter(t => t.type === 'Entrada' && t.status === 'Pendente'));
   const paidExpenses = sum(filteredByMonth.filter(t => t.type === 'Saída' && t.status === 'Pago'));
   const dueExpenses = sum(filteredByMonth.filter(t => t.type === 'Saída' && t.status === 'Pendente'));
 
@@ -87,6 +88,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
         description: values.description,
         category: values.category,
         date: values.date,
+        ...(values.clientId !== undefined ? { clientId: values.clientId } : {}),
         ...(locked ? {} : { value: values.value, status: values.status, type: values.type })
       });
     } else {
@@ -180,10 +182,14 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
             <div className="p-3 bg-amber-500/20 rounded-2xl border border-amber-500/30">
               <Clock className="text-amber-400" size={20} />
             </div>
-            <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Previsto</span>
+            <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Em aberto</span>
           </div>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">A receber</p>
-          <h2 className="text-2xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(pendingIncome)}</h2>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">A receber (todos os meses)</p>
+          <h2 className="text-2xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(openReceivables.total)}</h2>
+          <p className="text-xs text-slate-500 mt-1 tabular-nums">
+            {openReceivables.openInvoices} nota{openReceivables.openInvoices !== 1 ? 's' : ''} em aberto
+            {openReceivables.standalone > 0 && ` · ${brl(openReceivables.standalone)} avulso`}
+          </p>
         </div>
 
         <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
@@ -403,6 +409,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
       {showTxModal && (
         <TransactionModal
           initial={editingTx ?? undefined}
+          clients={clients}
           onClose={() => { setShowTxModal(false); setEditingTx(null); }}
           onSubmit={handleModalSubmit}
         />

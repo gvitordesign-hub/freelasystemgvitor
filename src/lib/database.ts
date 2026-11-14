@@ -80,7 +80,9 @@ const mapTransaction = (t: any): Transaction => ({
     ...t,
     value: Number(t.value) || 0,
     taskId: t.task_id,
-    invoiceId: t.invoice_id
+    invoiceId: t.invoice_id,
+    clientId: t.client_id ?? null,
+    abatement: !!t.abatement
 }) as Transaction;
 
 const mapInvoice = (i: any): Invoice => ({
@@ -232,6 +234,7 @@ export const db = {
                 invoice_id: tx.invoiceId,
                 method: tx.method,
                 abatement: tx.abatement,
+                client_id: tx.clientId || undefined,
                 user_id: userId
             };
             Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
@@ -246,6 +249,8 @@ export const db = {
             delete transformed.user_id;
             if (tx.taskId !== undefined) { transformed.task_id = tx.taskId; delete transformed.taskId; }
             if (tx.invoiceId !== undefined) { transformed.invoice_id = tx.invoiceId; delete transformed.invoiceId; }
+            if (tx.clientId !== undefined) { transformed.client_id = tx.clientId || null; }
+            delete transformed.clientId;
             if (transformed.date && transformed.date.includes('T')) {
                 transformed.date = transformed.date.split('T')[0];
             }
@@ -351,18 +356,27 @@ export const db = {
             });
             if (error) throw error;
         },
-        /** True se todas as tarefas com valor da nota já têm entrada paga (consulta fresca ao banco). */
-        async isFullyReceived(id: string) {
+        /** Valor, recebido e restante da nota (consulta fresca ao banco; mesma regra de lib/finance). */
+        async balance(id: string) {
             const userId = await getUserId();
+            const { data: inv, error: e0 } = await supabase.from('invoices').select('custom_value').eq('id', id).eq('user_id', userId).single();
+            if (e0) throw e0;
             const { data: invTasks, error: e1 } = await supabase.from('tasks').select('id,value').eq('invoice_id', id).eq('user_id', userId);
             if (e1) throw e1;
-            const billable = (invTasks || []).filter(t => Number(t.value) > 0);
-            if (billable.length === 0) return false;
-            const { data: txs, error: e2 } = await supabase.from('transactions').select('task_id')
-                .eq('user_id', userId).eq('type', 'Entrada').eq('status', 'Pago').in('task_id', billable.map(t => t.id));
+            const taskIds = (invTasks || []).map(t => t.id);
+            const calc = (invTasks || []).reduce((s, t) => s + (Number(t.value) || 0), 0);
+            const total = inv.custom_value !== null && inv.custom_value !== undefined ? Number(inv.custom_value) : calc;
+            let q = supabase.from('transactions').select('id,value').eq('user_id', userId).eq('type', 'Entrada').eq('status', 'Pago');
+            q = taskIds.length > 0 ? q.or(`invoice_id.eq.${id},task_id.in.(${taskIds.join(',')})`) : q.eq('invoice_id', id);
+            const { data: paid, error: e2 } = await q;
             if (e2) throw e2;
-            const paid = new Set((txs || []).map(t => t.task_id));
-            return billable.every(t => paid.has(t.id));
+            const received = (paid || []).reduce((s, t) => s + (Number(t.value) || 0), 0);
+            return { total, received, remaining: Math.max(Math.round((total - received) * 100) / 100, 0) };
+        },
+        /** True se o que já entrou cobre o valor da nota. */
+        async isFullyReceived(id: string) {
+            const b = await this.balance(id);
+            return b.total > 0 && b.remaining <= 0.009;
         },
         /** Volta a nota e os lançamentos vinculados para Pendente. */
         async reopen(id: string) {

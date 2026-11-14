@@ -1,11 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { AlertTriangle, X, ChevronRight, Bell } from 'lucide-react';
-import { Client, Invoice } from '@/types';
+import { Client, Invoice, Task, Transaction } from '@/types';
+import { buildFinanceIndex, invoiceSummary } from '@/lib/finance';
 
 interface OverdueAlertProps {
   clients: Client[];
   invoices: Invoice[];
+  tasks: Task[];
+  transactions: Transaction[];
   overdueAlertDays: number;
   onNavigateToClient: (client: Client) => void;
 }
@@ -13,6 +16,8 @@ interface OverdueAlertProps {
 const OverdueAlert: React.FC<OverdueAlertProps> = ({
   clients,
   invoices,
+  tasks,
+  transactions,
   overdueAlertDays,
   onNavigateToClient
 }) => {
@@ -24,8 +29,10 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
     const thresholdMs = overdueAlertDays * 24 * 60 * 60 * 1000;
 
     // Find invoices that are Pendente and older than overdueAlertDays
+    const idx = buildFinanceIndex(tasks, invoices, transactions);
     const overdueInvoices = invoices.filter(inv => {
       if (inv.status !== 'Pendente') return false;
+      if (invoiceSummary(inv, idx).remaining <= 0.009) return false; // nota vazia ou já recebida
       const created = new Date(inv.createdAt);
       return (now.getTime() - created.getTime()) >= thresholdMs;
     });
@@ -49,7 +56,7 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
     });
 
     return Array.from(clientMap.values()).sort((a, b) => b.maxDays - a.maxDays);
-  }, [clients, invoices, overdueAlertDays]);
+  }, [clients, invoices, tasks, transactions, overdueAlertDays]);
 
   if (overdueClients.length === 0 || dismissed) return null;
 

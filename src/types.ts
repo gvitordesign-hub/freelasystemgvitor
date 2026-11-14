@@ -124,6 +124,7 @@ export interface Transaction {
   invoiceId?: string;
   method?: string; // forma de pagamento (PIX, transferência...)
   abatement?: boolean; // pagamento parcial de uma nota (nota segue pendente)
+  clientId?: string | null; // cliente de um lançamento manual (sem demanda/nota)
 }
 
 export interface SocialLink {

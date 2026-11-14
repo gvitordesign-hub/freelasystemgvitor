@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Transaction, Client, Task, Invoice } from '../../types';
 import { formatDateBR, getLocalDateString } from '@/utils/dateUtils';
+import { buildFinanceIndex, isStandaloneForecast, receivables } from '@/lib/finance';
 
 interface FinancialReportModalProps {
     transactions: Transaction[];
@@ -55,9 +56,11 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
             .filter(t => t.type === 'Entrada' && t.status === 'Pago')
             .reduce((acc, curr) => acc + curr.value, 0);
 
+        // Previsão: pendentes avulsos do período + restante de todas as notas em aberto
+        const fidx = buildFinanceIndex(tasks, invoices, transactions);
         const pendingIncome = filteredTransactions
-            .filter(t => t.type === 'Entrada' && t.status === 'Pendente')
-            .reduce((acc, curr) => acc + curr.value, 0);
+            .filter(t => isStandaloneForecast(t, fidx))
+            .reduce((acc, curr) => acc + curr.value, 0) + receivables(invoices, transactions, fidx).fromInvoices;
 
         const expenses = filteredTransactions
             .filter(t => t.type === 'Saída')
@@ -69,7 +72,7 @@ const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
             expenses,
             balance: income - expenses
         };
-    }, [filteredTransactions]);
+    }, [filteredTransactions, tasks, invoices, transactions]);
 
     const categoryBreakdown = useMemo(() => {
         const categories: Record<string, { income: number; expense: number }> = {};

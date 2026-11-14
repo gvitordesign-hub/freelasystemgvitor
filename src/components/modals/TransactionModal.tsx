@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, DollarSign, TrendingDown, TrendingUp, Info } from 'lucide-react';
-import { Transaction, TransactionType } from '../../types';
+import { Client, Transaction, TransactionType } from '../../types';
 import { getLocalDateString } from '../../utils/dateUtils';
 
 export interface TransactionFormValues {
@@ -10,6 +10,7 @@ export interface TransactionFormValues {
     category: string;
     date: string;
     status: 'Pago' | 'Pendente';
+    clientId?: string | null;
 }
 
 interface TransactionModalProps {
@@ -17,14 +18,18 @@ interface TransactionModalProps {
     onSubmit: (tx: TransactionFormValues) => void;
     /** Quando informado, o modal edita este lançamento em vez de criar um novo. */
     initial?: Transaction;
+    /** para vincular um lançamento manual a um cliente */
+    clients?: Client[];
 }
 
 const CATEGORIES = ['Geral', 'Marketing', 'Software/SaaS', 'Equipamento', 'Aluguel', 'Educação', 'Freelancer', 'Serviço', 'Outros'];
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onSubmit, initial }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onSubmit, initial, clients = [] }) => {
     const isEditing = !!initial;
     // Entrada vinculada a uma nota: o valor é definido pela nota
     const valueLockedByInvoice = !!initial?.invoiceId && initial.type === 'Entrada';
+    // Cliente vem da demanda/nota quando houver; só lançamento manual escolhe
+    const clientSelectable = !initial?.taskId && !initial?.invoiceId;
 
     const [formData, setFormData] = useState({
         description: initial?.description ?? '',
@@ -32,7 +37,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onSubmit, 
         type: (initial?.type ?? 'Saída') as TransactionType,
         category: initial?.category ?? 'Geral',
         status: (initial?.status ?? 'Pago') as 'Pago' | 'Pendente',
-        date: initial?.date ? initial.date.split('T')[0] : getLocalDateString()
+        date: initial?.date ? initial.date.split('T')[0] : getLocalDateString(),
+        clientId: initial?.clientId ?? ''
     });
 
     const categories = CATEGORIES.includes(formData.category) ? CATEGORIES : [formData.category, ...CATEGORIES];
@@ -41,7 +47,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onSubmit, 
         e.preventDefault();
         onSubmit({
             ...formData,
-            value: parseFloat(formData.value) || 0
+            value: parseFloat(formData.value) || 0,
+            clientId: clientSelectable ? (formData.clientId || null) : undefined
         });
         onClose();
     };
@@ -124,6 +131,21 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onSubmit, 
                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
+
+                    {clientSelectable && clients.length > 0 && (
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5 text-left">Cliente (opcional)</label>
+                            <select
+                                value={formData.clientId || ''}
+                                onChange={e => setFormData({ ...formData, clientId: e.target.value })}
+                                className="w-full bg-slate-800/80 border border-slate-700 rounded-2xl px-4 py-3 text-white focus:border-[var(--primary-color)] outline-none text-sm cursor-pointer"
+                            >
+                                <option value="">Sem cliente (geral)</option>
+                                {[...clients].sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` · ${c.company}` : ''}</option>)}
+                            </select>
+                            <span className="block text-[11px] text-slate-500 mt-1">Entra no "Recebido" do cliente.</span>
+                        </div>
+                    )}
 
                     {!isEditing && (
                         <div>

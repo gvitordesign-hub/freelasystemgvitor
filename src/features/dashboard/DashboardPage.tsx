@@ -7,6 +7,7 @@ import { Menu, Clock, Loader2, LayoutDashboard, Trophy, DollarSign, Users, Plus 
 import { Client, Task, AppState, Status, UserStats, Transaction, DayOfWeek, Budget, Service, Invoice, Reminder, Holiday } from '@/types';
 import { INITIAL_STATE, XP_PER_TASK, XP_PER_CLIENT, XP_PER_LEVEL, XP_DAILY_BRIEFING } from '@/constants';
 import { db } from '@/lib/database';
+import { buildFinanceIndex, isStandaloneForecast } from '@/lib/finance';
 import { supabase } from '@/lib/supabase';
 import GamificationBar from '@/features/dashboard/GamificationBar';
 import Sidebar from '@/features/dashboard/Sidebar';
@@ -225,16 +226,6 @@ const DashboardPage: React.FC = () => {
       weekDateStrings.add(d.toLocaleDateString('en-CA'));
     }
 
-    const isCurrentCalendarWeek = (() => {
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const nowDay = now.getDay();
-      const diff = (nowDay === 0 ? -6 : 1) - nowDay;
-      const thisMonday = new Date(now);
-      thisMonday.setDate(thisMonday.getDate() + diff);
-      return thisMonday.getTime() === start.getTime();
-    })();
-
     // 1. Transactions in this week (type === 'Entrada')
     const weekTransactions = state.transactions.filter(t => {
       if (t.type !== 'Entrada') return false;
@@ -247,36 +238,23 @@ const DashboardPage: React.FC = () => {
       .filter(t => t.status === 'Pago')
       .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
+    // Previsão: só pendentes que não pertencem a nota (a nota cobra o restante)
+    const fidx = buildFinanceIndex(state.tasks, state.invoices, state.transactions);
     const txPending = weekTransactions
-      .filter(t => t.status === 'Pendente')
+      .filter(t => isStandaloneForecast(t, fidx))
       .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
-    // 2. Tasks in this week
-    const linkedTxTaskIds = new Set(state.transactions.filter(tx => tx.taskId && tx.type === 'Entrada').map(tx => tx.taskId));
-
-    const weekTasks = state.tasks.filter(t => {
-      if (t.date) {
-        return weekDateStrings.has(t.date.split('T')[0]);
-      }
-      if (isCurrentCalendarWeek && t.day) {
-        return true;
-      }
-      return false;
-    });
-
-    const tasksReceived = weekTasks
-      .filter(t => t.status === 'Concluído' && !linkedTxTaskIds.has(t.id))
-      .reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+    // Demanda concluída NÃO é dinheiro recebido: a barra mostra só o que entrou no caixa
 
     const startLabel = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
     const endLabel = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
 
     return {
-      weeklyIncome: txReceived + tasksReceived,
+      weeklyIncome: txReceived,
       weeklyPendingIncome: txPending,
       weekLabel: `${startLabel} - ${endLabel}`
     };
-  }, [selectedWeekStart, state.transactions, state.tasks]);
+  }, [selectedWeekStart, state.transactions, state.tasks, state.invoices]);
 
   const monthlyIncome = useMemo(() => {
     const now = new Date();
@@ -800,7 +778,25 @@ const DashboardPage: React.FC = () => {
 
       // Consulta fresca ao banco (não usa estado velho) + índice único = sem duplicatas
       const existing = await db.transactions.findEntradaByTask(task.id);
-      if (existing) {
+
+      if (task.invoiceId) {
+        // Demanda dentro de nota: a NOTA é a cobrança. Sem previsão própria;
+        // se recebeu agora, entra o valor da demanda limitado ao restante da nota.
+        if (received && !(existing && existing.status === 'Pago')) {
+          const { remaining } = await db.invoices.balance(task.invoiceId);
+          const amount = Math.min(task.value, remaining);
+          if (amount > 0) {
+            if (existing) {
+              await db.transactions.update(existing.id, { status: 'Pago', date: today, value: amount, invoiceId: task.invoiceId, ...(method ? { method } : {}) });
+            } else {
+              await db.transactions.create({
+                description: `Serviço: ${task.title}`, value: amount, type: 'Entrada', date: today, status: 'Pago',
+                category: task.category || 'Serviço', taskId: task.id, invoiceId: task.invoiceId, method
+              });
+            }
+          }
+        }
+      } else if (existing) {
         await db.transactions.update(existing.id, {
           status: received ? 'Pago' : 'Pendente',
           date: received ? today : existing.date,
@@ -826,10 +822,12 @@ const DashboardPage: React.FC = () => {
         const inv = stateRef.current.invoices.find(i => i.id === task.invoiceId);
         if (inv && inv.status !== 'Pago' && await db.invoices.isFullyReceived(task.invoiceId)) {
           await db.invoices.pay(task.invoiceId, today, method);
-          toast.success('Recebimento registrado. Todas as demandas da nota foram pagas: nota quitada.');
+          toast.success('Recebimento registrado. O valor da nota foi atingido: nota quitada.');
         } else {
-          toast.success(received ? 'Recebimento registrado no caixa.' : 'Demanda concluída; recebimento previsto no caixa.');
+          toast.success('Recebimento registrado no caixa e abatido da nota.');
         }
+      } else if (task.invoiceId) {
+        toast.success('Demanda concluída. O valor fica a receber pela nota.');
       } else {
         toast.success(received ? 'Recebimento registrado no caixa.' : 'Demanda concluída; recebimento previsto no caixa.');
       }
@@ -1235,7 +1233,7 @@ const DashboardPage: React.FC = () => {
           client={selectedClientForInvoice}
           tasks={state.tasks.filter(t => t.clientId === selectedClientForInvoice.id)}
           invoices={state.invoices}
-          abatements={state.transactions.filter(t => t.abatement && t.invoiceId)}
+          transactions={state.transactions}
           onAddAbatement={addAbatement}
           onDeleteAbatement={deleteTransaction}
           pixKey={state.stats.pixKey || ''}
@@ -1250,6 +1248,7 @@ const DashboardPage: React.FC = () => {
           <TransactionModal
             onClose={() => setIsTransactionModalOpen(false)}
             onSubmit={addTransaction}
+            clients={state.clients}
           />
         )
       }

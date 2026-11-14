@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Client, Transaction, Task, Invoice } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
+import { buildFinanceIndex, clientFinancials, invoiceSummary } from '@/lib/finance';
 
 interface ClientManagementProps {
   clients: Client[];
@@ -73,78 +74,21 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
     
     const now = new Date();
     const thresholdMs = overdueAlertDays * 24 * 60 * 60 * 1000;
+    const idx = buildFinanceIndex(tasks, invoices, transactions);
 
     clients.forEach(client => {
-      const clientTasks = tasks.filter(t => t.clientId === client.id);
-      const clientInvoices = invoices.filter(i => i.clientId === client.id);
-      
-      // 1. Calculate from Invoices (respecting customValue)
-      let invoicePaid = 0;
-      let invoicePending = 0;
-      const tasksInInvoices = new Set<string>();
+      // Pago = dinheiro que entrou no caixa; Pendente = restante das notas + previsões avulsas
+      const fin = clientFinancials(client, invoices, transactions, idx);
+      const paidTotal = fin.paid;
+      const pendingTotal = fin.pending;
+      const pendingInvoices = fin.pendingInvoices;
+      const activeTasks = tasks.filter(t => t.clientId === client.id && t.status !== 'Concluído').length;
 
-      clientInvoices.forEach(inv => {
-        const invTasks = clientTasks.filter(t => t.invoiceId === inv.id);
-        invTasks.forEach(t => tasksInInvoices.add(t.id));
-        
-        const invTotal = inv.customValue !== undefined && inv.customValue !== null
-          ? Number(inv.customValue)
-          : invTasks.reduce((sum, t) => sum + (Number(t.value) || 0), 0);
-
-        if (inv.status === 'Pago') {
-          invoicePaid += invTotal;
-        } else {
-          // abatimentos: parte já recebida de uma nota ainda pendente
-          const abated = transactions
-            .filter(tx => tx.abatement && tx.invoiceId === inv.id)
-            .reduce((s, tx) => s + (Number(tx.value) || 0), 0);
-          invoicePaid += abated;
-          invoicePending += Math.max(invTotal - abated, 0);
-        }
-      });
-
-      // 2. Calculate unassigned tasks (not linked to any invoice)
-      let unassignedPaid = 0;
-      let unassignedPending = 0;
-      const unassignedTasks = clientTasks.filter(t => !tasksInInvoices.has(t.id));
-
-      unassignedTasks.forEach(t => {
-        const linkedTx = transactions.find(tx => tx.taskId === t.id && tx.type === 'Entrada');
-        if (linkedTx) {
-          if (linkedTx.status === 'Pago') {
-            unassignedPaid += Number(linkedTx.value) || 0;
-          } else {
-            unassignedPending += Number(linkedTx.value) || 0;
-          }
-        } else {
-          unassignedPending += Number(t.value) || 0;
-        }
-      });
-
-      // 3. Direct client transactions not linked to invoice tasks
-      const directTransactions = transactions.filter(t => 
-        t.type === 'Entrada' && !t.abatement &&
-        (!t.taskId || (!tasksInInvoices.has(t.taskId) && !unassignedTasks.some(ut => ut.id === t.taskId))) &&
-        (client.name && t.description.toLowerCase().includes(client.name.toLowerCase()))
-      );
-      let directPaid = 0;
-      let directPending = 0;
-      directTransactions.forEach(tx => {
-        if (tx.status === 'Pago') directPaid += Number(tx.value) || 0;
-        else directPending += Number(tx.value) || 0;
-      });
-
-      const paidTotal = invoicePaid + unassignedPaid + directPaid;
-      const pendingTotal = invoicePending + unassignedPending + directPending;
-      
-      const activeTasks = clientTasks.filter(t => t.status !== 'Concluído').length;
-      const pendingInvoices = clientInvoices.filter(i => i.status === 'Pendente').length;
-      
-      // Calculate invoices past overdue alert threshold
-      const overdueInvoicesCount = clientInvoices.filter(i => {
-        if (i.status !== 'Pendente') return false;
-        const created = new Date(i.createdAt);
-        return (now.getTime() - created.getTime()) >= thresholdMs;
+      // Atraso: só notas que ainda têm saldo a receber
+      const overdueInvoicesCount = invoices.filter(i => {
+        if (i.clientId !== client.id || i.status !== 'Pendente') return false;
+        if (invoiceSummary(i, idx).remaining <= 0.009) return false;
+        return (now.getTime() - new Date(i.createdAt).getTime()) >= thresholdMs;
       }).length;
 
       financials.set(client.id, {
@@ -570,9 +514,9 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex flex-col">
                       <div className="flex items-center gap-1 mb-1">
                         <CheckCircle2 size={10} className="text-emerald-400" />
-                        <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wide">Pago</span>
+                        <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wide" title="Dinheiro que entrou no caixa">Recebido</span>
                       </div>
-                      <span className="text-xs md:text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
+                      <span className="text-xs md:text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className={`border rounded-xl p-3 flex flex-col ${
                       financials.isOverdue 
@@ -588,13 +532,13 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                         <span className={`text-[11px] font-black uppercase tracking-wide ${
                           financials.isOverdue ? 'text-rose-300' : financials.pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'
                         }`}>
-                          {financials.isOverdue ? 'Em Atraso' : 'Pendente'}
+                          {financials.isOverdue ? 'Em Atraso' : 'A receber'}
                         </span>
                       </div>
                       <span className={`text-xs md:text-sm font-black ${
                         financials.isOverdue ? 'text-rose-300' : financials.pendingTotal > 0 ? 'text-amber-300' : 'text-slate-500'
                       }`}>
-                        R$ {financials.pendingTotal.toLocaleString('pt-BR')}
+                        R$ {financials.pendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -646,8 +590,8 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
               <tr className="bg-slate-950/60 border-b border-slate-800">
                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide">Identidade</th>
                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide">Empresa</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Pago</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Pendente</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Recebido</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">A receber</th>
                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-center">Status</th>
                 <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wide text-right">Ações</th>
               </tr>
@@ -693,13 +637,13 @@ const ClientManagement: React.FC<ClientManagementProps> = ({
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-300">{client.company || '—'}</td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR')}</span>
+                    <span className="text-sm font-black text-emerald-400">R$ {financials.paidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className={`text-sm font-black ${
                       financials.isOverdue ? 'text-rose-400' : financials.pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'
                     }`}>
-                      R$ {financials.pendingTotal.toLocaleString('pt-BR')}
+                      R$ {financials.pendingTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {financials.pendingInvoices > 0 && (
                       <div className={`text-[11px] font-bold mt-0.5 ${financials.isOverdue ? 'text-rose-400 font-black' : 'text-amber-400/80'}`}>
