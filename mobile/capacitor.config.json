@@ -1,0 +1,7 @@
+{
+  "appId": "br.com.gvitor.system",
+  "appName": "GVITOR SYSTEM",
+  "webDir": "www",
+  "backgroundColor": "#020617",
+  "android": { "allowMixedContent": false }
+}

@@ -1,0 +1,62 @@
+{
+  "name": "gvitor-system-desktop",
+  "productName": "GVITOR SYSTEM",
+  "version": "1.0.0",
+  "description": "GVITOR SYSTEM — aplicativo para Windows",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "prepare-app": "node scripts/copy-dist.cjs",
+    "start": "npm run prepare-app && electron .",
+    "dist": "npm run prepare-app && electron-builder --win --dir && node scripts/set-exe-icon.cjs && electron-builder --win nsis portable --prepackaged release/win-unpacked"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "rcedit": "^4.0.1"
+  },
+  "build": {
+    "appId": "br.com.gvitor.system",
+    "productName": "GVITOR SYSTEM",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "app/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GVITOR SYSTEM",
+      "artifactName": "GVITOR-SYSTEM-Instalador-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "GVITOR-SYSTEM-Portatil-${version}.${ext}"
+    }
+  },
+  "author": "GVITOR"
+}

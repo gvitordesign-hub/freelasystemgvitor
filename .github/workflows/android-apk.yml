@@ -1,0 +1,46 @@
+name: Gerar APK Android
+
+# Manual: GitHub > Actions > "Gerar APK Android" > Run workflow.
+# Precisa dos secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (Settings > Secrets and variables > Actions).
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build web
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Sync Capacitor
+        working-directory: mobile
+        run: |
+          npm ci
+          npm run sync
+
+      - name: Build APK (debug, instalável)
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GVITOR-SYSTEM-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

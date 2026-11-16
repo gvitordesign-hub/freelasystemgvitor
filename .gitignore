@@ -46,3 +46,14 @@ tmp/
 .codex/
 .gemini/
 skills-lock.json
+
+# Apps nativos (build local; os projetos ficam em desktop/ e mobile/)
+desktop/node_modules/
+desktop/app/
+desktop/release/
+mobile/node_modules/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/www/
