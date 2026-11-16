@@ -30,7 +30,7 @@ const GamificationBar: React.FC<GamificationBarProps> = ({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <div className="h-16 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-2xl px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 z-30 w-full shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+    <div className="h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] sm:h-16 sm:pt-0 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-2xl px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 z-30 w-full shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
       <div className="flex items-center gap-2.5 sm:gap-4 md:gap-6 flex-1 max-w-3xl min-w-0">
         {/* Mobile Menu Button */}
         {onOpenMobileMenu && (

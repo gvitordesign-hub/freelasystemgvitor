@@ -13,6 +13,11 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- barra de status/navegação escuras, ícones claros (combina com o tema do sistema) -->
+        <item name="android:windowBackground">#020617</item>
+        <item name="android:statusBarColor">#020617</item>
+        <item name="android:navigationBarColor">#020617</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
 

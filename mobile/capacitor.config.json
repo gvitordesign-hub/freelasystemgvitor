@@ -6,8 +6,13 @@
   "server": {
     "url": "https://sistema.gvitor.com.br",
     "cleartext": false,
-    "allowNavigation": ["sistema.gvitor.com.br"],
+    "allowNavigation": [
+      "sistema.gvitor.com.br"
+    ],
     "errorPath": "offline.html"
   },
-  "android": { "allowMixedContent": false }
+  "android": {
+    "allowMixedContent": false,
+    "adjustMarginsForEdgeToEdge": "force"
+  }
 }
