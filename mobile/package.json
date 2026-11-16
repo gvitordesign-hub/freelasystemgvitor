@@ -2,10 +2,9 @@
   "name": "gvitor-system-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "GVITOR SYSTEM — aplicativo Android (Capacitor)",
+  "description": "GVITOR SYSTEM — aplicativo Android (Capacitor, abre o site na VPS)",
   "scripts": {
-    "prepare-app": "node scripts/copy-dist.cjs",
-    "sync": "npm run prepare-app && cap sync android"
+    "sync": "cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

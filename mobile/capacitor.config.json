@@ -1,7 +1,13 @@
 {
   "appId": "br.com.gvitor.system",
   "appName": "GVITOR SYSTEM",
-  "webDir": "www",
+  "webDir": "webapp",
   "backgroundColor": "#020617",
+  "server": {
+    "url": "https://sistema.gvitor.com.br",
+    "cleartext": false,
+    "allowNavigation": ["sistema.gvitor.com.br"],
+    "errorPath": "offline.html"
+  },
   "android": { "allowMixedContent": false }
 }

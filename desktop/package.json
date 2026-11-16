@@ -2,13 +2,12 @@
   "name": "gvitor-system-desktop",
   "productName": "GVITOR SYSTEM",
   "version": "1.0.0",
-  "description": "GVITOR SYSTEM — aplicativo para Windows",
+  "description": "GVITOR SYSTEM — aplicativo para Windows (abre o site da VPS)",
   "main": "main.cjs",
   "private": true,
   "scripts": {
-    "prepare-app": "node scripts/copy-dist.cjs",
-    "start": "npm run prepare-app && electron .",
-    "dist": "npm run prepare-app && electron-builder --win --dir && node scripts/set-exe-icon.cjs && electron-builder --win nsis portable --prepackaged release/win-unpacked"
+    "start": "electron .",
+    "dist": "electron-builder --win --dir && node scripts/set-exe-icon.cjs && electron-builder --win nsis portable --prepackaged release/win-unpacked"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -25,7 +24,7 @@
     "files": [
       "main.cjs",
       "preload.cjs",
-      "app/**/*"
+      "offline.html"
     ],
     "win": {
       "icon": "build/icon.ico",

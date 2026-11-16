@@ -1,7 +1,8 @@
 name: Gerar APK Android
 
 # Manual: GitHub > Actions > "Gerar APK Android" > Run workflow.
-# Precisa dos secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (Settings > Secrets and variables > Actions).
+# O app abre o site da VPS (mobile/capacitor.config.json), então NÃO precisa de secrets nem de build do site:
+# só é preciso gerar um novo APK se mudar ícone, nome, permissões ou o endereço do site.
 on:
   workflow_dispatch:
 
@@ -14,20 +15,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-
-      - name: Build web
-        run: |
-          npm ci
-          npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Sync Capacitor
         working-directory: mobile
