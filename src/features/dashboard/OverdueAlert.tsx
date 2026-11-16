@@ -23,6 +23,7 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
 }) => {
   const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // no celular começa recolhido (1 linha)
 
   const overdueClients = useMemo(() => {
     const now = new Date();
@@ -66,8 +67,8 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
     <div className="mx-4 md:mx-8 mb-6 animate-in slide-in-from-top-2 duration-500">
       <div className="bg-rose-950/40 border border-rose-500/30 rounded-[2rem] overflow-hidden shadow-[0_0_30px_rgba(244,63,94,0.1)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-rose-500/20">
-          <div className="flex items-center gap-3">
+        <div className={`flex items-center justify-between p-4 md:p-5 ${mobileOpen ? 'border-b' : 'md:border-b'} border-rose-500/20`}>
+          <button type="button" onClick={() => setMobileOpen(o => !o)} aria-expanded={mobileOpen} className="flex items-center gap-3 text-left flex-1 min-w-0 cursor-pointer md:cursor-default">
             <div className="w-9 h-9 rounded-xl bg-rose-500/20 flex items-center justify-center">
               <Bell size={18} className="text-rose-400" />
             </div>
@@ -79,18 +80,20 @@ const OverdueAlert: React.FC<OverdueAlertProps> = ({
                 {overdueClients.length} cliente{overdueClients.length > 1 ? 's' : ''} com nota{overdueClients.length > 1 ? 's' : ''} há mais de {overdueAlertDays} dias sem pagamento
               </p>
             </div>
-          </div>
+            <ChevronRight size={16} className={`md:hidden shrink-0 text-rose-500/60 transition-transform ${mobileOpen ? 'rotate-90' : ''}`} />
+          </button>
           <button
             onClick={() => setDismissed(true)}
-            className="text-rose-500/50 hover:text-rose-400 transition-colors p-1"
+            className="text-rose-500/50 hover:text-rose-400 transition-colors p-2.5 -m-1 ml-1 shrink-0"
             title="Fechar alerta"
+            aria-label="Fechar alerta"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Client List */}
-        <div className="p-4 space-y-2">
+        <div className={`p-4 space-y-2 ${mobileOpen ? '' : 'hidden md:block'}`}>
           {visibleClients.map(({ client, invoices: clientInvoices, maxDays }) => (
             <button
               key={client.id}

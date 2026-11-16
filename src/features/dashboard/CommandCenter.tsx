@@ -15,7 +15,7 @@ import FocusWidget from '@/features/dashboard/FocusWidget';
 import OverdueAlert from '@/features/dashboard/OverdueAlert';
 import { DashboardTab } from './types';
 import { isSameMonthAndYear, isSameDay, getDateParts } from '@/utils/dateUtils';
-import { buildFinanceIndex, isStandaloneForecast } from '@/lib/finance';
+import { buildFinanceIndex, isStandaloneForecast, receivables } from '@/lib/finance';
 
 interface CommandCenterProps {
   stats: UserStats;
@@ -132,6 +132,8 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
 
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Cliente Externo';
 
+  const totalReceivable = useMemo(() => receivables(invoices, transactions, fidx).total, [invoices, transactions, fidx]);
+
   const monthlyProgress = Math.min((monthlyIncome / (stats.monthlyGoal || 1)) * 100, 100);
   const annualProgress = Math.min((annualIncome / (stats.annualGoal || 1)) * 100, 100);
 
@@ -147,8 +149,30 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
         onNavigateToClient={() => onNavigate('clients')}
       />
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-reveal">
+      {/* Celular: números primeiro + atalhos compactos (o "+" da barra inferior também lança demanda) */}
+      <div className="md:hidden space-y-3 animate-reveal">
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => onNavigate('finance')} className="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform">
+            <p className="text-xs font-semibold text-slate-400">Recebido no mês</p>
+            <p className="text-lg font-black text-emerald-400 tabular-nums mt-1">{monthlyIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+          </button>
+          <button onClick={() => onNavigate('finance')} className="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform">
+            <p className="text-xs font-semibold text-slate-400">A receber (geral)</p>
+            <p className="text-lg font-black text-amber-400 tabular-nums mt-1">{totalReceivable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={onOpenTaskModal} className="min-h-[48px] bg-[var(--primary-color)] text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform">
+            <Plus size={18} /> Demanda
+          </button>
+          <button onClick={onOpenTransactionModal} className="min-h-[48px] bg-rose-600 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform">
+            <TrendingDown size={18} /> Despesa
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Actions Grid (tablet/desktop) */}
+      <div className="hidden md:grid grid-cols-2 gap-4 md:gap-6 animate-reveal">
         {/* Quick Demand Addition Card */}
         <div className="bg-slate-900/75 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-[var(--primary-color)]/40 hover:-translate-y-0.5 transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
           <div className="flex items-center gap-4">

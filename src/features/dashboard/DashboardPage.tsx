@@ -122,7 +122,9 @@ const DashboardPage: React.FC = () => {
       console.error('Error fetching data from Supabase:', error);
       setSyncStatus('error');
     } finally {
-      setIsInitialLoading(false);
+      // Só a requisição mais nova encerra o carregamento inicial (uma antiga descartada
+      // liberava a tela com os dados padrão, antes das configurações chegarem)
+      if (seq === requestSeq.current) setIsInitialLoading(false);
     }
   }, [user?.id]);
 
@@ -282,11 +284,13 @@ const DashboardPage: React.FC = () => {
 
   // Briefing Daily Trigger
   useEffect(() => {
+    // Só decide depois de carregar os dados: com os valores padrão a data nunca bate e o resumo abria sempre
+    if (isInitialLoading) return;
     const today = getLocalDateString();
     if (state.stats.lastBriefingDate !== today) {
       setShowBriefing(true);
     }
-  }, [state.stats.lastBriefingDate]);
+  }, [isInitialLoading, state.stats.lastBriefingDate]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -320,7 +324,17 @@ const DashboardPage: React.FC = () => {
         lastBriefingDate: today
       }
     }));
+    // Grava no banco: sem isso o resumo voltava a cada abertura do app
+    db.settings.update({ lastBriefingDate: today }).catch(e => console.error('Error saving briefing date:', e));
     addXP(XP_DAILY_BRIEFING);
+    setShowBriefing(false);
+  };
+
+  /** Fechar no "X": dispensa o resumo de hoje (sem XP) e lembra a escolha. */
+  const handleSkipBriefing = () => {
+    const today = getLocalDateString();
+    setState(prev => ({ ...prev, stats: { ...prev.stats, lastBriefingDate: today } }));
+    db.settings.update({ lastBriefingDate: today }).catch(e => console.error('Error saving briefing date:', e));
     setShowBriefing(false);
   };
 
@@ -1200,7 +1214,7 @@ const DashboardPage: React.FC = () => {
               setIsTransactionModalOpen(true);
               setShowBriefing(false);
             }}
-            onSkip={() => setShowBriefing(false)}
+            onSkip={handleSkipBriefing}
           />
         )
       }
@@ -1234,6 +1248,7 @@ const DashboardPage: React.FC = () => {
           tasks={state.tasks.filter(t => t.clientId === selectedClientForInvoice.id)}
           invoices={state.invoices}
           transactions={state.transactions}
+          allTasks={state.tasks}
           onAddAbatement={addAbatement}
           onDeleteAbatement={deleteTransaction}
           pixKey={state.stats.pixKey || ''}

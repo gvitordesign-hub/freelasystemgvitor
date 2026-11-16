@@ -10,6 +10,8 @@ interface ProjectNoteModalProps {
    tasks: Task[];
    invoices: Invoice[];
    transactions: Transaction[];
+   /** todas as demandas (o índice financeiro precisa enxergar demandas de outros clientes dentro da nota) */
+   allTasks: Task[];
    onAddAbatement: (invoice: Invoice, amount: number, date: string, method: string) => void;
    onDeleteAbatement: (id: string) => void;
    pixKey: string;
@@ -59,6 +61,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    tasks, 
    invoices,
    transactions,
+   allTasks,
    onAddAbatement,
    onDeleteAbatement,
    pixKey,
@@ -72,7 +75,7 @@ const ProjectNoteModal: React.FC<ProjectNoteModalProps> = ({
    const [showAbatement, setShowAbatement] = useState(false);
    const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
    // Mesma regra de lib/finance: recebido = todas as entradas pagas da nota (abatimentos + demandas)
-   const fidx = useMemo(() => buildFinanceIndex(tasks, invoices, transactions), [tasks, invoices, transactions]);
+   const fidx = useMemo(() => buildFinanceIndex(allTasks, invoices, transactions), [allTasks, invoices, transactions]);
    const abatedOf = (invId: string) => { const inv = invoices.find(i => i.id === invId); return inv ? invoiceSummary(inv, fidx).received : 0; };
    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
    const [mobileView, setMobileView] = useState<'list' | 'detail'>('detail');

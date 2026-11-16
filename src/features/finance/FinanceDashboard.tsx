@@ -36,6 +36,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pago' | 'Pendente'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'Entrada' | 'Saída'>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
 
   const monthYearLabel = viewDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
@@ -125,7 +126,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const selectCls = 'bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500 cursor-pointer';
+  const selectCls = 'w-full sm:w-auto min-h-[44px] sm:min-h-0 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500 cursor-pointer';
 
   return (
     <div className="p-4 md:p-8 animate-reveal max-w-7xl mx-auto space-y-6 md:space-y-8">
@@ -160,37 +161,37 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
-          <div className="flex justify-between items-start mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-4 md:p-6 rounded-3xl shadow-lg">
+          <div className="flex justify-between items-start mb-2 md:mb-4">
             <div className="p-3 bg-purple-500/20 rounded-2xl border border-purple-500/30">
               <Wallet className="text-purple-400" size={20} />
             </div>
           </div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saldo Atual</p>
-          <h2 className="text-2xl md:text-3xl font-black text-white mt-1 tabular-nums">{brl(totalBalance)}</h2>
+          <h2 className="text-xl md:text-3xl font-black text-white mt-1 tabular-nums">{brl(totalBalance)}</h2>
         </div>
 
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-4 md:p-6 rounded-3xl shadow-lg">
+          <div className="flex justify-between items-start mb-2 md:mb-4">
             <div className="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/30">
               <TrendingUp className="text-emerald-400" size={20} />
             </div>
             <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Realizado</span>
           </div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Entradas do mês</p>
-          <h2 className="text-2xl md:text-3xl font-black text-emerald-400 mt-1 tabular-nums">{brl(realIncome)}</h2>
+          <h2 className="text-xl md:text-3xl font-black text-emerald-400 mt-1 tabular-nums">{brl(realIncome)}</h2>
         </div>
 
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-4 md:p-6 rounded-3xl shadow-lg col-span-2 lg:col-span-1">
+          <div className="flex justify-between items-start mb-2 md:mb-4">
             <div className="p-3 bg-amber-500/20 rounded-2xl border border-amber-500/30">
               <Clock className="text-amber-400" size={20} />
             </div>
             <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">Previsto</span>
           </div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">A receber do mês</p>
-          <h2 className="text-2xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(receivablesMonth)}</h2>
+          <h2 className="text-xl md:text-3xl font-black text-amber-400 mt-1 tabular-nums">{brl(receivablesMonth)}</h2>
           <div className="mt-3 pt-3 border-t border-slate-800" title="Restante de todas as notas em aberto + previsões avulsas, somando todos os meses">
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total pendente geral</p>
             <p className="text-base font-black text-amber-300 tabular-nums">{brl(openReceivables.total)}</p>
@@ -201,14 +202,14 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 md:p-6 rounded-3xl shadow-lg">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-4 md:p-6 rounded-3xl shadow-lg col-span-2 lg:col-span-1">
+          <div className="flex justify-between items-start mb-2 md:mb-4">
             <div className="p-3 bg-rose-500/20 rounded-2xl border border-rose-500/30">
               <TrendingDown className="text-rose-400" size={20} />
             </div>
           </div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Saídas pagas</p>
-          <h2 className="text-2xl md:text-3xl font-black text-rose-400 mt-1 tabular-nums">{brl(paidExpenses)}</h2>
+          <h2 className="text-xl md:text-3xl font-black text-rose-400 mt-1 tabular-nums">{brl(paidExpenses)}</h2>
           {dueExpenses > 0 && (
             <p className="text-xs text-amber-400 mt-1 tabular-nums">A pagar: {brl(dueExpenses)}</p>
           )}
@@ -245,15 +246,15 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <div className="p-4 md:p-6 border-b border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-900/60">
           <h3 className="font-bold text-white">Histórico de transações</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+            <div className="relative col-span-2 sm:col-span-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
               <input
                 type="text"
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-300 focus:outline-none focus:border-purple-500 w-40"
+                className="bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2 min-h-[44px] sm:min-h-0 text-sm sm:text-xs text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-40"
               />
             </div>
             <select aria-label="Filtrar por status" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className={selectCls}>
@@ -266,7 +267,7 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
               <option value="Entrada">Só entradas</option>
               <option value="Saída">Só saídas</option>
             </select>
-            <select aria-label="Filtrar por cliente" value={clientFilter} onChange={e => setClientFilter(e.target.value)} className={`${selectCls} max-w-[11rem]`}>
+            <select aria-label="Filtrar por cliente" value={clientFilter} onChange={e => setClientFilter(e.target.value)} className={`${selectCls} col-span-2 sm:col-span-1 sm:max-w-[11rem]`}>
               <option value="all">Todos os clientes</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -281,7 +282,86 @@ const FinanceDashboard: React.FC<FinanceDashboardProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Celular: um cartão por lançamento (valor e status sempre visíveis) */}
+        <div className="md:hidden divide-y divide-slate-800">
+          {filteredTransactions.map(tx => {
+            const linkedTask = tx.taskId ? tasks.find(t => t.id === tx.taskId) : null;
+            const client = clientOfTx(tx);
+            const isPaid = tx.status === 'Pago';
+            const linkedToInvoice = !!tx.invoiceId;
+            const open = expandedTxId === tx.id;
+            const btn = 'flex-1 min-h-[44px] rounded-xl bg-slate-800 active:bg-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer';
+            return (
+              <div key={tx.id} className="p-4">
+                <button type="button" onClick={() => setExpandedTxId(open ? null : tx.id)} aria-expanded={open} className="w-full flex items-start gap-3 text-left cursor-pointer">
+                  <div className={`p-1.5 rounded-md shrink-0 mt-0.5 ${tx.type === 'Entrada' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                    {tx.type === 'Entrada' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-100 leading-snug break-words">{tx.description}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {formatDateBR(tx.date)}{client ? ` · ${client.name}` : ''}{tx.method ? ` · ${tx.method}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-base font-black tabular-nums ${tx.type === 'Entrada' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {tx.type === 'Entrada' ? '+' : '-'} {brl(tx.value)}
+                    </p>
+                    <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded ${isPaid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-500'}`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                </button>
+                {open && (
+                  <div className="flex gap-2 mt-3">
+                    {linkedToInvoice && client ? (
+                      <button onClick={() => onViewClientNote(client)} className={`${btn} text-[var(--primary-color)]`}>
+                        <ExternalLink size={15} /> Abrir nota
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onUpdateTransaction(tx.id, { status: isPaid ? 'Pendente' : 'Pago', ...(!isPaid ? { date: getLocalDateString() } : {}) })}
+                        className={`${btn} ${isPaid ? 'text-slate-300' : 'text-emerald-400'}`}
+                      >
+                        {isPaid ? <><Undo2 size={15} /> Pendente</> : <><CheckCircle2 size={15} /> Pago hoje</>}
+                      </button>
+                    )}
+                    <button onClick={() => { setEditingTx(tx); setShowTxModal(true); }} className={`${btn} text-slate-200`}>
+                      <PencilLine size={15} /> Editar
+                    </button>
+                    {linkedTask && (
+                      <button onClick={() => onEditTask(linkedTask)} aria-label="Abrir demanda" className={`${btn} text-slate-200 flex-none px-4`}>
+                        <ExternalLink size={15} />
+                      </button>
+                    )}
+                    <button onClick={() => setDeletingTx(tx)} aria-label="Excluir lançamento" className={`${btn} text-rose-400 flex-none px-4`}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {filteredTransactions.length === 0 && (
+            <p className="px-6 py-12 text-center text-slate-500 text-sm">
+              {hasActiveFilter ? 'Nenhuma transação encontrada com esses filtros.' : 'Nenhuma transação registrada para este período.'}
+            </p>
+          )}
+          {filteredTransactions.length > 0 && (
+            <div className="p-4 bg-slate-900/80 text-xs">
+              <p className="text-slate-400 font-semibold">
+                {hasActiveFilter ? 'Total filtrado' : 'Total do mês (todos os status)'} · {filteredTransactions.length} lançamento(s)
+              </p>
+              <p className="tabular-nums font-bold mt-1">
+                <span className="text-emerald-400">+ {brl(filteredIn)}</span>
+                <span className="text-slate-600 mx-2">/</span>
+                <span className="text-rose-400">- {brl(filteredOut)}</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left">
             <thead>
               <tr className="text-xs text-slate-500 font-semibold border-b border-slate-800">
