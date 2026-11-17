@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { isChunkLoadError, reloadForNewVersion } from '@/lib/chunkReload';
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an unhandled error:', error, errorInfo);
+    // Versão antiga aberta: recarrega sozinho para pegar a nova
+    if (isChunkLoadError(error)) reloadForNewVersion();
     this.setState({ errorInfo });
   }
 
@@ -33,6 +36,11 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = () => {
+    // Um módulo que falhou ao carregar fica "estragado" em memória: só recarregando resolve
+    if (isChunkLoadError(this.state.error)) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
