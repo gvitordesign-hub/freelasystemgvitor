@@ -6,6 +6,7 @@ import Dashboard from '@/features/dashboard/DashboardPage';
 import Login from '@/features/auth/Login';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import SystemLoader from '@/components/common/SystemLoader';
+import UpdateWatcher from '@/components/common/UpdateWatcher';
 
 // Private Route to enforce authentication with smooth session loading
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,6 +36,7 @@ const App: React.FC = () => {
       <BrowserRouter>
         <AuthProvider>
           <ToastProvider>
+          <UpdateWatcher />
           <Routes>
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginRoute />} />
